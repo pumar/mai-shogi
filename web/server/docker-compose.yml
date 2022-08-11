@@ -13,7 +13,7 @@ services:
     build: ./server_image
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - .:/src
+      - .:/mai_shogi_project
     ports:
       - "8000:8000"
     environment:
