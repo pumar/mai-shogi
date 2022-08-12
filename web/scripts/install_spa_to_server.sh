@@ -20,4 +20,4 @@ npm run build
 popd
 
 echo copy spa to django
-cp client/spa/dist/*
+cp client/spa/dist/* server/static/
