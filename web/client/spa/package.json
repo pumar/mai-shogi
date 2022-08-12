@@ -1,0 +1,17 @@
+{
+  "name": "mai-shogi-spa",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "node esbuild.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.15.1",
+    "esbuild-svelte": "^0.7.1",
+    "svelte-preprocess": "^4.10.7"
+  }
+}
