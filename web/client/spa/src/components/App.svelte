@@ -1,0 +1,11 @@
+<script lang="ts">
+export let message: string = "svelte";
+</script>
+
+<div id="test">hello from {message}</div>
+
+<style>
+div#test{
+	color: red;
+}
+</style>
