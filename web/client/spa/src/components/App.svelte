@@ -6,9 +6,15 @@ let gameCode: string = "";
 function connectToGame() {
 	console.log(`connect to game:${gameCode}`);
 	const websocketConn = getWebsocketConnection(
-		['game', 'gameCode'].join('/'),
+		['game', gameCode].join('/'),
 		(e) => { throw new Error(`connect to game ws error:${e.message}`)},
 	);
+	websocketConn.addEventListener("open", () => {
+		console.log("connected to ws, trying to send a message");
+		websocketConn.send(JSON.stringify({
+			message: "hello from typescript",
+		}));
+	});
 	websocketConn.addEventListener("message", (message) => {
 		console.log('recieved message from server', message);
 	});
