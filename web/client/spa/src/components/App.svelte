@@ -1,4 +1,5 @@
 <script lang="ts">
+import Game from "Game.svelte";
 export let message: string = "svelte";
 </script>
 
