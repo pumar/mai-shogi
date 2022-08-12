@@ -5,5 +5,9 @@ export {
 type Board = {
 	ranks: number;
 	files: number;
-	placedPieces: [Piece];
+	placedPieces: [PlacedPiece];
+	heldPieces: {
+		player1: [Piece],
+		player2: [Piece],
+	};
 }
