@@ -9,6 +9,9 @@
   },
   "author": "",
   "license": "MIT",
+  "dependencies": {
+	  "mai-shogi-game": "file:../game/dist"
+  },
   "devDependencies": {
     "esbuild": "^0.15.1",
     "esbuild-svelte": "^0.7.1",
