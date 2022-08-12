@@ -1,6 +1,6 @@
 <script lang="ts">
 import Game from "./Game.svelte";
-import { getWebsocketConnection } from "../WebsocketConnection";
+import { getWebsocketConnection, addEventHandler, WebsocketEvent } from "../WebsocketConnection";
 export let message: string = "svelte";
 let gameCode: string = "";
 function connectToGame() {
@@ -9,16 +9,16 @@ function connectToGame() {
 		['game', gameCode].join('/'),
 		(e) => { throw new Error(`connect to game ws error:${e.message}`)},
 	);
-	websocketConn.addEventListener("open", () => {
+	addEventHandler(websocketConn, WebsocketEvent.Open, () => {
 		console.log("connected to ws, trying to send a message");
 		websocketConn.send(JSON.stringify({
 			message: "hello from typescript",
 		}));
 	});
-	websocketConn.addEventListener("message", (message) => {
+	addEventHandler(websocketConn, WebsocketEvent.Message, (message) => {
 		console.log('recieved message from server', message);
 	});
-	websocketConn.addEventListener("close", () => {
+	addEventHandler(websocketConn, WebsocketEvent.Close, () => {
 		console.log('websocket closed');
 	});
 
