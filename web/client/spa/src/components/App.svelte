@@ -6,7 +6,7 @@ let gameCode: string = "";
 function connectToGame() {
 	console.log(`connect to game:${gameCode}`);
 	const websocketConn = getWebsocketConnection(
-		gameCode,
+		['game', 'gameCode'].join('/'),
 		(e) => { throw new Error(`connect to game ws error:${e.message}`)},
 	);
 	websocketConn.addEventListener("message", (message) => {

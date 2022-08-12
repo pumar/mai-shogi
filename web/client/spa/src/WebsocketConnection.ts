@@ -3,13 +3,15 @@ export {
 }
 
 function getWebsocketConnection(urlSuffix: string, onError: (e: Error) => void): WebSocket {
-	const ws = new WebSocket([
-			'ws:/',
-			window.location.host,
-			'game',
-			urlSuffix
-		].join('/')
-	);
+	const connectionString = [
+		'ws:/',
+		window.location.host,
+		'ws',
+		urlSuffix
+	].join('/');
+	console.log(`attempt connection with string:${connectionString}`);
+
+	const ws = new WebSocket(connectionString);
 	ws.addEventListener("error", onError);
 	return ws;
 }
