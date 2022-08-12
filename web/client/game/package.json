@@ -1,0 +1,16 @@
+{
+  "name": "mai-shogi-game",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "npx tsc",
+    "check": "npx tsc --noEmit"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^4.7.4"
+  }
+}
