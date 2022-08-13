@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Dict, List
 
 class Player:
@@ -52,7 +53,7 @@ class Koma:
         self.white = not self.white
         self.promoted = False
         self.onHand = True
-
+    
     def moveToBoard(self):
         self.onHand = False
 
@@ -60,7 +61,7 @@ class Masu:
     koma: Koma
     x: int 
     y: int
-
+    # Probably should remove defaults for x and y and rewrite the Hand object
     def __init__(self, x = -1, y = -1, koma = None):
         self.koma = koma
         self.x = x
@@ -101,8 +102,9 @@ class Banmen:
         for i in range(0,9):
             board.append([])
             for j in range(0,9):
-                if j == 0:
-                    board[i].append(Masu(i, j, Fuhyou(True)))
+                if j == 6:
+                    #board[i].append(Masu(i, j, Fuhyou(True)))
+                    pass
                 if j == 8:
                     board[i].append(Masu(i, j, Fuhyou(False)))
                 else:
@@ -111,14 +113,23 @@ class Banmen:
 
 class Hand:
     handKoma: Dict[Masu, int]
+    PIECES = (
+        "Fuhyou",
+        "Kyousha",
+        "Keima",
+        "Ginshou",
+        "Kinshou",
+        "Kakugyou",
+        "Hisha"
+    )
 
     def __init__(self) -> None:
         self.handKoma = self.initialHand()
 
-    def initialHand(self) -> None:
+    def initialHand(self) -> Dict[Masu, int]:
         handKoma = {}
-        handKoma[Masu(Fuhyou(white = True, onHand= True))] = 0
-        handKoma[Masu(Fuhyou(white = False, onHand = True))] = 0
+        handKoma[Masu(koma=Fuhyou(white = True, onHand = True))] = 3
+        handKoma[Masu(koma=Fuhyou(white = False, onHand = True))] = 0
         return handKoma
 
 class Move:
@@ -133,7 +144,7 @@ class Fuhyou(Koma):
     def __init__(self, white, onHand = False):
         super().__init__(white, onHand)
 
-    def legalMoves(self,  board:List[List[Masu]], hand:Hand, src_square: Masu) -> List[Move]:
+    def legalMoves(self,  board:List[List[Masu]], src_square: Masu, hand = None) -> List[Move]:
         moves: List[Move] = []
 
         iswhite = src_square.getKoma().isWhite()
@@ -146,13 +157,17 @@ class Fuhyou(Koma):
                 if (iswhite and y != 8) and \
                    (board[x][y + 1].getKoma() == None or board[x][y + 1].getKoma().isWhite() != iswhite):
                     if y > 4:
-                        moves.append(Move(src_square, Masu(x, y + 1, piece.Promote())))
+                        promoted_piece = deepcopy(piece)
+                        promoted_piece.Promote()
+                        moves.append(Move(src_square, Masu(x, y + 1, promoted_piece)))
                     if y < 7:
                         moves.append(Move(src_square, Masu(x, y + 1, piece)))
                 if (not iswhite and y != 0) and \
                    ( board[x][y - 1].getKoma() == None or board[x][y - 1].getKoma().isWhite() != iswhite):
                     if y < 4: 
-                        moves.append(Move(src_square, Masu(x, y -1, piece.Promote())))
+                        promoted_piece = deepcopy(piece)
+                        promoted_piece.Promote()
+                        moves.append(Move(src_square, Masu(x, y -1, promoted_piece)))
                     if y > 1:
                         moves.append(Move(src_square, Masu(x, y - 1, piece)))
             else:
@@ -188,14 +203,16 @@ class Fuhyou(Koma):
                 if x != 8:
                     if ( board[x + 1][y].getKoma() == None or board[x + 1][y].getKoma().isWhite() != iswhite):
                         moves.append(Move(src_square, Masu(x + 1, y, piece)))
+        # Rewrite handkoma as a simpler data structure to simplify this part
         else:
+            if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
             if hand[src_square] > 0:
                 column: List[Masu]
                 masu: Masu
-                hasFuhyou = False
                 for column in board:
+                    hasFuhyou = False
                     for masu in column:
-                        if isinstance(masu.getKoma(), Fuhyou) and not masu.getKoma().promoted and (masu.getKoma().isWhite() == iswhite):
+                        if isinstance(masu.getKoma(), Fuhyou) and not masu.getKoma().isPromoted() and (masu.getKoma().isWhite() == iswhite):
                             hasFuhyou = True
                     if not hasFuhyou:
                         for masu in column:
@@ -205,14 +222,23 @@ class Fuhyou(Koma):
         return moves               
                     
 
+
+
+# Testing
 board = Banmen().grid
-hand = Hand()
+hand = Hand().handKoma
+moves = []
 for column in board:
     for masu in column:
         if(isinstance(masu.getKoma(),Fuhyou)):
-            moves =  masu.getKoma().legalMoves(board, hand, masu)
-            for move in moves:
-                print("Pawn from ({0},{1}) to ({2},{3}).".format(move.src_square.getX(),move.src_square.getY(),move.trgt_square.getX(),move.trgt_square.getY()))
+            moves.extend(masu.getKoma().legalMoves(board, masu))
+for masu, number in hand.items():
+    if number >  0:
+        moves.extend(masu.getKoma().legalMoves(board, masu, hand))
+
+for move in moves:
+    print("{0} Pawn from ({1},{2}) to ({3},{4}){5}".format("White" if move.src_square.getKoma().isWhite() else "Black",move.src_square.getX(),move.src_square.getY(),move.trgt_square.getX(),\
+        move.trgt_square.getY(), " and Promote to Tokin." if move.trgt_square.getKoma().isPromoted() else "."))
 
 
 
