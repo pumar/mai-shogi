@@ -18,10 +18,12 @@ function connectToGame() {
 	addEventHandler(websocketConn, WebsocketEvent.Message, (message) => {
 		console.log('recieved message from server', message);
 	});
-	addEventHandler(websocketConn, WebsocketEvent.Close, () => {
-		console.log('websocket closed');
+	addEventHandler(websocketConn, WebsocketEvent.Close, (event: CloseEvent) => {
+		console.log('websocket closed', event);
 	});
-
+	addEventHandler(websocketConn, WebsocketEvent.Error, (event: Event) => {
+		console.error(`websocket connection closed, do to an error`, event);
+	});
 }
 </script>
 
