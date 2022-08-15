@@ -17,8 +17,26 @@ onMount(() => {
 					{
 						name: "pawn",
 						isPromoted: false,
+						rank: 1,
+						file: 1,
+					},
+					{
+						name: "pawn",
+						isPromoted: false,
+						rank: 4,
+						file: 4,
+					},
+					{
+						name: "pawn",
+						isPromoted: false,
 						rank: 3,
 						file: 3,
+					},
+					{
+						name: "pawn",
+						isPromoted: false,
+						rank: 2,
+						file: 6,
 					},
 				],
 			},

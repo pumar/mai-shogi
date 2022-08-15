@@ -1,5 +1,6 @@
 import { Board } from "../types/Board";
 import { Game } from "../types/Game";
+import { PlacedPiece } from "../types/Piece";
 
 export {
 	drawGame,
@@ -76,6 +77,38 @@ function drawBoard(
 		renderSettings.renderPadding,
 		renderSettings.gridStrokeColor,
 	);
+
+	drawPieces(
+		context,
+		renderSettings,
+		board.placedPieces,
+	);
+}
+
+function drawPieces(
+	context: CanvasRenderingContext2D,
+	renderSettings: RenderSettings,
+	placedPieces: PlacedPiece[]
+): void {
+	renderSaveContext(context, () => {
+		//TODO configurable
+		context.fillStyle = "red";
+		//TODO 1,1 is the top left corner, this logic is calculating it as the top right corner
+		placedPieces.forEach((placedPiece) => {
+			const pieceX = renderSettings.renderPadding + placedPiece.file * (renderSettings.boardSpaceWidth / 2);
+			const pieceY = renderSettings.renderPadding + placedPiece.rank * (renderSettings.boardSpaceHeight / 2);
+			context.fillText(pieceCodeToGlyph(placedPiece.name), pieceX, pieceY);
+		});
+	});
+}
+
+function pieceCodeToGlyph(pieceCode: string): string {
+	switch(pieceCode) {
+		case "pawn":
+			return "p";
+		default:
+			throw new Error(`pieceCodeToGlyph failed to get a glyph for piece of type:${pieceCode}`);
+	}
 }
 
 function drawBoardOutline(
