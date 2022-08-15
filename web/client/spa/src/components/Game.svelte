@@ -1,5 +1,5 @@
 <script lang="ts">
-import { drawBoard } from "mai-shogi-game";
+import { drawBoard, defaultRenderSettings } from "mai-shogi-game";
 import { onMount } from "svelte";
 
 let canvas = undefined;
@@ -7,7 +7,9 @@ let canvas = undefined;
 onMount(() => {
 	console.log("canvas reference:", canvas);
 	const context = canvas.getContext("2d");
-	drawBoard({
+	drawBoard(
+		defaultRenderSettings(),
+		{
 			ranks: 9,
 			files: 9,
 			placedPieces: [

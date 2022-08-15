@@ -1,5 +1,6 @@
-import { drawBoard } from "./Game/Renderer/Renderer";
+import { drawBoard, defaultRenderSettings } from "./Game/Renderer/Renderer";
 
 export {
 	drawBoard,
+	defaultRenderSettings,
 }
