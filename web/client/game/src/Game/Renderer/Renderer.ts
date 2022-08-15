@@ -45,21 +45,21 @@ function drawBoard(
 		boardHeight
 	);
 
-	//drawGrid(
-	//	board, 
-	//	context, 
-	//	renderSettings.boardSpaceWidth,
-	//	renderSettings.boardSpaceHeight,
-	//	[renderSettings.renderPadding + renderSettings.boardSpaceWidth, renderSettings.renderPadding + renderSettings.boardSpaceHeight],
-	//	renderSettings.gridStrokeColor,
-	//);
-
 	drawBoardBackground(
 		context,
 		renderSettings.boardBackgroundColor,
 		renderSettings.renderPadding,
 		boardWidth,
 		boardHeight,
+	);
+
+	drawGrid(
+		board, 
+		context, 
+		renderSettings.boardSpaceWidth,
+		renderSettings.boardSpaceHeight,
+		renderSettings.renderPadding,
+		renderSettings.gridStrokeColor,
 	);
 }
 
@@ -105,25 +105,25 @@ function drawGrid(
 	context: CanvasRenderingContext2D, 
 	boardSpaceWidth: number,
 	boardSpaceHeight: number,
-	startPoint: [number, number],
+	renderPadding: number,
 	strokeColor: string,
 ): void {
 	renderSaveContext(context, () => {
-		const startX = startPoint[0] + boardSpaceWidth;
-		const startY = startPoint[1] + boardSpaceHeight;
+		const startX = renderPadding;
+		const startY = renderPadding;
 		let x = startX;
-		let y = startY;
+		let y = startY + boardSpaceHeight;
 		context.beginPath();
-		context.moveTo(x, y);
 		for(let rank = 0; rank < board.ranks - 1; rank++) {
+			context.moveTo(x, y);
 			context.lineTo(x + board.files * boardSpaceWidth, y);
 			y += boardSpaceHeight;
 		}
 
-		x = startX;
+		x = startX + boardSpaceWidth;
 		y = startY;
-		context.moveTo(x, y)
 		for(let file = 0; file < board.files - 1; file++) {
+			context.moveTo(x, y)
 			context.lineTo(x, y + board.ranks * boardSpaceHeight)
 			x += boardSpaceWidth;
 		}
