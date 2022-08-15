@@ -1,7 +1,8 @@
 import { Board } from "../types/Board";
+import { Game } from "../types/Game";
 
 export {
-	drawBoard,
+	drawGame,
 	defaultRenderSettings
 }
 
@@ -23,19 +24,32 @@ function defaultRenderSettings(): RenderSettings {
 	}
 }
 
-function drawBoard(
+function drawGame(
 	renderSettings: RenderSettings,
-	board: Board,
+	game: Game,
 	_: HTMLCanvasElement,
 	context: CanvasRenderingContext2D,
 ): void {
 	//const { width: canvasWidth, height: canvasHeight } = targetCanvas;
-	console.error('TODO render game state', { board, renderSettings: renderSettings });
+	console.error('TODO render game state', { game, renderSettings: renderSettings });
 	//TODO the aspect ratio for the canvas isn't being propely set, so since the canvas's
 	//aspect ratio is not 1:1, things are stretching
+
+	drawBoard(
+		context,
+		renderSettings,
+		game.board
+	);
+
+}
+
+function drawBoard(
+	context: CanvasRenderingContext2D,
+	renderSettings: RenderSettings,
+	board: Board,
+) {
 	const boardWidth = board.files * renderSettings.boardSpaceWidth;
 	const boardHeight = board.ranks * renderSettings.boardSpaceHeight;
-	console.log({ boardWidth, boardHeight });
 
 	drawBoardOutline(
 		context,
@@ -54,7 +68,8 @@ function drawBoard(
 	);
 
 	drawGrid(
-		board, 
+		board.ranks, 
+		board.files,
 		context, 
 		renderSettings.boardSpaceWidth,
 		renderSettings.boardSpaceHeight,
@@ -101,7 +116,8 @@ function drawBoardBackground(
 
 
 function drawGrid(
-	board: Board, 
+	ranks: number,
+	files: number,
 	context: CanvasRenderingContext2D, 
 	boardSpaceWidth: number,
 	boardSpaceHeight: number,
@@ -114,17 +130,17 @@ function drawGrid(
 		let x = startX;
 		let y = startY + boardSpaceHeight;
 		context.beginPath();
-		for(let rank = 0; rank < board.ranks - 1; rank++) {
+		for(let rank = 0; rank < ranks - 1; rank++) {
 			context.moveTo(x, y);
-			context.lineTo(x + board.files * boardSpaceWidth, y);
+			context.lineTo(x + files * boardSpaceWidth, y);
 			y += boardSpaceHeight;
 		}
 
 		x = startX + boardSpaceWidth;
 		y = startY;
-		for(let file = 0; file < board.files - 1; file++) {
+		for(let file = 0; file < files - 1; file++) {
 			context.moveTo(x, y)
-			context.lineTo(x, y + board.ranks * boardSpaceHeight)
+			context.lineTo(x, y + ranks * boardSpaceHeight)
 			x += boardSpaceWidth;
 		}
 		context.strokeStyle = strokeColor;

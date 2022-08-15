@@ -1,3 +1,8 @@
+export {
+	PlacedPiece,
+	Piece,
+}
+
 type Placed = {
 	rank: number;
 	file: number;
