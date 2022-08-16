@@ -121,17 +121,22 @@ function drawPieces(
 	ranks: number,
 	files: number,
 ): void {
-	const boardLeftEdge = renderSettings.renderPadding + files * renderSettings.boardSpaceWidth;
+	const boardRightEdge = renderSettings.renderPadding + files * renderSettings.boardSpaceWidth;
 	const halfSpaceWidth = renderSettings.boardSpaceWidth / 2;
 	const halfSpaceHeight = renderSettings.boardSpaceHeight / 2;
+	//TODO actually use a svg or something to represent the piece
+	//TODO calculate the width of the piece image and use it to center it on the space
+	//adjust the letters so that they are kinda in the center of their square
+	const letterAdjust = 3;
+	console.log({ halfSpaceWidth, halfSpaceHeight });
 	//const boardRightEdge = renderSettings.renderPadding + ranks * renderSettings.boardSpaceHeight;
 	renderSaveContext(context, () => {
 		//TODO configurable
 		context.fillStyle = "red";
 		//TODO 1,1 is the top left corner, this logic is calculating it as the top right corner
 		placedPieces.forEach((placedPiece) => {
-			const pieceX = boardLeftEdge - placedPiece.file * halfSpaceWidth;
-			const pieceY = renderSettings.renderPadding + placedPiece.rank * halfSpaceHeight;
+			const pieceX = boardRightEdge - halfSpaceWidth - renderSettings.boardSpaceWidth * (placedPiece.file - 1) - letterAdjust;
+			const pieceY = renderSettings.renderPadding + halfSpaceHeight + (renderSettings.boardSpaceHeight * (placedPiece.rank - 1)) + letterAdjust;
 			context.fillText(pieceCodeToGlyph(placedPiece.name), pieceX, pieceY);
 		});
 	});
