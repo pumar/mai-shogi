@@ -117,14 +117,16 @@ function drawPieces(
 	files: number,
 ): void {
 	const boardLeftEdge = renderSettings.renderPadding + files * renderSettings.boardSpaceWidth;
+	const halfSpaceWidth = renderSettings.boardSpaceWidth / 2;
+	const halfSpaceHeight = renderSettings.boardSpaceHeight / 2;
 	//const boardRightEdge = renderSettings.renderPadding + ranks * renderSettings.boardSpaceHeight;
 	renderSaveContext(context, () => {
 		//TODO configurable
 		context.fillStyle = "red";
 		//TODO 1,1 is the top left corner, this logic is calculating it as the top right corner
 		placedPieces.forEach((placedPiece) => {
-			const pieceX = boardLeftEdge - placedPiece.file * (renderSettings.boardSpaceWidth / 2);
-			const pieceY = renderSettings.renderPadding + placedPiece.rank * (renderSettings.boardSpaceHeight / 2);
+			const pieceX = boardLeftEdge - placedPiece.file * halfSpaceWidth;
+			const pieceY = renderSettings.renderPadding + placedPiece.rank * halfSpaceHeight;
 			context.fillText(pieceCodeToGlyph(placedPiece.name), pieceX, pieceY);
 		});
 	});

@@ -48,7 +48,7 @@ onMount(() => {
 });
 </script>
 
-<canvas bind:this={canvas} class="game-canvas" width=550 height=600>
+<canvas bind:this={canvas} class="game-canvas" width=600 height=600>
 </canvas>
 
 <style>
