@@ -42,8 +42,8 @@ div#test{
 }
 /* TODO don't hardcode the height & width */
 div.gameContainer {
-	width: 300px;
-	height: 400px;
+	width: 600px;
+	height: 600px;
 	border: 1px solid black;
 }
 </style>

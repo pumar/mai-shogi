@@ -36,25 +36,30 @@ function drawGame(
 	//scale the board so that it takes up 75% of the available space from the canvas
 	//TODO the aspect ratio for the canvas isn't being propely set, so since the canvas's
 	//aspect ratio is not 1:1, things are stretching
-	const { width, height } = canvas;
+	//const { width, height } = canvas;
+	const { clientHeight: height, clientWidth: width } = canvas;
+	canvas.width = width;
+	canvas.height = height;
+
 	const canvasRatio = width / height;
-	const boardWidth = width * 0.75;
+	//const boardWidth = width * 0.75;
 	const boardHeight = height * 0.75;
-	const boardRatio = boardWidth / boardHeight;
+	//const boardRatio = boardWidth / boardHeight;
 
 	//const boardSpaceWidth = boardWidth / 9;
 	//const boardSpaceHeight = boardHeight / 9;
-	const logicalBoardWidth = renderSettings.boardSpaceWidth * game.board.files;
+	//const logicalBoardWidth = renderSettings.boardSpaceWidth * game.board.files;
 	const logicalBoardHeight = renderSettings.boardSpaceHeight * game.board.files;
 
-	const scaleFactorX = boardWidth / logicalBoardWidth;
+	//const scaleFactorX = boardWidth / logicalBoardWidth;
 	const scaleFactorY = boardHeight / logicalBoardHeight;
-	context.scale(scaleFactorX, scaleFactorY);
+	//scale the logical game board up to the size of the canvas
+	context.scale(scaleFactorY, scaleFactorY);
 
 	console.log({
-		boardRatio,
+		//boardRatio,
 		canvasRatio,
-		scaleFactorX,
+		//scaleFactorX,
 		scaleFactorY,
 	});
 
