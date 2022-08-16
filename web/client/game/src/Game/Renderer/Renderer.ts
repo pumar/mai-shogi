@@ -28,13 +28,35 @@ function defaultRenderSettings(): RenderSettings {
 function drawGame(
 	renderSettings: RenderSettings,
 	game: Game,
-	_: HTMLCanvasElement,
+	canvas: HTMLCanvasElement,
 	context: CanvasRenderingContext2D,
 ): void {
 	//const { width: canvasWidth, height: canvasHeight } = targetCanvas;
 	console.error('TODO render game state', { game, renderSettings: renderSettings });
+	//scale the board so that it takes up 75% of the available space from the canvas
 	//TODO the aspect ratio for the canvas isn't being propely set, so since the canvas's
 	//aspect ratio is not 1:1, things are stretching
+	const { width, height } = canvas;
+	const canvasRatio = width / height;
+	const boardWidth = width * 0.75;
+	const boardHeight = height * 0.75;
+	const boardRatio = boardWidth / boardHeight;
+
+	//const boardSpaceWidth = boardWidth / 9;
+	//const boardSpaceHeight = boardHeight / 9;
+	const logicalBoardWidth = renderSettings.boardSpaceWidth * game.board.files;
+	const logicalBoardHeight = renderSettings.boardSpaceHeight * game.board.files;
+
+	const scaleFactorX = boardWidth / logicalBoardWidth;
+	const scaleFactorY = boardHeight / logicalBoardHeight;
+	context.scale(scaleFactorX, scaleFactorY);
+
+	console.log({
+		boardRatio,
+		canvasRatio,
+		scaleFactorX,
+		scaleFactorY,
+	});
 
 	drawBoard(
 		context,
@@ -82,20 +104,26 @@ function drawBoard(
 		context,
 		renderSettings,
 		board.placedPieces,
+		board.ranks,
+		board.files,
 	);
 }
 
 function drawPieces(
 	context: CanvasRenderingContext2D,
 	renderSettings: RenderSettings,
-	placedPieces: PlacedPiece[]
+	placedPieces: PlacedPiece[],
+	ranks: number,
+	files: number,
 ): void {
+	const boardLeftEdge = renderSettings.renderPadding + files * renderSettings.boardSpaceWidth;
+	//const boardRightEdge = renderSettings.renderPadding + ranks * renderSettings.boardSpaceHeight;
 	renderSaveContext(context, () => {
 		//TODO configurable
 		context.fillStyle = "red";
 		//TODO 1,1 is the top left corner, this logic is calculating it as the top right corner
 		placedPieces.forEach((placedPiece) => {
-			const pieceX = renderSettings.renderPadding + placedPiece.file * (renderSettings.boardSpaceWidth / 2);
+			const pieceX = boardLeftEdge - placedPiece.file * (renderSettings.boardSpaceWidth / 2);
 			const pieceY = renderSettings.renderPadding + placedPiece.rank * (renderSettings.boardSpaceHeight / 2);
 			context.fillText(pieceCodeToGlyph(placedPiece.name), pieceX, pieceY);
 		});
