@@ -5,7 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "node esbuild.js"
+    "build": "node esbuild.js",
+	"check": "tsc --project check.tsconfig.json"
   },
   "author": "",
   "license": "MIT",
