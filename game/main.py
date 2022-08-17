@@ -104,22 +104,35 @@ class Banmen:
             for j in range(0,9):
                 board[i].append(Masu(i, j, None))
 
-        board[0][0].setKoma(Kyousha(True))
-        board[2][0].setKoma(Ginshou(True))
-        board[3][0].setKoma(Kinshou(True))
+        #board[0][0].setKoma(Kyousha(True))
+        #board[1][0].setKoma(Keima(True))
+        #board[2][0].setKoma(Ginshou(True))
+        #board[3][0].setKoma(Kinshou(True))
         board[4][0].setKoma(Gyokushou(True))
-        board[5][0].setKoma(Kinshou(True))
-        board[6][0].setKoma(Ginshou(True))
-        board[8][0].setKoma(Kyousha(True))
+        #board[5][0].setKoma(Kinshou(True))
+        #board[6][0].setKoma(Ginshou(True))
+        #board[7][0].setKoma(Keima(True))
+        #board[8][0].setKoma(Kyousha(True))
 
-        board[0][8].setKoma(Kyousha(False))
-        board[2][8].setKoma(Ginshou(False))
-        board[3][8].setKoma(Kinshou(False))
+        #board[1][1].setKoma(Kakugyou(True))
+        #board[7][1].setKoma(Hisha(True))
+
+
+        #board[0][8].setKoma(Kyousha(False))
+        #board[1][8].setKoma(Keima(False))
+        #board[2][8].setKoma(Ginshou(False))
+        #board[3][8].setKoma(Kinshou(False))
         board[4][8].setKoma(Gyokushou(False))
-        board[5][8].setKoma(Kinshou(False))
-        board[6][8].setKoma(Ginshou(False))
-        board[8][8].setKoma(Kyousha(False))
+        #board[5][8].setKoma(Kinshou(False))
+        #board[6][8].setKoma(Ginshou(False))
+        #board[7][8].setKoma(Keima(False))
+        #board[8][8].setKoma(Kyousha(False))
+
+        #board[1][7].setKoma(Hisha(False))
+        #board[7][7].setKoma(Kakugyou(False))
         
+        board[3][5].setKoma(Kyousha(False))
+
         for i in range(0,9):
             board[i][2].setKoma(Fuhyou(True))
             board[i][6].setKoma(Fuhyou(False))
@@ -173,22 +186,17 @@ class Fuhyou(Koma):
 
         if not self.isOnHand():
             if not self.isPromoted():
-                if (iswhite and y != 8) and \
-                   (board.getMasu(x,y + 1).getKoma() == None or board.getMasu(x,y + 1).getKoma().isWhite() != iswhite):
-                    if y > 4:
-                        promoted_piece = deepcopy(piece)
-                        promoted_piece.Promote()
-                        moves.append(Move(src_square, Masu(x, y + 1, promoted_piece)))
-                    if y < 7:
-                        moves.append(Move(src_square, Masu(x, y + 1, piece)))
-                if (not iswhite and y != 0) and \
-                   ( board.getMasu(x,y - 1).getKoma() == None or board.getMasu(x,y - 1).getKoma().isWhite() != iswhite):
-                    if y < 4: 
-                        promoted_piece = deepcopy(piece)
-                        promoted_piece.Promote()
-                        moves.append(Move(src_square, Masu(x, y -1, promoted_piece)))
-                    if y > 1:
-                        moves.append(Move(src_square, Masu(x, y - 1, piece)))
+                pd = [0,1] if iswhite else [0,-1]
+                tX = x + pd[0]
+                tY = y + pd[1]
+                if(-1 < tX < 9 and -1 < tY < 9):
+                    if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
+                        if (iswhite and y > 6) or (not iswhite and y < 2):
+                            promoted_piece = deepcopy(piece)
+                            promoted_piece.Promote()
+                            moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
+                        if not ((tY + pd[1]) > 8 or (tY + pd[1]) < 0):
+                            moves.append(Move(src_square, Masu(tX, tY, piece)))
             else:
                 virtual_kin = Kinshou(iswhite)
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
@@ -222,30 +230,25 @@ class Kyousha(Koma):
         piece = src_square.getKoma()
         x = src_square.getX()
         y = src_square.getY()
-
         
         if not self.isOnHand():
             if not self.isPromoted():
-                if iswhite:
-                    for i in range(1, 8-y):
-                        if (board.getMasu(x,y + i).getKoma() == None or board.getMasu(x,y + i).getKoma().isWhite() != iswhite):
-                            if y > 4:
+                pd = [0,1] if iswhite else [0,-1]
+                tX = x
+                tY = y
+                while(True):
+                    tX += pd[0]
+                    tY += + pd[1]
+                    if(-1 < tX < 9 and -1 < tY < 9):
+                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
+                            if (iswhite and tY > 5) or (not iswhite and tY < 3):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
-                                moves.append(Move(src_square, Masu(x, y + i, promoted_piece)))
-                            if y < 7:
-                                moves.append(Move(src_square, Masu(x, y + i, piece)))
-                        if board.getMasu(x,y + i).getKoma() != None: break
-                else:
-                    for i in range(y + 1, -1 , -1):
-                        if (board.getMasu(x,y - i).getKoma() == None or board.getMasu(x,y - i).getKoma().isWhite() != iswhite):
-                            if y < 4:
-                                promoted_piece = deepcopy(piece)
-                                promoted_piece.Promote()
-                                moves.append(Move(src_square, Masu(x, y - i, promoted_piece)))
-                            if y > 1:
-                                moves.append(Move(src_square, Masu(x, y - i, piece)))
-                        if board.getMasu(x,y - i).getKoma() != None: break
+                                moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
+                            if not ((tY + pd[1]) > 8 or (tY + pd[1]) < 0):
+                                moves.append(Move(src_square, Masu(tX, tY, piece)))
+                        if board.getMasu(tX, tY).getKoma() != None: break
+                    else: break
             else:
                 virtual_kin = Kinshou(iswhite)
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
@@ -271,36 +274,19 @@ class Keima(Koma):
 
         if not self.isOnHand():
             if not self.isPromoted():
-                if iswhite:
-                    if x < 8 and (board.getMasu(x + 1,y + 2).getKoma() == None or board.getMasu(x + 1,y + 2).getKoma().isWhite() != iswhite):
-                        if y > 3:
-                            promoted_piece = deepcopy(piece)
-                            promoted_piece.Promote()
-                            moves.append(Move(src_square, Masu(x + 1, y + 2, promoted_piece)))
-                        if y < 5:
-                            moves.append(Move(src_square, Masu(x + 1, y + 2, piece)))
-                    if x > 0  and (board.getMasu(x - 1,y + 2).getKoma() == None or board.getMasu(x - 1,y + 2).getKoma().isWhite() != iswhite):
-                        if y > 3:
-                            promoted_piece = deepcopy(piece)
-                            promoted_piece.Promote()
-                            moves.append(Move(src_square, Masu(x - 1, y + 2, promoted_piece)))
-                        if y < 5:
-                            moves.append(Move(src_square, Masu(x - 1, y + 2, piece)))
-                else:
-                    if x < 8 and (board.getMasu(x + 1,y - 2).getKoma() == None or board.getMasu(x + 1,y - 2).getKoma().isWhite() != iswhite):
-                        if y < 5:
-                            promoted_piece = deepcopy(piece)
-                            promoted_piece.Promote()
-                            moves.append(Move(src_square, Masu(x + 1, y - 2, promoted_piece)))
-                        if y > 3:
-                            moves.append(Move(src_square, Masu(x + 1, y - 2, piece)))
-                    if x > 0  and (board.getMasu(x - 1,y - 2).getKoma() == None or board.getMasu(x - 1,y - 2).getKoma().isWhite() != iswhite):
-                        if y < 5:
-                            promoted_piece = deepcopy(piece)
-                            promoted_piece.Promote()
-                            moves.append(Move(src_square, Masu(x - 1, y - 2, promoted_piece)))
-                        if y > 3:
-                            moves.append(Move(src_square, Masu(x - 1, y - 2, piece)))
+                possible_deltas = [[1, 2],[-1, 2]]
+                if not iswhite: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
+                for pd in possible_deltas:
+                    tX = x + pd[0]
+                    tY = y + pd[1]
+                    if(-1 < tX < 9 and -1 < tY < 9):
+                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
+                            if (iswhite and y > 3) or (not iswhite and y < 5):
+                                promoted_piece = deepcopy(piece)
+                                promoted_piece.Promote()
+                                moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
+                            if not ((tY + pd[1]) > 8 or (tY + pd[1]) < 0):
+                                moves.append(Move(src_square, Masu(tX, tY, piece)))        
             else:
                 virtual_kin = Kinshou(iswhite)
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
@@ -326,80 +312,18 @@ class Ginshou(Koma):
 
         if not self.isOnHand():
             if not self.isPromoted():
-                if iswhite:
-                    if y != 8:
-                        if (board.getMasu(x,y + 1).getKoma() == None or board.getMasu(x,y + 1).getKoma().isWhite() != iswhite):
-                            if y > 4:
+                possible_deltas = [[0,1],[1,1],[-1,1],[-1,-1],[1,-1]]
+                if not iswhite: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
+                for pd in possible_deltas:
+                    tX = x + pd[0]
+                    tY = y + pd[1]
+                    if(-1 < tX < 9 and -1 < tY < 9):
+                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
+                            if (iswhite and (y > 5 or tY > 5)) or (not iswhite and (y < 3 or tY < 3)):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
-                                moves.append(Move(src_square, Masu(x, y + 1, promoted_piece)))
-                            moves.append(Move(src_square, Masu(x, y + 1, piece)))
-                        if x < 8:
-                            if (board.getMasu(x + 1,y + 1).getKoma() == None or board.getMasu(x + 1,y + 1).getKoma().isWhite() != iswhite):
-                                if y > 4:
-                                    promoted_piece = deepcopy(piece)
-                                    promoted_piece.Promote()
-                                    moves.append(Move(src_square, Masu(x + 1, y + 1, promoted_piece)))
-                                moves.append(Move(src_square, Masu(x + 1, y + 1, piece)))
-                        if x > 0:
-                            if (board.getMasu(x - 1,y + 1).getKoma() == None or board.getMasu(x - 1,y + 1).getKoma().isWhite() != iswhite):
-                                if y > 4:
-                                    promoted_piece = deepcopy(piece)
-                                    promoted_piece.Promote()
-                                    moves.append(Move(src_square, Masu(x - 1, y + 1, promoted_piece)))
-                                moves.append(Move(src_square, Masu(x - 1, y + 1, piece)))
-                    if y != 0:
-                        if x < 8:
-                            if (board.getMasu(x + 1,y - 1).getKoma() == None or board.getMasu(x + 1,y - 1).getKoma().isWhite() != iswhite):
-                                if y > 5:
-                                    promoted_piece = deepcopy(piece)
-                                    promoted_piece.Promote()
-                                    moves.append(Move(src_square, Masu(x + 1, y - 1, promoted_piece)))
-                                moves.append(Move(src_square, Masu(x + 1, y - 1, piece)))
-                        if x > 0:
-                            if (board.getMasu(x - 1,y - 1).getKoma() == None or board.getMasu(x - 1,y - 1).getKoma().isWhite() != iswhite):
-                                if y > 5:
-                                    promoted_piece = deepcopy(piece)
-                                    promoted_piece.Promote()
-                                    moves.append(Move(src_square, Masu(x - 1, y - 1, promoted_piece)))
-                                moves.append(Move(src_square, Masu(x - 1, y - 1, piece)))
-                else:
-                    if y != 0:
-                        if (board.getMasu(x,y - 1).getKoma() == None or board.getMasu(x,y - 1).getKoma().isWhite() != iswhite):
-                            if y < 4:
-                                promoted_piece = deepcopy(piece)
-                                promoted_piece.Promote()
-                                moves.append(Move(src_square, Masu(x, y - 1, promoted_piece)))
-                            moves.append(Move(src_square, Masu(x, y - 1, piece)))
-                        if x < 8:
-                            if (board.getMasu(x + 1,y - 1).getKoma() == None or board.getMasu(x + 1,y - 1).getKoma().isWhite() != iswhite):
-                                if y < 4:
-                                    promoted_piece = deepcopy(piece)
-                                    promoted_piece.Promote()
-                                    moves.append(Move(src_square, Masu(x + 1, y - 1, promoted_piece)))
-                                moves.append(Move(src_square, Masu(x + 1, y - 1, piece)))
-                        if x > 0:
-                            if (board.getMasu(x - 1,y - 1).getKoma() == None or board.getMasu(x - 1,y - 1).getKoma().isWhite() != iswhite):
-                                if y < 4:
-                                    promoted_piece = deepcopy(piece)
-                                    promoted_piece.Promote()
-                                    moves.append(Move(src_square, Masu(x - 1, y - 1, promoted_piece)))
-                                moves.append(Move(src_square, Masu(x - 1, y - 1, piece)))
-                    if y != 8:
-                        if x < 8:
-                            if (board.getMasu(x + 1,y + 1).getKoma() == None or board.getMasu(x + 1,y + 1).getKoma().isWhite() != iswhite):
-                                if y < 3:
-                                    promoted_piece = deepcopy(piece)
-                                    promoted_piece.Promote()
-                                    moves.append(Move(src_square, Masu(x + 1, y + 1, promoted_piece)))
-                                moves.append(Move(src_square, Masu(x + 1, y + 1, piece)))
-                        if x > 0:
-                            if (board.getMasu(x - 1,y + 1).getKoma() == None or board.getMasu(x - 1,y + 1).getKoma().isWhite() != iswhite):
-                                if y < 3:
-                                    promoted_piece = deepcopy(piece)
-                                    promoted_piece.Promote()
-                                    moves.append(Move(src_square, Masu(x - 1, y + 1, promoted_piece)))
-                                moves.append(Move(src_square, Masu(x - 1, y + 1, piece)))
+                                moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
+                            moves.append(Move(src_square, Masu(tX, tY, piece))) 
             else:
                 virtual_kin = Kinshou(iswhite)
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
@@ -429,38 +353,14 @@ class Kinshou(Koma):
         y = src_square.getY()
 
         if not self.isOnHand():
-            if (iswhite):
-                if y != 8:
-                    if (board.getMasu(x,y + 1).getKoma() == None or board.getMasu(x,y + 1).getKoma().isWhite() != iswhite):
-                        moves.append(Move(src_square, Masu(x, y + 1, piece)))
-                    if (x != 0) and \
-                        ( board.getMasu(x - 1,y + 1).getKoma() == None or board.getMasu(x - 1,y + 1).getKoma().isWhite() != iswhite):
-                        moves.append(Move(src_square, Masu(x - 1, y + 1, piece)))
-                    if (x != 8) and \
-                        ( board.getMasu(x + 1,y + 1).getKoma() == None or board.getMasu(x + 1,y + 1).getKoma().isWhite() != iswhite):
-                        moves.append(Move(src_square, Masu(x + 1, y + 1, piece)))
-                if y != 0:
-                    if ( board.getMasu(x,y - 1).getKoma() == None or board.getMasu(x,y - 1).getKoma().isWhite() != iswhite):
-                        moves.append(Move(src_square, Masu(x, y - 1, piece)))
-            if (not iswhite):
-                if y != 0:
-                    if ( board.getMasu(x,y - 1).getKoma() == None or board.getMasu(x,y - 1).getKoma().isWhite() != iswhite):
-                        moves.append(Move(src_square, Masu(x, y - 1, piece)))
-                    if (x != 8) and \
-                        ( board.getMasu(x + 1,y - 1).getKoma() == None or board.getMasu(x + 1,y - 1).getKoma().isWhite() != iswhite):
-                        moves.append(Move(src_square, Masu(x + 1, y - 1, piece)))
-                    if (x != 0) and \
-                        ( board.getMasu(x - 1,y - 1).getKoma() == None or board.getMasu(x - 1,y - 1).getKoma().isWhite() != iswhite):
-                        moves.append(Move(src_square, Masu(x - 1, y - 1, piece)))
-                if y != 8:
-                    if ( board.getMasu(x,y + 1).getKoma() == None or board.getMasu(x,y + 1).getKoma().isWhite() != iswhite):
-                        moves.append(Move(src_square, Masu(x, y + 1, piece)))
-            if x != 0:
-                if ( board.getMasu(x - 1,y).getKoma() == None or board.getMasu(x - 1,y).getKoma().isWhite() != iswhite):
-                    moves.append(Move(src_square, Masu(x - 1, y, piece)))
-            if x != 8:
-                if ( board.getMasu(x + 1,y).getKoma() == None or board.getMasu(x + 1,y).getKoma().isWhite() != iswhite):
-                    moves.append(Move(src_square, Masu(x + 1, y, piece)))
+            possible_deltas = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[-1,1]]
+            if not iswhite: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
+            for pd in possible_deltas:
+                tX = x + pd[0]
+                tY = y + pd[1]
+                if(-1 < tX < 9 and -1 < tY < 9):
+                    if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
+                        moves.append(Move(src_square, Masu(tX, tY, piece)))
         elif virtualized_piece == None:
             if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
             if hand[src_square] > 0:
@@ -487,30 +387,13 @@ class Gyokushou(Koma):
         x = src_square.getX()
         y = src_square.getY()
 
-        if y != 8:
-            if (board.getMasu(x,y + 1).getKoma() == None or board.getMasu(x,y + 1).getKoma().isWhite() != iswhite):
-                moves.append(Move(src_square, Masu(x, y + 1, piece)))
-            if (x != 0) and \
-                ( board.getMasu(x - 1,y + 1).getKoma() == None or board.getMasu(x - 1,y + 1).getKoma().isWhite() != iswhite):
-                moves.append(Move(src_square, Masu(x - 1, y + 1, piece)))
-            if (x != 8) and \
-                ( board.getMasu(x + 1,y + 1).getKoma() == None or board.getMasu(x + 1,y + 1).getKoma().isWhite() != iswhite):
-                moves.append(Move(src_square, Masu(x + 1, y + 1, piece)))
-        if y != 0:
-            if ( board.getMasu(x,y - 1).getKoma() == None or board.getMasu(x,y - 1).getKoma().isWhite() != iswhite):
-                moves.append(Move(src_square, Masu(x, y - 1, piece)))
-            if (x != 8) and \
-                ( board.getMasu(x + 1,y - 1).getKoma() == None or board.getMasu(x + 1,y - 1).getKoma().isWhite() != iswhite):
-                moves.append(Move(src_square, Masu(x + 1, y - 1, piece)))
-            if (x != 0) and \
-                ( board.getMasu(x - 1,y - 1).getKoma() == None or board.getMasu(x - 1,y - 1).getKoma().isWhite() != iswhite):
-                moves.append(Move(src_square, Masu(x - 1, y - 1, piece)))
-        if x != 0:
-            if ( board.getMasu(x - 1,y).getKoma() == None or board.getMasu(x - 1,y).getKoma().isWhite() != iswhite):
-                moves.append(Move(src_square, Masu(x - 1, y, piece)))
-        if x != 8:
-            if ( board.getMasu(x + 1,y).getKoma() == None or board.getMasu(x + 1,y).getKoma().isWhite() != iswhite):
-                moves.append(Move(src_square, Masu(x + 1, y, piece)))
+        possible_deltas = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]]
+        for pd in possible_deltas:
+            tX = x + pd[0]
+            tY = y + pd[1]
+            if(-1 < tX < 9 and -1 < tY < 9):
+                if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
+                    moves.append(Move(src_square, Masu(tX, tY, piece)))
         return moves
 
 class Match:
@@ -538,6 +421,7 @@ class Match:
         pass
 
     def serializeBoardState(self) -> str:
+        # The sfen notation is defined here: http://hgm.nubati.net/usi.html
         def serializePiece(koma:Koma) -> str:
             serialized_piece = ""
             if koma.isPromoted(): serialized_piece += "+"
@@ -546,6 +430,8 @@ class Match:
                 serialized_piece = "p"
             if isinstance(koma, Kyousha):
                 serialized_piece = "l"
+            if isinstance(koma, Keima):
+                serialized_piece = "n"
             if isinstance(koma, Kinshou):
                 serialized_piece = "g"
             if isinstance(koma, Gyokushou):
@@ -555,7 +441,6 @@ class Match:
             if not koma.isWhite(): serialized_piece = serialized_piece.upper()
             return serialized_piece
 
-        # The sfen notation is defined here: http://hgm.nubati.net/usi.html
         sfen: str = ""
         for j in range(0,9):
             empty_masu: int = 0
