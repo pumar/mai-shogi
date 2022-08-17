@@ -14,5 +14,5 @@ class GameConsumer(WebsocketConsumer):
         #TODO will need to define the 'types' fro these json messages
         message = text_data_json['message']
         self.send(text_data=json.dumps({
-            'message': 'answer from server'
+            'message': f'recieved:{message}, this is an answer from the server'
         }))
