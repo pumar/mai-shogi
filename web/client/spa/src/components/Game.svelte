@@ -25,6 +25,16 @@ onMount(() => {
 		canvas,
 		context,
 	);
+	//TODO figure out why the font loading is either failing or,
+	//the code isn't properly waiting until fonts are loaded on Firefox
+	setTimeout(() => {
+		drawGame(
+			defaultRenderSettings(),
+			createGame(),
+			canvas,
+			context,
+		);
+	}, 500);
 });
 </script>
 
