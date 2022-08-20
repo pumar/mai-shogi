@@ -2,6 +2,8 @@ export {
 	PlacedPiece,
 	HeldPiece,
 	isPlaced,
+	isPromotable,
+	Placed,
 }
 
 function isPlaced(obj: Piece): obj is PlacedPiece {
@@ -12,6 +14,9 @@ type Placed = {
 	file: number;
 }
 
+function isPromotable(obj: Record<string, any>): obj is Promotable {
+	return (obj as Promotable).isPromoted !== undefined;
+}
 type Promotable = {
 	isPromoted?: boolean;
 }
