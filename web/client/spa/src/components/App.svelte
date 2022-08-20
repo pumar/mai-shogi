@@ -1,6 +1,6 @@
 <script lang="ts">
 import Game from "./Game.svelte";
-import { getWebsocketConnection, addEventHandler, WebsocketEvent } from "../WebsocketConnection";
+import { getWebsocketConnection, addEventHandler, WebsocketEvent } from "../Network/WebsocketConnection";
 export let message: string = "svelte";
 let messagesFromServer = [];
 let websocketConn: WebSocket | undefined = undefined;
