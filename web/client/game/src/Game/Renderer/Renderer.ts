@@ -1,6 +1,6 @@
 import { Board } from "../types/Board";
 import { Game } from "../types/Game";
-import { PlacedPiece } from "../types/Piece";
+import { isPlaced, PlacedPiece } from "../types/Piece";
 
 export {
 	drawGame,
@@ -69,6 +69,13 @@ function drawGame(
 		game.board
 	);
 
+	drawPieces(
+		context,
+		renderSettings,
+		game.players.flatMap(player => player.pieces.filter(isPlaced)),
+		game.board.ranks,
+		game.board.files,
+	);
 }
 
 function drawBoard(
@@ -103,14 +110,6 @@ function drawBoard(
 		renderSettings.boardSpaceHeight,
 		renderSettings.renderPadding,
 		renderSettings.gridStrokeColor,
-	);
-
-	drawPieces(
-		context,
-		renderSettings,
-		board.placedPieces,
-		board.ranks,
-		board.files,
 	);
 }
 

@@ -1,5 +1,3 @@
-import { PlacedPiece } from "./Piece";
-
 export {
 	Board,
 }
@@ -7,5 +5,4 @@ export {
 type Board = {
 	ranks: number;
 	files: number;
-	placedPieces: PlacedPiece[];
 }
