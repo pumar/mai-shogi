@@ -135,9 +135,10 @@ function drawPieces(
 		context.fillStyle = "red";
 		context.strokeStyle = "red";
 		//TODO the font size is being ignored - in Firefox
+		//I added a redraw button, it works after the first render for some reason
+		//use a nice CJK font
 		context.font = 'normal 0.5em Noto Sans JP';
 		placedPieces.forEach((placedPiece) => {
-			console.log('drawing piece:', placedPiece);
 			const pieceX = boardRightEdge - halfSpaceWidth - renderSettings.boardSpaceWidth * (placedPiece.file - 1) - letterAdjust;
 			const pieceY = renderSettings.renderPadding + halfSpaceHeight + (renderSettings.boardSpaceHeight * (placedPiece.rank - 1)) + letterAdjust;
 			const glyphs = pieceCodeToGlyphs(placedPiece.name);
@@ -147,9 +148,7 @@ function drawPieces(
 				if (promotedGlyph === undefined) throw new Error(`promoted piece (${placedPiece.name} should map to a glyph, but a glyph was not found`);
 				glyph = promotedGlyph;
 			} else glyph = glyphs[0];
-			//console.log(`canvas font:${context.font}`);
 			context.fillText(glyph, pieceX, pieceY);
-			//context.strokeText(glyph, pieceX, pieceY);
 		});
 	});
 }
