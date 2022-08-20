@@ -100,7 +100,7 @@ function makeKnights(turn: Turn): PlacedPiece[] {
 function makeSilvers(turn: Turn): PlacedPiece[] {
 	const name = "gold";
 	const locations = turn === "black" ?
-		[{rank: 9, file: 7}, {rank: 9, file: 2}] :
+		[{rank: 9, file: 7}, {rank: 9, file: 3}] :
 		[{rank: 1, file: 7}, {rank: 1, file: 3}];
 	return makePlacedPieces(name, locations, { isPromoted: false });
 }

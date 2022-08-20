@@ -1,12 +1,24 @@
 <script lang="ts">
-import { drawGame, defaultRenderSettings, createGame } from "mai-shogi-game";
+import { drawGame, defaultRenderSettings, createGame, clearCanvas } from "mai-shogi-game";
 import { onMount } from "svelte";
 
+let context = undefined;
 let canvas = undefined;
 
+const redrawGame = () => {
+	clearCanvas(canvas, context);
+	drawGame(
+		defaultRenderSettings(),
+		createGame(),
+		canvas,
+		context,
+	);
+}
 onMount(() => {
 	console.log("canvas reference:", canvas);
-	const context = canvas.getContext("2d");
+	context = canvas.getContext("2d");
+	window.context = context;
+	window.canvas = canvas;
 	drawGame(
 		defaultRenderSettings(),
 		createGame(),
@@ -19,6 +31,7 @@ onMount(() => {
 <!--<canvas bind:this={canvas} class="game-canvas" width=600 height=600>-->
 <canvas bind:this={canvas} class="game-canvas">
 </canvas>
+<button on:click|preventDefault={redrawGame}>(Debug) Redraw Game</button>
 
 <style>
 canvas.game-canvas {

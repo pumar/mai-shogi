@@ -14,6 +14,6 @@ function main(hello: string): void {
 	setupSpa();
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("load", () => {
 	main('world');
 });

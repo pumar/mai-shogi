@@ -4,7 +4,8 @@ import { isPlaced, isPromotable, PlacedPiece } from "../types/Piece";
 
 export {
 	drawGame,
-	defaultRenderSettings
+	defaultRenderSettings,
+	clearCanvas
 }
 
 export type RenderSettings = {
@@ -23,6 +24,17 @@ function defaultRenderSettings(): RenderSettings {
 		boardSpaceWidth: 11,
 		boardSpaceHeight: 12,
 	}
+}
+
+function clearCanvas(
+	canvas: HTMLCanvasElement,
+	context: CanvasRenderingContext2D,
+): void {
+	const {width, height} = canvas;
+	renderSaveContext(context, () => {
+		context.fillStyle = "white";
+		context.fillRect(0, 0, width, height);
+	});
 }
 
 function drawGame(
@@ -121,10 +133,11 @@ function drawPieces(
 	renderSaveContext(context, () => {
 		//TODO configurable
 		context.fillStyle = "red";
-		//TODO the font size is being ignored
-		context.font = '4px "Noto Sans Jp"';
-		//TODO 1,1 is the top left corner, this logic is calculating it as the top right corner
+		context.strokeStyle = "red";
+		//TODO the font size is being ignored - in Firefox
+		context.font = 'normal 0.5em Noto Sans JP';
 		placedPieces.forEach((placedPiece) => {
+			console.log('drawing piece:', placedPiece);
 			const pieceX = boardRightEdge - halfSpaceWidth - renderSettings.boardSpaceWidth * (placedPiece.file - 1) - letterAdjust;
 			const pieceY = renderSettings.renderPadding + halfSpaceHeight + (renderSettings.boardSpaceHeight * (placedPiece.rank - 1)) + letterAdjust;
 			const glyphs = pieceCodeToGlyphs(placedPiece.name);
@@ -134,7 +147,9 @@ function drawPieces(
 				if (promotedGlyph === undefined) throw new Error(`promoted piece (${placedPiece.name} should map to a glyph, but a glyph was not found`);
 				glyph = promotedGlyph;
 			} else glyph = glyphs[0];
-			context.fillText(glyph, pieceX, pieceY, renderSettings.boardSpaceWidth);
+			//console.log(`canvas font:${context.font}`);
+			context.fillText(glyph, pieceX, pieceY);
+			//context.strokeText(glyph, pieceX, pieceY);
 		});
 	});
 }
@@ -146,7 +161,7 @@ const pieceGlyphMap: Record<string, [string, string?]> = {
 	silver: ["銀", "全"],
 	gold: ["金"],
 	rook: ["飛", "竜"],
-	king: ["馬"],
+	king: ["王"],
 	lance: ["香", "杏"],
 	knight: ["桂", "圭"],
 }
@@ -229,6 +244,6 @@ function drawGrid(
 
 function renderSaveContext(context: CanvasRenderingContext2D, callback: Function): void {
 	context.save();
-	callback();
+	callback(context);
 	context.restore();
 }
