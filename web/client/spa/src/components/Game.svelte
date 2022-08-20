@@ -27,14 +27,17 @@ onMount(() => {
 	);
 	//TODO figure out why the font loading is either failing or,
 	//the code isn't properly waiting until fonts are loaded on Firefox
-	setTimeout(() => {
-		drawGame(
-			defaultRenderSettings(),
-			createGame(),
-			canvas,
-			context,
-		);
-	}, 500);
+	//the takes 100~300ms to load if it's not cached... the application
+	//doesn't start until the document is loaded so why does this issue exist
+	//if the font is cached it gets drawn properly
+	//setTimeout(() => {
+	//	drawGame(
+	//		defaultRenderSettings(),
+	//		createGame(),
+	//		canvas,
+	//		context,
+	//	);
+	//}, 1000);
 });
 </script>
 
