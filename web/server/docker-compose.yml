@@ -11,6 +11,7 @@ services:
       - POSTGRES_PASSWORD=postgres
   web:
     build: ./server_image
+    container_name: server-web-1 #specify the container name to align with install_spa_to_server.sh
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/mai_shogi_project
