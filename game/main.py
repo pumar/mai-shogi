@@ -1,6 +1,6 @@
 from copy import deepcopy
 from curses.ascii import isalpha, islower
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 class Player:
     whiteSide: bool
@@ -151,6 +151,13 @@ class Banmen:
             board[i][2].setKoma(Fuhyou(True))
             board[i][6].setKoma(Fuhyou(False))
         return board
+
+    def getPieces(self) -> List[Koma]:
+        pieces = []
+        for i in range(0,9):
+            for j in range(0,9):
+                pieces.append(self.grid.getMasu(i, j).getKoma())
+        return pieces
     
 class Hand:
     handKoma: Dict[Masu, int]
@@ -535,67 +542,56 @@ class Match:
         if self.player_one.isWhiteSide():
             self.current_turn = deepcopy(self.player_one)
         else: self.current_turn = deepcopy(self.player_two)
-    
 
-    """
-    def deserializeMove(self, move: str) -> Move:
-        #  src: (dd)(+)a
-        # trgt: dd(+)a
-        def makePiece(piece_char: str):
-            iswhite: bool
-            iswhite = True if piece_char.islower() else False
-            piece_char = piece_char.lower()
-
-            if piece_char == "p": return Fuhyou(iswhite)
-            if piece_char == "l": return Kyousha(iswhite)
-            if piece_char == "n": return Keima(iswhite)
-            if piece_char == "g": return Kinshou(iswhite)
-            if piece_char == "k": return Gyokushou(iswhite)
-            if piece_char == "s": return Ginshou(iswhite)
-            if piece_char == "b": return Kakugyou(iswhite)
-            if piece_char == "r": return Hisha(iswhite)
-            else: raise Exception("Not a valid piece: {0}\n".format(piece_char))
-
-
-        def invalMove(move_str):
-            raise Exception(" Invalid move string pattern: {0}\n".format(move_str))
-
-        pieces = ["p","l","n","g","k","s","b","r"]
-        src_x: str
-        src_y: str
-        src_promoted = False
-        src_piece: Koma
-        src_square: Masu
-
-        trgt_x: str
-        trgt_y: str
-
-        src,trgt = move.split(" ")
-        if len(src) == 3 or len(src) == 4:
-            if src[0].isdigit() and 0>int(src[0])<9: 
-                src_x = int(src[0])
-                if  src[1].isdigit() and 0>int(src[1])<9: 
-                    src_y = int(src[1])
-                else: invalMove(src)
-                if len(src) == 4: 
-                    if src[2] == "+": src_promoted = True
-                    if src[-1].isalpha() and src[-1].lower() in pieces:
-                        src_piece = makePiece(src[-1])
-                        if src_promoted: src_piece.Promote()
-            else: invalMove(src)
-        elif len(src) == 1 and src.isalpha() and src.lower() in pieces: 
-            src_piece = makePiece(src)
-            src_x = -1
-            src_y = -1
-        else: invalMove(src)
-        src_square = Masu(src_x,src_y,src_piece)
-        
-        """
-
-
-
+    def getMoves(self):
+        def filtersOote(all_moves: List[Move], iswhite: bool):
+            legal_moves: List[Move] = []
             
+            for move in all_moves:
+                valid_move = True
+                virtual_board = deepcopy(self.grid)
+                virtual_board.getMasu(move.src_square.getX(), move.src_square.getY()).setKoma(None)
+                virtual_board.getMasu(move.trgt_square.getX(), move.trgt_square.getY()).setKoma(move.trgt_square.getKoma())
+
+                if not (move.src_square.getKoma() is Gyokushou):
+                    king_coordinates: Tuple[int, int]
+                    for i in range(0,9):
+                        for j in range(0,9):
+                            if type(self.grid.getMasu(i,j).getKoma()) is Gyokushou and self.grid.getMasu(i,j).getKoma().isWhite() == iswhite: 
+                                king_coordinates = (i,j)
+                    attacking_pieces = filter(lambda x: x != None and x.isWhite() != iswhite and \
+                        (type(x) is Kakugyou or type(x) is Hisha or type(x) is Kyousha), virtual_board.getPieces())
+                    for attacking_piece in attacking_pieces:
+                        attacking_moves = attacking_piece.legalMoves(virtual_board, virtual_board.getMasu(i,j))
+                        for attacking_move in attacking_moves:
+                            if attacking_move.trgt_square.getX() == king_coordinates[0] and attacking_move.trgt_square.getY() == king_coordinates[1]:
+                                valid_move = False
+                else:
+                    attacked_squares:List[Tuple[int, int]] = []
+                    attacking_pieces = filter(lambda x: x != None and x.isWhite() != iswhite, virtual_board.getPieces())
+                    for attacking_piece in attacking_pieces:
+                        attacking_moves = attacking_piece.legalMoves(virtual_board, virtual_board.getMasu(i,j))
+                        for attacking_move in attacking_moves:
+                            attacked_square = attacking_move.trgt_square
+                            attacked_squares.append(attacked_square.getX(), attacked_square.getY())
+                    if (move.trgt_square.getX(),move.trgt_square.getY()) in attacked_squares:
+                        valid_move = False
+
+                if valid_move: legal_moves.append(move)
+
+            return legal_moves
+
+        iswhite = self.current_turn.isWhiteSide()
+        moves: List[Move] = []
+        for i in range(0,9):
+            for j in range(0,9):
+                koma = self.grid.getMasu(i,j).getKoma()
+                if koma != None and koma.isWhite() == iswhite:
+                    moves.extend(koma.legalMoves(self.grid, self.grid.getMasu(i,j)))
+        moves = filtersOote(moves)
+        return moves
     
+
     def deserializeBoardState(self, sfen: str) -> Banmen:
         pass
 

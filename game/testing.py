@@ -4,7 +4,7 @@ newMatch = Match(Player(True),Player(False))
 
 print(newMatch.serializeBoardState())
 
-print("\n\n")
+print("\n")
 
 board = Banmen()
 
