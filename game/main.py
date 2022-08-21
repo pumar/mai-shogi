@@ -1,4 +1,5 @@
 from copy import deepcopy
+from curses.ascii import isalpha, islower
 from typing import Dict, List
 
 class Player:
@@ -48,14 +49,29 @@ class Koma:
 
     def isOnHand(self):
         return self.onHand
-
-    def moveToHand(self):
-        self.white = not self.white
-        self.promoted = False
-        self.onHand = True
     
-    def moveToBoard(self):
-        self.onHand = False
+    def encode(self) -> str:
+            serialized_piece = ""
+            if self.isPromoted(): serialized_piece += "+"
+            
+            if type(self) is Fuhyou:
+                serialized_piece = "p"
+            if type(self) is Kyousha:
+                serialized_piece = "l"
+            if type(self) is Keima:
+                serialized_piece = "n"
+            if type(self) is Kinshou:
+                serialized_piece = "g"
+            if type(self) is Gyokushou:
+                serialized_piece = "k"
+            if type(self) is Ginshou:
+                serialized_piece = "s"
+            if type(self) is Kakugyou:
+                serialized_piece = "b"
+            if type(self) is Hisha:
+                serialized_piece = "r"
+            if not self.isWhite(): serialized_piece = serialized_piece.upper()
+            return serialized_piece
 
 class Masu:
     koma: Koma
@@ -104,34 +120,32 @@ class Banmen:
             for j in range(0,9):
                 board[i].append(Masu(i, j, None))
 
-        #board[0][0].setKoma(Kyousha(True))
-        #board[1][0].setKoma(Keima(True))
-        #board[2][0].setKoma(Ginshou(True))
-        #board[3][0].setKoma(Kinshou(True))
+        board[0][0].setKoma(Kyousha(True))
+        board[1][0].setKoma(Keima(True))
+        board[2][0].setKoma(Ginshou(True))
+        board[3][0].setKoma(Kinshou(True))
         board[4][0].setKoma(Gyokushou(True))
-        #board[5][0].setKoma(Kinshou(True))
-        #board[6][0].setKoma(Ginshou(True))
-        #board[7][0].setKoma(Keima(True))
-        #board[8][0].setKoma(Kyousha(True))
+        board[5][0].setKoma(Kinshou(True))
+        board[6][0].setKoma(Ginshou(True))
+        board[7][0].setKoma(Keima(True))
+        board[8][0].setKoma(Kyousha(True))
 
-        #board[1][1].setKoma(Kakugyou(True))
-        #board[7][1].setKoma(Hisha(True))
+        board[1][1].setKoma(Kakugyou(True))
+        board[7][1].setKoma(Hisha(True))
 
 
-        #board[0][8].setKoma(Kyousha(False))
-        #board[1][8].setKoma(Keima(False))
-        #board[2][8].setKoma(Ginshou(False))
-        #board[3][8].setKoma(Kinshou(False))
+        board[0][8].setKoma(Kyousha(False))
+        board[1][8].setKoma(Keima(False))
+        board[2][8].setKoma(Ginshou(False))
+        board[3][8].setKoma(Kinshou(False))
         board[4][8].setKoma(Gyokushou(False))
-        #board[5][8].setKoma(Kinshou(False))
-        #board[6][8].setKoma(Ginshou(False))
-        #board[7][8].setKoma(Keima(False))
-        #board[8][8].setKoma(Kyousha(False))
+        board[5][8].setKoma(Kinshou(False))
+        board[6][8].setKoma(Ginshou(False))
+        board[7][8].setKoma(Keima(False))
+        board[8][8].setKoma(Kyousha(False))
 
-        #board[1][7].setKoma(Hisha(False))
-        #board[7][7].setKoma(Kakugyou(False))
-        
-        board[4][4].setKoma(Hisha(False))
+        board[1][7].setKoma(Hisha(False))
+        board[7][7].setKoma(Kakugyou(False))
 
         for i in range(0,9):
             board[i][2].setKoma(Fuhyou(True))
@@ -170,7 +184,22 @@ class Move:
         self.trgt_square = trgt_square
 
     def serialize(self) -> str:
-        pass
+        #  src: (dd)(+)a
+        # trgt: dd(+)a
+
+        piece = self.src_square.getKoma()
+        src = ""
+        if self.src_square.getX() > -1:
+            src += str(self.src_square.getX())
+            src += str(self.src_square.getY())
+        src += piece.encode()
+
+        piece = self.trgt_square.getKoma()
+        trgt = str(self.trgt_square.getX()) + str(self.trgt_square.getY())
+        trgt += piece.encode()
+
+        return src + " " + trgt
+         
 
 class Fuhyou(Koma):
     def __init__(self, white, onHand = False):
@@ -496,7 +525,7 @@ class Match:
     hand: Hand
     current_turn: Player
 
-    def __init__(self, p1: Player, p2: Player) -> None:
+    def __init__(self, p1: Player, p2: Player):
         self.player_one = p1
         self.player_two = p2
 
@@ -506,38 +535,72 @@ class Match:
         if self.player_one.isWhiteSide():
             self.current_turn = deepcopy(self.player_one)
         else: self.current_turn = deepcopy(self.player_two)
-        
+    
+
+    """
     def deserializeMove(self, move: str) -> Move:
-        pass
+        #  src: (dd)(+)a
+        # trgt: dd(+)a
+        def makePiece(piece_char: str):
+            iswhite: bool
+            iswhite = True if piece_char.islower() else False
+            piece_char = piece_char.lower()
+
+            if piece_char == "p": return Fuhyou(iswhite)
+            if piece_char == "l": return Kyousha(iswhite)
+            if piece_char == "n": return Keima(iswhite)
+            if piece_char == "g": return Kinshou(iswhite)
+            if piece_char == "k": return Gyokushou(iswhite)
+            if piece_char == "s": return Ginshou(iswhite)
+            if piece_char == "b": return Kakugyou(iswhite)
+            if piece_char == "r": return Hisha(iswhite)
+            else: raise Exception("Not a valid piece: {0}\n".format(piece_char))
+
+
+        def invalMove(move_str):
+            raise Exception(" Invalid move string pattern: {0}\n".format(move_str))
+
+        pieces = ["p","l","n","g","k","s","b","r"]
+        src_x: str
+        src_y: str
+        src_promoted = False
+        src_piece: Koma
+        src_square: Masu
+
+        trgt_x: str
+        trgt_y: str
+
+        src,trgt = move.split(" ")
+        if len(src) == 3 or len(src) == 4:
+            if src[0].isdigit() and 0>int(src[0])<9: 
+                src_x = int(src[0])
+                if  src[1].isdigit() and 0>int(src[1])<9: 
+                    src_y = int(src[1])
+                else: invalMove(src)
+                if len(src) == 4: 
+                    if src[2] == "+": src_promoted = True
+                    if src[-1].isalpha() and src[-1].lower() in pieces:
+                        src_piece = makePiece(src[-1])
+                        if src_promoted: src_piece.Promote()
+            else: invalMove(src)
+        elif len(src) == 1 and src.isalpha() and src.lower() in pieces: 
+            src_piece = makePiece(src)
+            src_x = -1
+            src_y = -1
+        else: invalMove(src)
+        src_square = Masu(src_x,src_y,src_piece)
+        
+        """
+
+
+
+            
     
     def deserializeBoardState(self, sfen: str) -> Banmen:
         pass
 
     def serializeBoardState(self) -> str:
         # The sfen notation is defined here: http://hgm.nubati.net/usi.html
-        def serializePiece(koma:Koma) -> str:
-            serialized_piece = ""
-            if koma.isPromoted(): serialized_piece += "+"
-            
-            if isinstance(koma, Fuhyou):
-                serialized_piece = "p"
-            if isinstance(koma, Kyousha):
-                serialized_piece = "l"
-            if isinstance(koma, Keima):
-                serialized_piece = "n"
-            if isinstance(koma, Kinshou):
-                serialized_piece = "g"
-            if isinstance(koma, Gyokushou):
-                serialized_piece = "k"
-            if isinstance(koma, Ginshou):
-                serialized_piece = "s"
-            if isinstance(koma, Kakugyou):
-                serialized_piece = "b"
-            if isinstance(koma, Hisha):
-                serialized_piece = "r"
-            if not koma.isWhite(): serialized_piece = serialized_piece.upper()
-            return serialized_piece
-
         sfen: str = ""
         for j in range(0,9):
             empty_masu: int = 0
@@ -549,7 +612,7 @@ class Match:
                         sfen += str(empty_masu)
                         empty_masu = 0
                     koma = current_masu.getKoma()
-                    sfen += serializePiece(koma)
+                    sfen += koma.encode()
             if empty_masu > 0:
                 sfen += str(empty_masu)
             sfen+= "/"
@@ -558,9 +621,9 @@ class Match:
         for masu, number in self.hand.handKoma.items():
             if number > 0:
                 koma = masu.getKoma()
-                if number == 1: sfen += serializePiece(koma)
+                if number == 1: sfen += koma.encode()
                 else:
-                    sfen += str(number) + serializePiece(koma)
+                    sfen += str(number) + koma.encode()
         return sfen
         
 
