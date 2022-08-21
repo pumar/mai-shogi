@@ -22,5 +22,5 @@ popd
 echo copy spa to django
 cp client/spa/dist/* server/static/
 
-echo "login to container, collect static (may ask for sudo)"
-sudo docker exec -it server-web-1 python manage.py collectstatic
+CONTAINER_NAME=server-web-1
+sudo docker exec -it $CONTAINER_NAME python manage.py collectstatic
