@@ -1,5 +1,5 @@
 import { Board } from "./Board";
-import { Piece } from "./Piece";
+import { Player } from "./Player";
 
 export {
 	Game,
@@ -7,8 +7,5 @@ export {
 
 type Game = {
 	board: Board;
-	heldPieces: {
-		player1: Piece[],
-		player2: Piece[],
-	};
+	players: Player[];
 }

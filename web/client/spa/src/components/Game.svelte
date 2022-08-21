@@ -1,56 +1,50 @@
 <script lang="ts">
-import { drawGame, defaultRenderSettings } from "mai-shogi-game";
+import { drawGame, defaultRenderSettings, createGame, clearCanvas } from "mai-shogi-game";
 import { onMount } from "svelte";
 
+let context = undefined;
 let canvas = undefined;
 
-onMount(() => {
-	console.log("canvas reference:", canvas);
-	const context = canvas.getContext("2d");
+const redrawGame = () => {
+	clearCanvas(canvas, context);
 	drawGame(
 		defaultRenderSettings(),
-		{
-			board: {
-				ranks: 9,
-				files: 9,
-				placedPieces: [
-					{
-						name: "pawn",
-						isPromoted: false,
-						rank: 1,
-						file: 1,
-					},
-					{
-						name: "pawn",
-						isPromoted: false,
-						rank: 4,
-						file: 4,
-					},
-					{
-						name: "pawn",
-						isPromoted: false,
-						rank: 3,
-						file: 3,
-					},
-					{
-						name: "pawn",
-						isPromoted: false,
-						rank: 2,
-						file: 6,
-					},
-				],
-			},
-			heldPieces: [],
-		},
+		createGame(),
 		canvas,
 		context,
 	);
+}
+onMount(() => {
+	console.log("canvas reference:", canvas);
+	context = canvas.getContext("2d");
+	window.context = context;
+	window.canvas = canvas;
+	drawGame(
+		defaultRenderSettings(),
+		createGame(),
+		canvas,
+		context,
+	);
+	//TODO figure out why the font loading is either failing or,
+	//the code isn't properly waiting until fonts are loaded on Firefox
+	//the takes 100~300ms to load if it's not cached... the application
+	//doesn't start until the document is loaded so why does this issue exist
+	//if the font is cached it gets drawn properly
+	//setTimeout(() => {
+	//	drawGame(
+	//		defaultRenderSettings(),
+	//		createGame(),
+	//		canvas,
+	//		context,
+	//	);
+	//}, 1000);
 });
 </script>
 
 <!--<canvas bind:this={canvas} class="game-canvas" width=600 height=600>-->
 <canvas bind:this={canvas} class="game-canvas">
 </canvas>
+<button on:click|preventDefault={redrawGame}>(Debug) Redraw Game</button>
 
 <style>
 canvas.game-canvas {

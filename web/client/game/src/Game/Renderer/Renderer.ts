@@ -1,10 +1,11 @@
 import { Board } from "../types/Board";
 import { Game } from "../types/Game";
-import { PlacedPiece } from "../types/Piece";
+import { isPlaced, isPromotable, PlacedPiece } from "../types/Piece";
 
 export {
 	drawGame,
-	defaultRenderSettings
+	defaultRenderSettings,
+	clearCanvas
 }
 
 export type RenderSettings = {
@@ -25,30 +26,30 @@ function defaultRenderSettings(): RenderSettings {
 	}
 }
 
+function clearCanvas(
+	canvas: HTMLCanvasElement,
+	context: CanvasRenderingContext2D,
+): void {
+	const {width, height} = canvas;
+	renderSaveContext(context, () => {
+		context.fillStyle = "white";
+		context.fillRect(0, 0, width, height);
+	});
+}
+
 function drawGame(
 	renderSettings: RenderSettings,
 	game: Game,
 	canvas: HTMLCanvasElement,
 	context: CanvasRenderingContext2D,
 ): void {
-	//const { width: canvasWidth, height: canvasHeight } = targetCanvas;
-	console.error('TODO render game state', { game, renderSettings: renderSettings });
-	//scale the board so that it takes up 75% of the available space from the canvas
-	//TODO the aspect ratio for the canvas isn't being propely set, so since the canvas's
-	//aspect ratio is not 1:1, things are stretching
-	//const { width, height } = canvas;
 	const { clientHeight: height, clientWidth: width } = canvas;
 	canvas.width = width;
 	canvas.height = height;
 
 	const canvasRatio = width / height;
-	//const boardWidth = width * 0.75;
 	const boardHeight = height * 0.75;
-	//const boardRatio = boardWidth / boardHeight;
 
-	//const boardSpaceWidth = boardWidth / 9;
-	//const boardSpaceHeight = boardHeight / 9;
-	//const logicalBoardWidth = renderSettings.boardSpaceWidth * game.board.files;
 	const logicalBoardHeight = renderSettings.boardSpaceHeight * game.board.files;
 
 	//const scaleFactorX = boardWidth / logicalBoardWidth;
@@ -69,6 +70,13 @@ function drawGame(
 		game.board
 	);
 
+	drawPieces(
+		context,
+		renderSettings,
+		game.players.flatMap((player) => player.pieces.filter(piece => isPlaced(piece)) as PlacedPiece[]),
+		game.board.ranks,
+		game.board.files,
+	);
 }
 
 function drawBoard(
@@ -104,14 +112,6 @@ function drawBoard(
 		renderSettings.renderPadding,
 		renderSettings.gridStrokeColor,
 	);
-
-	drawPieces(
-		context,
-		renderSettings,
-		board.placedPieces,
-		board.ranks,
-		board.files,
-	);
 }
 
 function drawPieces(
@@ -133,22 +133,42 @@ function drawPieces(
 	renderSaveContext(context, () => {
 		//TODO configurable
 		context.fillStyle = "red";
-		//TODO 1,1 is the top left corner, this logic is calculating it as the top right corner
+		context.strokeStyle = "red";
+		//TODO the font size is being ignored - in Firefox
+		//I added a redraw button, it works after the first render for some reason
+		//use a nice CJK font
+		context.font = 'normal 0.5em Noto Sans JP';
 		placedPieces.forEach((placedPiece) => {
 			const pieceX = boardRightEdge - halfSpaceWidth - renderSettings.boardSpaceWidth * (placedPiece.file - 1) - letterAdjust;
 			const pieceY = renderSettings.renderPadding + halfSpaceHeight + (renderSettings.boardSpaceHeight * (placedPiece.rank - 1)) + letterAdjust;
-			context.fillText(pieceCodeToGlyph(placedPiece.name), pieceX, pieceY);
+			const glyphs = pieceCodeToGlyphs(placedPiece.name);
+			let glyph: string;
+			if (isPromotable(placedPiece) && placedPiece.isPromoted) {
+				const promotedGlyph = glyphs[1];
+				if (promotedGlyph === undefined) throw new Error(`promoted piece (${placedPiece.name} should map to a glyph, but a glyph was not found`);
+				glyph = promotedGlyph;
+			} else glyph = glyphs[0];
+			context.fillText(glyph, pieceX, pieceY);
 		});
 	});
 }
 
-function pieceCodeToGlyph(pieceCode: string): string {
-	switch(pieceCode) {
-		case "pawn":
-			return "p";
-		default:
-			throw new Error(`pieceCodeToGlyph failed to get a glyph for piece of type:${pieceCode}`);
-	}
+/** peice name -> [non-promoted name, promoted name] */
+const pieceGlyphMap: Record<string, [string, string?]> = {
+	pawn: ["歩", "と"],
+	bishop: ["角", "馬"],
+	silver: ["銀", "全"],
+	gold: ["金"],
+	rook: ["飛", "竜"],
+	king: ["王"],
+	lance: ["香", "杏"],
+	knight: ["桂", "圭"],
+}
+
+function pieceCodeToGlyphs(pieceCode: string): [string, string?] {
+	const glyphs = pieceGlyphMap[pieceCode];
+	if (glyphs === undefined) throw new Error(`pieceCodeToGlyph failed to get a glyph for piece of type:${pieceCode}`);
+	return glyphs;
 }
 
 function drawBoardOutline(
@@ -223,6 +243,6 @@ function drawGrid(
 
 function renderSaveContext(context: CanvasRenderingContext2D, callback: Function): void {
 	context.save();
-	callback();
+	callback(context);
 	context.restore();
 }
