@@ -20,6 +20,7 @@ function defaultRenderSettings(): RenderSettings {
 	return {
 		gridStrokeColor: "black",
 		boardBackgroundColor: "#ffaf4f",
+		/** TODO don't need this */
 		renderPadding: 10,
 		boardSpaceWidth: 11,
 		boardSpaceHeight: 12,
