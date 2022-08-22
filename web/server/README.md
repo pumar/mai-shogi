@@ -9,3 +9,6 @@
 - [installing Docker on Windows via WSL](https://docs.microsoft.com/en-us/windows/wsl/install)
     - you can also use [Docker Desktop for Windows](https://docs.docker.com/desktop/install/windows-install/), as this project should meet the requirements for free usage of it
 
+
+## Accredations
+- [shogi pieces svgs](https://github.com/Ka-hu/shogi-pieces)
