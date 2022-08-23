@@ -1,4 +1,4 @@
-import { BufferGeometry, Camera, DoubleSide, Group, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, Scene, ShapeGeometry, Vector3, WebGLRenderer } from "three";
+import { BufferGeometry, Camera, Color, DoubleSide, Group, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, Scene, ShapeGeometry, Vector3, WebGLRenderer } from "three";
 import { SVGLoader, SVGResult } from "three/examples/jsm/loaders/SVGLoader.js";
 import { makeExistsGuard } from "../utils/Guards";
 
@@ -103,9 +103,7 @@ export class GameRunner {
 	public async initGraphics(boardAndPiecesSvgSetting: SvgLoadConfig = getDefaultSvgLoadConfig()): Promise<void> {
 		this.initCamera();
 		this.setScene(new Scene());
-		this.setRenderer(new WebGLRenderer({
-			canvas: this.getCanvas(),
-		}));
+		this.initRenderer();
 
 		const svgRequestResults: [string, SVGResult][] = await Promise.all(this.prepareSvgs(boardAndPiecesSvgSetting));
 		console.log('svg request results', { svgRequestResults });
@@ -152,8 +150,16 @@ export class GameRunner {
 			100
 		);
 		this.setCamera(camera);
-		camera.position.copy(new Vector3(0, 0, -5));
+		camera.position.copy(new Vector3(0, 0, 5));
 	}
+	private initRenderer(): void {
+		const renderer = new WebGLRenderer({
+			canvas: this.getCanvas(),
+		});
+		renderer.setClearColor(new Color(0.8, 0.8, 0.8));
+		this.setRenderer(renderer);
+	}
+
 
 	public prepareSvgs(boardAndPiecesSvgSetting: SvgLoadConfig): Promise<[string, SVGResult]>[] {
 		const svgLoader = new SVGLoader();
