@@ -10,11 +10,13 @@ export {
 **/
 function getAssetKeyForPiece(piece: Piece): string {
 	let promotableKeySection = undefined;
+	//TODO the lance piece's filenames do not match up with this,
+	//others may as well
 	if(isPromotable(piece)) {
-		promotableKeySection = "+";
+		promotableKeySection = piece.isPromoted ? "+" : "";
 	}
 	return [
 		piece.name,
 		promotableKeySection,
-	].join();
+	].join('');
 }

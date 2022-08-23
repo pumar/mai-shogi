@@ -1,4 +1,5 @@
 /node_modules
 /dist
 test_main.js
+test_main.js.map
 shogi-pieces

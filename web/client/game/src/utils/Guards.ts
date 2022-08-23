@@ -1,3 +1,7 @@
+export {
+	makeExistsGuard
+}
+
 function makeExistsGuard(errorPrefix?: string): (a?: any, errorHint?: string) => any {
 	return (a?: any, errorHint?: string) => {
 		if (a === undefined) {

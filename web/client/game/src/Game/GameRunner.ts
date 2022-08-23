@@ -1,9 +1,12 @@
-import { BufferGeometry, Camera, Group, Material, Mesh, OrthographicCamera, Scene, WebGLRenderer } from "three";
+import { BufferGeometry, Camera, DoubleSide, Group, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, Scene, ShapeGeometry, Vector3, WebGLRenderer } from "three";
+import { SVGLoader, SVGResult } from "three/examples/jsm/loaders/SVGLoader.js";
+import { makeExistsGuard } from "../utils/Guards";
+
 import { createGame } from "./GameCreator";
 import { RenderSettings } from "./Renderer/Renderer";
 import { getAssetKeyForPiece } from "./types/AssetKeys";
 import { Game } from "./types/Game";
-import { HeldPiece, isHeldPiece, isPlaced } from "./types/Piece";
+import { HeldPiece, isHeldPiece, isPlaced, Piece } from "./types/Piece";
 import { Player, Turn } from "./types/Player";
 
 /**
@@ -20,7 +23,29 @@ enum SceneGroups {
 }
 
 type DrawPiece = Piece & {
-	mesh: Mesh;
+	graphicsObject: Object3D;
+}
+
+export const getDefaultSvgLoadConfig: () => SvgLoadConfig = () => {
+	return {
+		rootDir: "shogi-pieces",
+		board: {
+			tileTextureFilename: "tile_wood1.png",
+		},
+		pieceSet: {
+			setFolderName: "kanji_red_wood",
+		}
+	}
+}
+
+export type SvgLoadConfig = {
+	rootDir: string;
+	board: {
+		tileTextureFilename: string;
+	};
+	pieceSet: {
+		setFolderName: string;
+	};
 }
 
 export class GameRunner {
@@ -68,17 +93,116 @@ export class GameRunner {
 	private gameAssets: {
 		geometries: {[index: string]: BufferGeometry},
 		materials: {[index: string]: Material},
+		pieces: {[index: string]: Group},
 	} = {
 		geometries: {},
 		materials: {},
+		pieces: {},
 	};
 
-	public initGraphics(): void {
-		this.setCamera(new OrthographicCamera());
+	public async initGraphics(boardAndPiecesSvgSetting: SvgLoadConfig = getDefaultSvgLoadConfig()): Promise<void> {
+		this.initCamera();
 		this.setScene(new Scene());
 		this.setRenderer(new WebGLRenderer({
 			canvas: this.getCanvas(),
 		}));
+
+		const svgRequestResults: [string, SVGResult][] = await Promise.all(this.prepareSvgs(boardAndPiecesSvgSetting));
+		console.log('svg request results', { svgRequestResults });
+		const svgObjects: [string, Group][] = svgRequestResults.map(filenameSvgResult => {
+			const svgName = filenameSvgResult[0];
+			const data = filenameSvgResult[1];
+			const paths = data.paths;
+			const group = new Group();
+
+			for (let i = 0; i < paths.length; i++) {
+
+				const path = paths[ i ];
+
+				const material = new MeshBasicMaterial( {
+					color: path.color,
+					side: DoubleSide,
+					depthWrite: false
+				} );
+
+				const shapes = SVGLoader.createShapes( path );
+
+				for (let j = 0;j < shapes.length;j++) {
+					const shape = shapes[ j ];
+					const geometry = new ShapeGeometry( shape );
+					const mesh = new Mesh( geometry, material );
+					group.add( mesh );
+				}
+			}
+
+			return [svgName, group];
+		});
+		console.log('svg groups', svgObjects);
+		Object.assign(this.gameAssets.pieces, Object.fromEntries(svgObjects));
+		console.log({ gameAssets: this.gameAssets, pieceKeys: Object.keys(this.gameAssets.pieces) });
+	}
+
+	private initCamera(): void {
+		const camera = new OrthographicCamera(
+			-100,
+			100,
+			100,
+			-100,
+			0.1,
+			100
+		);
+		this.setCamera(camera);
+		camera.position.copy(new Vector3(0, 0, -5));
+	}
+
+	public prepareSvgs(boardAndPiecesSvgSetting: SvgLoadConfig): Promise<[string, SVGResult]>[] {
+		const svgLoader = new SVGLoader();
+		//append the subpaths to the root svg lookup path
+		const formSvgPath = (pathParts: string[]) => [boardAndPiecesSvgSetting.rootDir, ...pathParts].join('/');
+
+		const piecesPaths: [string, string][] = [
+			["silver", "BlackAdvisor.svg"],
+			["bishop", "BlackBishop.svg"],
+			["bishop+", "BlackCrownedBishop.svg"],
+			["rook", "BlackRook.svg"],
+			["rook+", "BlackCrownedRook.svg"],
+			["gold", "BlackGold.svg"],
+			["lance", "BlackLance.svg"],
+			["goldlance", "BlackGoldLance.svg"],
+			["pawn", "BlackPawn.svg"],
+			["pawn+", "BlackGoldPawn.svg"],
+			["silver+", "BlackGoldSilver.svg"],
+			["knight", "BlackKnight.svg"],
+			["knight+", "BlackGoldKnight.svg"],
+			["king", "BlackKing.svg"],
+		].map(pieceTuple => [
+			pieceTuple[0],
+			formSvgPath([
+				boardAndPiecesSvgSetting.pieceSet.setFolderName,
+				pieceTuple[1]
+			])
+		]);
+
+		//I had to run the shogi-tool.sh p2x function to change the filenames
+		//into more a more readable standard (xboard)
+		const svgsToLoad: [string, string][] = [
+			...piecesPaths,
+			//the filename for the silver is 'advisor' for some reason
+			["tile_texture", formSvgPath([
+				'boards',
+				boardAndPiecesSvgSetting.board.tileTextureFilename,
+			])]
+		];
+
+		const svgLoadPromises = svgsToLoad.map(svgPath => new Promise<[string, SVGResult]>((resolve, _) => {
+			const pieceName: string = svgPath[0];
+			svgLoader.load(
+				svgPath[1],
+				(data) => resolve([pieceName, data])
+			);
+		})) as Promise<[string, SVGResult]>[];
+
+		return svgLoadPromises;
 	}
 
 	private makeNamedGroup(name: string) {
@@ -104,6 +228,10 @@ export class GameRunner {
 			timersGroup,
 			piecesStand
 		].forEach(grp => scene.add(grp));
+
+		const blackStandGroup = this.makeNamedGroup(SceneGroups.BlackStand);
+		const whiteStandGroup = this.makeNamedGroup(SceneGroups.WhiteStand);
+		piecesStand.add(blackStandGroup, whiteStandGroup);
 	}
 
 	public run(initialGameState?: Game): void {
@@ -119,12 +247,14 @@ export class GameRunner {
 	private renderStep(): void {
 		const gameState = this.gameStates[this.gameStates.length - 1];
 		const scene = this.getScene();
-		this.drawPieceStands(
-			this.getSceneGroup(SceneGroups.Stands),
-			gameState.viewPoint,
-			gameState.players,
-		);
+		//TODO skipping this, draw the pieces on the board first
+		//this.drawPieceStands(
+		//	this.getSceneGroup(SceneGroups.Stands),
+		//	gameState.viewPoint,
+		//	gameState.players,
+		//);
 		this.drawPlacedPieces(this.getSceneGroup(SceneGroups.Pieces), gameState);
+
 		this.getRenderer().render(scene, this.getCamera());
 	}
 
@@ -136,44 +266,75 @@ export class GameRunner {
 		}
 
 		const isBlackMainViewPoint = viewpoint === "black";
-		const blackPlayerHeldPieces: Mesh[] = this.getMeshesForPlayerPieces(
-			blackPlayer,
+		const blackPlayerHeldPieces: DrawPiece[] = this.getPiecesGraphicsObjects(
+			blackPlayer.pieces.filter(piece => isHeldPiece(piece)),
 		);
 
-		const whitePlayerHeldPieces: Mesh[] = this.getMeshesForPlayerPieces(
-			whitePlayer,
+		//TODO figure out the coordinates per player, based on who's point of view it is
+		const viewStandCenter = new Vector3(0, 0, 0);
+
+		const whitePlayerHeldPieces: DrawPiece[] = this.getPiecesGraphicsObjects(
+			whitePlayer.pieces.filter(piece => isHeldPiece(piece)),
 		);
+
+		console.log({ blackPlayerHeldPieces, whitePlayerHeldPieces });
+		
+		const blackStandsGroup = standsGroup.getObjectByName(SceneGroups.BlackStand);
+		const whiteStandsGroup = standsGroup.getObjectByName(SceneGroups.WhiteStand);
+		if (blackStandsGroup === undefined || whiteStandsGroup === undefined) {
+			throw new Error(`no stand group`);
+		}
+		blackStandsGroup.remove(...blackStandsGroup.children);
+		blackStandsGroup.add(...blackPlayerHeldPieces.map(drawPiece => drawPiece.graphicsObject));
+		whiteStandsGroup.remove(...whiteStandsGroup.children);
+		whiteStandsGroup.add(...whitePlayerHeldPieces.map(drawPiece => drawPiece.graphicsObject));
 	}
 
-	private getMeshesForPlayerPieces(player: Player): DrawPiece[] {
-		return player.pieces.map(piece => {
+	private getPiecesGraphicsObjects(pieces: Piece[]): DrawPiece[] {
+		return pieces.map((piece: Piece) => {
 			const assetKey = getAssetKeyForPiece(piece);
-			const geometry = this.gameAssets.geometries[assetKey];
-			const material = this.gameAssets.materials[assetKey];
+			const pieceObject = this.gameAssets.pieces[assetKey];
+			if (pieceObject === undefined) {
+				throw new Error(`getPiecesForGraphicsObjects, piece graphics object not found, pieceName:${piece.name}, assetKey:${assetKey}, available keys:(${Object.keys(this.gameAssets.pieces).join(' ')})`);
+			}
 
 			return Object.assign(
 				{},
 				piece,
 				{
-					mesh: new Mesh(
-						geometry,
-						material,
-					)
+					graphicsObject: pieceObject
 				}
-			);
+			) as DrawPiece;
 		});
 	}
 
 	private drawPlacedPieces(piecesGroup: Group, gameState: Game): void {
-		const placedPieces = gameState.players
-			.flatMap(player => player.pieces)
-			.filter(piece => isPlaced(piece));
-		const meshs = placedPieces.map(placedPiece => {
-			const assetKey = getAssetKeyForPiece(placedPiece);
-			return new Mesh(
-				this.gameAssets.geometries[assetKey],
-				this.gameAssets.materials[assetKey],
-			);
+		//const placedPieces = gameState.players
+		//	.flatMap(player => player.pieces)
+		//	.filter(piece => isPlaced(piece));
+		//const pieceObjects = placedPieces.map(placedPiece => {
+		//	const assetKey = getAssetKeyForPiece(placedPiece);
+		//	return new Mesh(
+		//		this.gameAssets.geometries[assetKey],
+		//		this.gameAssets.materials[assetKey],
+		//	);
+		//});
+		const placedPiecesPerPlayer = gameState.players.map(player => {
+			return {
+				turn: player.turn,
+				pieces: this.getPiecesGraphicsObjects(
+					player.pieces.filter(piece => isPlaced(piece))
+				)
+			}
 		});
+		console.log({ placedPiecesPerPlayer });
+
+		const pieceGraphicsObjects = placedPiecesPerPlayer
+			.flatMap(player => player.pieces.map(drawPiece => drawPiece.graphicsObject))
+
+		console.log({ pieceGraphicsObjects });
+
+		piecesGroup.remove(...piecesGroup.children);
+		piecesGroup.add(...pieceGraphicsObjects);
 	}
 }

@@ -23,6 +23,7 @@ function createGame(): Game {
 	return {
 		board,
 		players,
+		viewPoint: "black",
 	}
 }
 
