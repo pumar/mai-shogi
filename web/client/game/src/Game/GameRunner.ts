@@ -175,6 +175,7 @@ export class GameRunner {
 
 		const svgRequestResults: [string, SVGResult][] = await Promise.all(this.loadSvgs(boardAndPiecesSvgSetting));
 		console.log('svg request results', { svgRequestResults });
+		const measurePieceSizeVector = new Vector3();
 		const svgObjects: [string, Group][] = svgRequestResults.map(filenameSvgResult => {
 			const svgName = filenameSvgResult[0];
 			const data = filenameSvgResult[1];
@@ -204,8 +205,19 @@ export class GameRunner {
 					group.add( mesh );
 				}
 			}
+			//scale the y coordinates by -1 to go from SVG space to threejs world space
+			group.scale.setY(-1);
+			//center the contents of the svg about the center of the group object they are in
+			const svgArea = new Box3().setFromObject(group);
+			const svgSize = svgArea.getSize(measurePieceSizeVector);
+			//console.log({ svgSize });
+			const translateGroup = new Group();
+			translateGroup.name = "translate_piece_svg_group";
+			translateGroup.add(group);
+			group.position.set(-svgSize.x / 2, svgSize.y / 2, group.position.z);
+			group.updateMatrixWorld();
 
-			return [svgName, group];
+			return [svgName, translateGroup];
 		});
 
 		//Object.assign(this.images, Object.fromEntries(textures));
