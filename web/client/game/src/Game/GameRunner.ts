@@ -17,9 +17,9 @@ type HeldPiecesStand = {
 }
 
 const zIndexes = {
-	board: 1,
+	board: -1,
 	timer: 0,
-	pieces: 0,
+	pieces: 1,
 }
 
 /**
@@ -189,7 +189,10 @@ export class GameRunner {
 				const material = new MeshBasicMaterial( {
 					color: path.color,
 					side: DoubleSide,
-					depthWrite: false
+					//I was debugging why the pieces were drawn behind the board,
+					//and it was because this code that I pasted from the example
+					//was setting depthWrite to false...
+					depthWrite: true
 				} );
 
 				const shapes = SVGLoader.createShapes( path );
@@ -316,6 +319,11 @@ export class GameRunner {
 			timersGroup,
 			piecesStand
 		].forEach(grp => scene.add(grp));
+		//piecesGroup.position.setZ(zIndexes.pieces);
+		piecesGroup.position.setZ(zIndexes.pieces);
+		piecesGroup.updateMatrixWorld();
+		boardGroup.position.setZ(zIndexes.board);
+		boardGroup.updateMatrixWorld();
 
 		const blackStandGroup = this.makeNamedGroup(SceneGroups.BlackStand);
 		const whiteStandGroup = this.makeNamedGroup(SceneGroups.WhiteStand);
@@ -403,8 +411,11 @@ export class GameRunner {
 		if (boardTexture === undefined) {
 			throw new Error(`draw board, no space texture`);
 		}
+		//const boardMaterial = new MeshBasicMaterial({
+		//	map: new Texture(boardTexture)
+		//});
 		const boardMaterial = new MeshBasicMaterial({
-			map: new Texture(boardTexture)
+			color: new Color(1, 0, 0),
 		});
 
 		const boardMesh = new Mesh(boardGeometry, boardMaterial);
@@ -517,7 +528,10 @@ export class GameRunner {
 				filePoints.push(new Vector3(
 					spaceStartPointX - boardSpaceWidth * fileIndex,
 					spaceStartPointY - boardSpaceHeight * rankIndex,
-					zIndexes.pieces
+					//note, when you use these vector3s to place things, and you
+					//need modify the coordinates, you need to modify a copy of the vector,
+					//not the vector itself. use vector.clone
+					0,
 				));
 			}
 			spaceCenterPoints.push(filePoints);
@@ -649,8 +663,9 @@ export class GameRunner {
 			player.pieces.forEach((drawPiece: DrawPiece) => {
 				//@ts-ignore TODO how do I tell the type system that these are placed pieces?
 				//I filtered them using isPlaced
-				const worldCoordinates = spaceCenterPointLookup[drawPiece.rank - 1][drawPiece.file - 1];
+				const worldCoordinates = spaceCenterPointLookup[drawPiece.rank - 1][drawPiece.file - 1].clone();
 				drawPiece.graphicsObject.position.copy(worldCoordinates);
+				drawPiece.graphicsObject.updateMatrixWorld();
 			});
 		});
 	}
