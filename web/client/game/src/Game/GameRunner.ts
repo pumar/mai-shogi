@@ -129,6 +129,7 @@ export class GameRunner {
 			return fetch(requestInfo[1]).then(response => response.blob()).then((blob) => [requestInfo[0], blob]);
 		})
 		const textures: [string, Blob][] = await Promise.all(textureRequests);
+		console.log('texture loading over');
 
 		const fileReaderResults: [string, string | ArrayBuffer | null][] = await Promise.all(textures.map((textureResult) => {
 			const rawBlob = textureResult[1];
@@ -141,6 +142,7 @@ export class GameRunner {
 			});
 			return fileReaderPromise;
 		}));
+		console.log('texture base64 encoding over');
 
 		fileReaderResults.forEach((result: [string, string | ArrayBuffer | null]) => {
 			if (typeof result[1] !== "string") {
@@ -152,15 +154,6 @@ export class GameRunner {
 			document.body.appendChild(imageTag);
 			this.images[result[0]] = imageTag;
 		});
-			//const newImage = document.createElement("img");
-			//const reader = new FileReader();
-			//reader.readAsDataURL(tex[1])
-			//reader.onloadend = () => {
-			//	const result = reader.result;
-			//	if (typeof result !== "string") throw new Error('bad image conversion');
-			//	newImage.src = result;
-			//};
-			//document.body.append(newImage);
 
 		console.log({ textures });
 
@@ -172,6 +165,7 @@ export class GameRunner {
 			const paths = data.paths;
 			const group = new Group();
 
+			//copy pasted this from the threejs svgloader example
 			for (let i = 0; i < paths.length; i++) {
 
 				const path = paths[ i ];
@@ -305,6 +299,7 @@ export class GameRunner {
 		} else {
 			this.gameStates.push(createGame());
 		}
+		console.log('running game');
 
 		requestAnimationFrame(this.renderStep.bind(this));
 	}
