@@ -35,6 +35,7 @@ enum SceneGroups {
 	WhiteStandPieces = "white_stand_pieces",
 	BlackStand = "black_stand",
 	BlackStandPieces = "black_stand_pieces",
+	Debug = "Debug",
 }
 
 type DrawPiece = Piece & {
@@ -324,12 +325,14 @@ export class GameRunner {
 		const piecesGroup = this.makeNamedGroup(SceneGroups.Pieces);
 		const timersGroup = this.makeNamedGroup(SceneGroups.Timers);
 		const piecesStand = this.makeNamedGroup(SceneGroups.Stands);
+		const debugPieces = this.makeNamedGroup(SceneGroups.Debug);
 
 		[
 			boardGroup,
 			piecesGroup,
 			timersGroup,
-			piecesStand
+			piecesStand,
+			debugPieces
 		].forEach(grp => scene.add(grp));
 		//piecesGroup.position.setZ(zIndexes.pieces);
 		piecesGroup.position.setZ(zIndexes.pieces);
@@ -438,6 +441,24 @@ export class GameRunner {
 		boardMesh.updateMatrixWorld();
 	}
 
+	public getBoardTopRightCorner(boardWidth: number, boardHeight: number): [number, number] {
+		return [boardWidth, boardHeight].map(num => num / 2) as [number, number];
+	}
+
+	public getSpaceStartPoint(
+		boardTopRightCornerX: number,
+		boardTopRightCornerY: number,
+		boardSpaceWidth: number,
+		boardSpaceHeight: number
+	): {spaceStartPointX: number; spaceStartPointY: number;} {
+		const spaceStartPointX = boardTopRightCornerX - boardSpaceWidth / 2;
+		const spaceStartPointY = boardTopRightCornerY - boardSpaceHeight / 2;
+		return {
+			spaceStartPointX,
+			spaceStartPointY
+		}
+	}
+
 	/**
 	* TODO timers
 	**/
@@ -453,10 +474,14 @@ export class GameRunner {
 
 		const boardWidth = boardSpaceWidth * files;
 		const boardHeight = boardSpaceHeight * ranks;
-		const [boardTopRightCornerX, boardTopRightCornerY] = [boardWidth, boardHeight].map(dim => dim / 2);
+		const [boardTopRightCornerX, boardTopRightCornerY] = this.getBoardTopRightCorner(boardWidth, boardHeight);
 
-		const spaceStartPointX = boardTopRightCornerX - boardSpaceWidth / 2;
-		const spaceStartPointY = boardTopRightCornerY - boardSpaceHeight / 2;
+		const {spaceStartPointX, spaceStartPointY} = this.getSpaceStartPoint(
+			boardTopRightCornerX,
+			boardTopRightCornerY,
+			boardSpaceWidth,
+			boardSpaceHeight,
+		);
 
 		const spaceCenterPoints: Vector3[][] = this.calcSpaceCoordinates(
 			ranks,
@@ -680,5 +705,52 @@ export class GameRunner {
 				drawPiece.graphicsObject.updateMatrixWorld();
 			});
 		});
+	}
+
+	public debugSpaceCoords(gameState: Game | undefined, renderSettings: RenderSettings = defaultRenderSettings()): void {
+		const game = gameState !== undefined ? gameState : this.gameStates[this.gameStates.length - 1];
+		const boardWidth = renderSettings.boardSpaceWidth * game.board.files;
+		const boardHeight = renderSettings.boardSpaceHeight * game.board.ranks;
+		const [boardTopRightCornerX, boardTopRightCornerY] = this.getBoardTopRightCorner(
+			boardWidth,
+			boardHeight,
+		);
+		const { spaceStartPointX, spaceStartPointY } = this.getSpaceStartPoint(
+			boardTopRightCornerX,
+			boardTopRightCornerY,
+			renderSettings.boardSpaceWidth,
+			renderSettings.boardSpaceHeight,
+		);
+		const renderCoords = this.calcSpaceCoordinates(
+			game.board.ranks,
+			game.board.files,
+			spaceStartPointX,
+			spaceStartPointY,
+			renderSettings.boardSpaceWidth,
+			renderSettings.boardSpaceHeight
+		);
+		console.log({ renderCoords });
+		const cube = new Mesh(
+			new PlaneGeometry(2, 2),
+			new MeshBasicMaterial({
+				color: new Color(0, 0, 1),
+			})
+		);
+
+		const debugGroup = this.getSceneGroup(SceneGroups.Debug);
+		debugGroup.remove(...debugGroup.children);
+
+		const placeDebugObjects = []
+		for(let rankIndex = 0; rankIndex < game.board.ranks; rankIndex++) {
+			for(let fileIndex = 0; fileIndex < game.board.files; fileIndex++) {
+				const insertCube = cube.clone();
+				placeDebugObjects.push(insertCube);
+				insertCube.position.copy(renderCoords[rankIndex][fileIndex]);
+				insertCube.position.setZ(zIndexes.pieces);
+				insertCube.matrixWorldNeedsUpdate = true;
+			}
+		}
+		debugGroup.add(...placeDebugObjects);
+		requestAnimationFrame(this.renderStep.bind(this));
 	}
 }
