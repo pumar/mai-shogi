@@ -1,4 +1,4 @@
-import { BufferGeometry, Camera, Color, DoubleSide, Group, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry, Texture, Vector3, WebGLRenderer } from "three";
+import { Box3, BufferGeometry, Camera, Color, DoubleSide, Group, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry, Texture, Vector3, WebGLRenderer } from "three";
 import { SVGLoader, SVGResult } from "three/examples/jsm/loaders/SVGLoader.js";
 import { makeExistsGuard } from "../utils/Guards";
 import { buildForRange } from "../utils/Range";
@@ -14,6 +14,12 @@ type HeldPiecesStand = {
 	basePoint: Vector3;
 	width: number;
 	height: number;
+}
+
+const zIndexes = {
+	board: 1,
+	timer: 0,
+	pieces: 0,
 }
 
 /**
@@ -114,7 +120,9 @@ export class GameRunner {
 		pieces: {},
 	};
 
-	public async initGraphics(boardAndPiecesSvgSetting: SvgLoadConfig = getDefaultSvgLoadConfig()): Promise<void> {
+	public async initGraphics(
+		boardAndPiecesSvgSetting: SvgLoadConfig = getDefaultSvgLoadConfig(),
+	): Promise<void> {
 		this.initCamera();
 		this.setScene(new Scene());
 		this.initRenderer();
@@ -202,6 +210,19 @@ export class GameRunner {
 		console.log('svg groups', svgObjects);
 		Object.assign(this.gameAssets.pieces, Object.fromEntries(svgObjects));
 		console.log({ gameAssets: this.gameAssets, pieceKeys: Object.keys(this.gameAssets.pieces) });
+		//resize the pieces TODO move this to a helper function, we will need to do this on a screen
+		//resize at some point
+		const renderSettings = this.renderSettingsOrDefault();
+		Object.values(this.gameAssets.pieces).forEach((piece: Group) => {
+			const pieceSize = new Vector3();
+			const pieceBox = new Box3().setFromObject(piece);
+			pieceBox.getSize(pieceSize);
+			const sizeRatioX = pieceSize.x / renderSettings.boardSpaceWidth;
+			const sizeRatioY = pieceSize.y / renderSettings.boardSpaceHeight;
+			console.log({ pieceSize, sizeRatioX, sizeRatioY });
+			piece.scale.set(1 / sizeRatioX, 1 / sizeRatioY, 1);
+			piece.updateMatrixWorld();
+		});
 	}
 
 	private initCamera(): void {
@@ -315,10 +336,14 @@ export class GameRunner {
 	private renderStep(): void {
 		const gameState = this.gameStates[this.gameStates.length - 1];
 		const scene = this.getScene();
+
+		const renderSettings = this.renderSettingsOrDefault();
+
 		const calcRenderCoordinates = this.calcRenderCoordinates(
 			gameState,
-			this.renderSettingsOrDefault()
+			renderSettings,
 		);
+		console.log({ calcRenderCoordinates });
 		this.drawHeldPiecesStand(
 			this.getSceneGroup(SceneGroups.Stands),
 			calcRenderCoordinates.whiteStandCoords,
@@ -340,17 +365,26 @@ export class GameRunner {
 		this.drawPlacedPieces(
 			this.getSceneGroup(SceneGroups.Pieces),
 			gameState,
-			calcRenderCoordinates.spaceCenterPoints
+			calcRenderCoordinates.spaceCenterPoints,
+			renderSettings,
 		);
 
 		const camera = this.getCamera();
 		//const {clientWidth, clientHeight} = this.getCanvas();
-		const {width, height} = this.getCanvas();
+		//const {width, height} = this.getCanvas();
+		const sceneBoundingBox = new Box3().setFromObject(this.getScene());
+
+		const size = new Vector3();
+		sceneBoundingBox.getSize(size);
+
+		const sceneAspectRatio = size.x / size.y;
+		console.log({ sceneBoundingBox, size, sceneAspectRatio });
+		const cameraAreaDimension = Math.max(size.x, size.y);
 		if (camera instanceof OrthographicCamera) {
-			camera.left = -width / 2;
-			camera.right = width / 2;
-			camera.top = height / 2;
-			camera.bottom = -height / 2;
+			camera.left = -cameraAreaDimension / 2;
+			camera.right = cameraAreaDimension / 2;
+			camera.top = cameraAreaDimension / 2;
+			camera.bottom = -cameraAreaDimension / 2;
 			camera.updateProjectionMatrix();
 		}
 
@@ -363,6 +397,7 @@ export class GameRunner {
 		boardWidth: number,
 		boardHeight: number
 	): void {
+		//TODO make the tile texture properly fit into each square of the board
 		const boardGeometry = new PlaneGeometry(boardWidth, boardHeight);
 		const boardTexture = this.images["tile_texture"];
 		if (boardTexture === undefined) {
@@ -372,8 +407,12 @@ export class GameRunner {
 			map: new Texture(boardTexture)
 		});
 
+		const boardMesh = new Mesh(boardGeometry, boardMaterial);
+
 		boardGroup.remove(...boardGroup.children);
-		boardGroup.add(new Mesh(boardGeometry, boardMaterial));
+		boardGroup.add(boardMesh);
+		boardMesh.position.setZ(zIndexes.board);
+		boardMesh.updateMatrixWorld();
 	}
 
 	/**
@@ -499,9 +538,6 @@ export class GameRunner {
 			blackPlayer.pieces.filter(piece => isHeldPiece(piece)),
 		);
 
-		//TODO figure out the coordinates per player, based on who's point of view it is
-		const viewStandCenter = new Vector3(0, 0, 0);
-
 		const whitePlayerHeldPieces: DrawPiece[] = this.getPiecesGraphicsObjects(
 			whitePlayer.pieces.filter(piece => isHeldPiece(piece)),
 		);
@@ -577,7 +613,8 @@ export class GameRunner {
 	private drawPlacedPieces(
 		piecesGroup: Group, 
 		gameState: Game,
-		spaceCenterPointLookup: Vector3[][]
+		spaceCenterPointLookup: Vector3[][],
+		renderSettings: RenderSettings,
 	): void {
 		//const placedPieces = gameState.players
 		//	.flatMap(player => player.pieces)
@@ -604,8 +641,10 @@ export class GameRunner {
 
 		console.log({ pieceGraphicsObjects });
 
+		const numPieces = piecesGroup.children.length;
 		piecesGroup.remove(...piecesGroup.children);
 		piecesGroup.add(...pieceGraphicsObjects);
+		console.log({ piecesRemoved: numPieces, piecesAdded: pieceGraphicsObjects.length });
 		placedPiecesPerPlayer.forEach((player) => {
 			player.pieces.forEach((drawPiece: DrawPiece) => {
 				//@ts-ignore TODO how do I tell the type system that these are placed pieces?
