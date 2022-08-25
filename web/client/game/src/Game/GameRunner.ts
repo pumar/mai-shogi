@@ -432,8 +432,8 @@ export class GameRunner {
 		const boardHeight = boardSpaceHeight * ranks;
 		const [boardTopRightCornerX, boardTopRightCornerY] = [boardWidth, boardHeight].map(dim => dim / 2);
 
-		const spaceStartPointX = boardTopRightCornerX - boardWidth / 2;
-		const spaceStartPointY = boardTopRightCornerY - boardHeight / 2;
+		const spaceStartPointX = boardTopRightCornerX - boardSpaceWidth / 2;
+		const spaceStartPointY = boardTopRightCornerY - boardSpaceHeight / 2;
 
 		const spaceCenterPoints: Vector3[][] = this.calcSpaceCoordinates(
 			ranks,
@@ -517,7 +517,7 @@ export class GameRunner {
 				filePoints.push(new Vector3(
 					spaceStartPointX - boardSpaceWidth * fileIndex,
 					spaceStartPointY - boardSpaceHeight * rankIndex,
-					0
+					zIndexes.pieces
 				));
 			}
 			spaceCenterPoints.push(filePoints);
