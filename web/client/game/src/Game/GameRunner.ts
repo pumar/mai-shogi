@@ -10,6 +10,12 @@ import { Game } from "./types/Game";
 import { HeldPiece, isHeldPiece, isPlaced, Piece } from "./types/Piece";
 import { Player, Turn } from "./types/Player";
 
+type HeldPiecesStand = {
+	basePoint: Vector3;
+	width: number;
+	height: number;
+}
+
 /**
 * names of objects that are added to and removed from the scene
 * as needed
@@ -20,7 +26,9 @@ enum SceneGroups {
 	Timers = "timers",
 	Stands = "stands",
 	WhiteStand = "white_stand",
+	WhiteStandPieces = "white_stand_pieces",
 	BlackStand = "black_stand",
+	BlackStandPieces = "black_stand_pieces",
 }
 
 type DrawPiece = Piece & {
@@ -148,9 +156,9 @@ export class GameRunner {
 			if (typeof result[1] !== "string") {
 				throw new Error('could not convert png file to an image tag src');
 			}
-			//for debugging
 			const imageTag = document.createElement("img");
 			imageTag.src = result[1];
+			//for debugging
 			document.body.appendChild(imageTag);
 			this.images[result[0]] = imageTag;
 		});
@@ -311,8 +319,13 @@ export class GameRunner {
 			gameState,
 			this.renderSettingsOrDefault()
 		);
+		this.drawHeldPiecesStand(
+			this.getSceneGroup(SceneGroups.Stands),
+			calcRenderCoordinates.whiteStandCoords,
+			calcRenderCoordinates.blackStandCoords,
+		);
 		//TODO skipping this, draw the pieces on the board first
-		//this.drawPieceStands(
+		//this.drawHeldPieces(
 		//	this.getSceneGroup(SceneGroups.Stands),
 		//	gameState.viewPoint,
 		//	gameState.players,
@@ -368,8 +381,8 @@ export class GameRunner {
 	**/
 	private calcRenderCoordinates(gameState: Game, renderSettings: RenderSettings): {
 		spaceCenterPoints: Vector3[][],
-		whitePiecesStandBasePoint: Vector3,
-		blackPiecesStandBasePoint: Vector3,
+		whiteStandCoords: HeldPiecesStand;
+		blackStandCoords: HeldPiecesStand;
 		boardWidth: number;
 		boardHeight: number;
 	} {
@@ -403,13 +416,23 @@ export class GameRunner {
 			standGap
 		);
 		
+		const standWidth = boardSpaceWidth * 4;
+		const standHeight = boardSpaceHeight * 2;
 
 		return {
 			boardWidth,
 			boardHeight,
 			spaceCenterPoints,
-			whitePiecesStandBasePoint,
-			blackPiecesStandBasePoint,
+			whiteStandCoords: {
+				basePoint: whitePiecesStandBasePoint,
+				width: standWidth,
+				height: standHeight,
+			},
+			blackStandCoords: {
+				basePoint: blackPiecesStandBasePoint,
+				width: standWidth,
+				height: standHeight,
+			}
 		}
 	}
 
@@ -464,7 +487,7 @@ export class GameRunner {
 		return spaceCenterPoints;
 	}
 
-	private drawPieceStands(standsGroup: Group, viewpoint: Turn, players: Player[]): void {
+	private drawHeldPieces(standsGroup: Group, viewpoint: Turn, players: Player[]): void {
 		const blackPlayer = players.find(player => player.turn === "black");
 		const whitePlayer = players.find(player => player.turn === "white");
 		if(!blackPlayer || !whitePlayer) {
@@ -494,6 +517,43 @@ export class GameRunner {
 		blackStandsGroup.add(...blackPlayerHeldPieces.map(drawPiece => drawPiece.graphicsObject));
 		whiteStandsGroup.remove(...whiteStandsGroup.children);
 		whiteStandsGroup.add(...whitePlayerHeldPieces.map(drawPiece => drawPiece.graphicsObject));
+	}
+
+	private drawHeldPiecesStand(
+		standsGroup: Group,
+		whiteStandCoords: HeldPiecesStand,
+		blackStandCoords: HeldPiecesStand,
+	): void {
+		//TODO this only needs to be done once
+		const whiteStandGroup = standsGroup.getObjectByName(SceneGroups.WhiteStand);
+		const blackStandGroup = standsGroup.getObjectByName(SceneGroups.BlackStand);
+		if(whiteStandGroup === undefined || blackStandGroup === undefined) {
+			throw new Error('drawHeldPiecesStand stand group not found in scene');
+		}
+
+		const whiteStandMesh = this.makeStandMesh(whiteStandCoords);
+		whiteStandGroup.remove(...whiteStandGroup.children);
+		whiteStandGroup.add(whiteStandMesh);
+
+		const blackStandMesh = this.makeStandMesh(blackStandCoords);
+		blackStandGroup.remove(...blackStandGroup.children);
+		blackStandGroup.add(blackStandMesh);
+	}
+
+	private makeStandMesh(standCoords: HeldPiecesStand): Mesh {
+		const planeGeometry = new PlaneGeometry(
+			standCoords.width,
+			standCoords.height,
+		);
+
+		const material = new MeshBasicMaterial({
+			map: new Texture(this.images["tile_texture"]),
+		});
+
+		const mesh = new Mesh(planeGeometry, material);
+		mesh.position.copy(standCoords.basePoint);
+
+		return mesh;
 	}
 
 	private getPiecesGraphicsObjects(pieces: Piece[]): DrawPiece[] {
