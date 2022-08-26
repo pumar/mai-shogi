@@ -655,7 +655,7 @@ export class GameRunner {
 				{},
 				piece,
 				{
-					graphicsObject: pieceObject
+					graphicsObject: pieceObject.clone()//don't forget to clone the mesh, you big dummy! this was a bug
 				}
 			) as DrawPiece;
 		});
@@ -698,10 +698,17 @@ export class GameRunner {
 		console.log({ piecesRemoved: numPieces, piecesAdded: pieceGraphicsObjects.length });
 		placedPiecesPerPlayer.forEach((player) => {
 			player.pieces.forEach((drawPiece: DrawPiece) => {
-				//@ts-ignore TODO how do I tell the type system that these are placed pieces?
+				console.error('draw piece', drawPiece);
+				//TODO how do I tell the type system that these are placed pieces?
 				//I filtered them using isPlaced
 				const worldCoordinates = spaceCenterPointLookup[drawPiece.rank - 1][drawPiece.file - 1].clone();
 				drawPiece.graphicsObject.position.copy(worldCoordinates);
+				const toString = (vector) => `(${vector.x}, ${vector.y}, ${vector.z})`;
+				console.log('drew piece at:', {
+					rank: drawPiece.rank,
+					file: drawPiece.file,
+					coords: toString(drawPiece.graphicsObject.position)
+				});
 				drawPiece.graphicsObject.updateMatrixWorld();
 			});
 		});
