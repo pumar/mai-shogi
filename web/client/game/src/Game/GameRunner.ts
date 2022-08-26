@@ -236,6 +236,8 @@ export class GameRunner {
 			const sizeRatioX = pieceSize.x / renderSettings.boardSpaceWidth;
 			const sizeRatioY = pieceSize.y / renderSettings.boardSpaceHeight;
 			console.log({ pieceSize, sizeRatioX, sizeRatioY });
+			//increased the magnitude of the scaling factors by 10% because the pieces are
+			//a little bit bigger than the game squares
 			piece.scale.set(1 / (sizeRatioX * 1.1), 1 / (sizeRatioY * 1.1), 1);
 			piece.updateMatrixWorld();
 		});
