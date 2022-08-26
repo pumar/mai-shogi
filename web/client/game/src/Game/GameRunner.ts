@@ -698,17 +698,25 @@ export class GameRunner {
 		console.log({ piecesRemoved: numPieces, piecesAdded: pieceGraphicsObjects.length });
 		placedPiecesPerPlayer.forEach((player) => {
 			player.pieces.forEach((drawPiece: DrawPiece) => {
+				const graphicsObject = drawPiece.graphicsObject;
 				console.error('draw piece', drawPiece);
+				//TODO consider actually loading in the white & the black pieces,
+				//instead of just loading in half of them and then rotating them
+				if (player.turn === gameState.viewPoint) {
+					graphicsObject.position.set(0, 0, 0);
+					graphicsObject.rotateZ(Math.PI);
+				}
 				//TODO how do I tell the type system that these are placed pieces?
 				//I filtered them using isPlaced
 				const worldCoordinates = spaceCenterPointLookup[drawPiece.rank - 1][drawPiece.file - 1].clone();
-				drawPiece.graphicsObject.position.copy(worldCoordinates);
-				const toString = (vector) => `(${vector.x}, ${vector.y}, ${vector.z})`;
-				console.log('drew piece at:', {
-					rank: drawPiece.rank,
-					file: drawPiece.file,
-					coords: toString(drawPiece.graphicsObject.position)
-				});
+				graphicsObject.position.copy(worldCoordinates);
+				//const toString = (vector) => `(${vector.x}, ${vector.y}, ${vector.z})`;
+				//console.log('drew piece at:', {
+				//	rank: drawPiece.rank,
+				//	file: drawPiece.file,
+				//	coords: toString(drawPiece.graphicsObject.position)
+				//});
+
 				drawPiece.graphicsObject.updateMatrixWorld();
 			});
 		});
