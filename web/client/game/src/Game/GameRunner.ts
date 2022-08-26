@@ -236,7 +236,7 @@ export class GameRunner {
 			const sizeRatioX = pieceSize.x / renderSettings.boardSpaceWidth;
 			const sizeRatioY = pieceSize.y / renderSettings.boardSpaceHeight;
 			console.log({ pieceSize, sizeRatioX, sizeRatioY });
-			piece.scale.set(1 / sizeRatioX, 1 / sizeRatioY, 1);
+			piece.scale.set(1 / (sizeRatioX * 1.1), 1 / (sizeRatioY * 1.1), 1);
 			piece.updateMatrixWorld();
 		});
 	}
@@ -634,7 +634,9 @@ export class GameRunner {
 		);
 
 		const material = new MeshBasicMaterial({
-			map: new Texture(this.images["tile_texture"]),
+			//map: new Texture(this.images["tile_texture"]),
+			//TODO figure out why the texture is not working
+			color: new Color(0, 1, 0),
 		});
 
 		const mesh = new Mesh(planeGeometry, material);
