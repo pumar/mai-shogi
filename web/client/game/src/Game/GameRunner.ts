@@ -1,4 +1,4 @@
-import { Box3, BufferGeometry, Camera, Color, DoubleSide, Group, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry, Texture, Vector3, WebGLRenderer } from "three";
+import { Box3, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry, Texture, Vector3, WebGLRenderer } from "three";
 import { SVGLoader, SVGResult } from "three/examples/jsm/loaders/SVGLoader.js";
 import { makeExistsGuard } from "../utils/Guards";
 import { buildForRange } from "../utils/Range";
@@ -18,6 +18,7 @@ type HeldPiecesStand = {
 
 const zIndexes = {
 	board: -1,
+	grid: 0,
 	timer: 0,
 	pieces: 1,
 }
@@ -28,6 +29,7 @@ type CalcedRenderCoords = {
 	blackStandCoords: HeldPiecesStand;
 	boardWidth: number;
 	boardHeight: number;
+	gridCoords: {start: Vector3; end: Vector3;}[];
 }
 
 /**
@@ -435,6 +437,17 @@ export class GameRunner {
 		group: Group,
 		calcRenderCoordinates: CalcedRenderCoords,
 	): void {
+		const lineGeometry = new BufferGeometry();
+		const points: Vector3[] = [];
+
+		lineGeometry.setFromPoints(calcRenderCoordinates.gridCoords);
+		const lineMaterial = new MeshBasicMaterial({
+			color: new Color(0, 0, 0),
+		});
+
+		const grid = new LineSegments(lineGeometry, lineMaterial);
+		group.remove(...group.children);
+		group.add(grid);
 	}
 
 	private drawBoard(
@@ -496,6 +509,44 @@ export class GameRunner {
 		const boardHeight = boardSpaceHeight * ranks;
 		const [boardTopRightCornerX, boardTopRightCornerY] = this.getBoardTopRightCorner(boardWidth, boardHeight);
 
+		const verticalLines = buildForRange(1, gameState.board.files - 1, (index: number) => {
+			const xCoord = boardTopRightCornerX - boardSpaceWidth * index 
+			return [
+				new Vector3(
+					xCoord,
+					boardTopRightCornerY,
+					zIndexes.grid,
+				),
+				new Vector3(
+					xCoord,
+					boardTopRightCornerY - boardHeight,
+					zIndexes.grid,
+
+				),
+			]
+		}).flat();
+
+		const horizontalLines = buildForRange(1, gameState.board.ranks - 1, (index: number) => {
+			const yCoord = boardTopRightCornerY - boardSpaceHeight * index;
+			return [
+				new Vector3(
+					boardTopRightCornerX,
+					yCoord,
+					zIndexes.grid,
+				),
+				new Vector3(
+					boardTopRightCornerX - boardWidth,
+					yCoord,
+					zIndexes.grid,
+				),
+			]
+		}).flat();
+
+		const gridCoords: Vector3[] = [
+			...verticalLines,
+			...horizontalLines,
+		];
+
 		const {spaceStartPointX, spaceStartPointY} = this.getSpaceStartPoint(
 			boardTopRightCornerX,
 			boardTopRightCornerY,
@@ -539,7 +590,8 @@ export class GameRunner {
 				basePoint: blackPiecesStandBasePoint,
 				width: standWidth,
 				height: standHeight,
-			}
+			},
+			gridCoords,
 		}
 	}
 
