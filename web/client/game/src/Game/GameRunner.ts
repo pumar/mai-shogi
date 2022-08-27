@@ -1,4 +1,4 @@
-import { Box3, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry, Texture, Vector3, WebGLRenderer } from "three";
+import { Box3, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry,  Vector3, WebGLRenderer } from "three";
 import { SVGLoader, SVGResult } from "three/examples/jsm/loaders/SVGLoader.js";
 import { makeExistsGuard } from "../utils/Guards";
 import { buildForRange } from "../utils/Range";
@@ -7,7 +7,7 @@ import { createGame } from "./GameCreator";
 import { defaultRenderSettings, RenderSettings } from "./Renderer/Renderer";
 import { getAssetKeyForPiece } from "./types/AssetKeys";
 import { Game } from "./types/Game";
-import { HeldPiece, isHeldPiece, isPlaced, Piece } from "./types/Piece";
+import { isHeldPiece, isPlaced, Piece } from "./types/Piece";
 import { Player, Turn } from "./types/Player";
 
 type HeldPiecesStand = {
@@ -29,7 +29,12 @@ type CalcedRenderCoords = {
 	blackStandCoords: HeldPiecesStand;
 	boardWidth: number;
 	boardHeight: number;
-	gridCoords: {start: Vector3; end: Vector3;}[];
+	/** the start-end pair coordinates that are necessary to draw the grid lines
+	* for the board. The order is probably start1, end1, start2, end2...startN, endN
+	* but I'm not actually sure. It might be good to rework it so that it's
+	* easier to figure which points are which
+	**/
+	gridCoords: Vector3[];
 }
 
 /**
