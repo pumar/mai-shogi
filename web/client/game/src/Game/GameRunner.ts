@@ -22,6 +22,14 @@ const zIndexes = {
 	pieces: 1,
 }
 
+type CalcedRenderCoords = {
+	spaceCenterPoints: Vector3[][],
+	whiteStandCoords: HeldPiecesStand;
+	blackStandCoords: HeldPiecesStand;
+	boardWidth: number;
+	boardHeight: number;
+}
+
 /**
 * names of objects that are added to and removed from the scene
 * as needed
@@ -36,6 +44,7 @@ enum SceneGroups {
 	BlackStand = "black_stand",
 	BlackStandPieces = "black_stand_pieces",
 	Debug = "Debug",
+	Grid = "grid",
 }
 
 type DrawPiece = Piece & {
@@ -328,13 +337,15 @@ export class GameRunner {
 		const timersGroup = this.makeNamedGroup(SceneGroups.Timers);
 		const piecesStand = this.makeNamedGroup(SceneGroups.Stands);
 		const debugPieces = this.makeNamedGroup(SceneGroups.Debug);
+		const gridGroup = this.makeNamedGroup(SceneGroups.Grid);
 
 		[
 			boardGroup,
 			piecesGroup,
 			timersGroup,
 			piecesStand,
-			debugPieces
+			debugPieces,
+			gridGroup,
 		].forEach(grp => scene.add(grp));
 		//piecesGroup.position.setZ(zIndexes.pieces);
 		piecesGroup.position.setZ(zIndexes.pieces);
@@ -387,6 +398,10 @@ export class GameRunner {
 			calcRenderCoordinates.boardWidth,
 			calcRenderCoordinates.boardHeight,
 		);
+		this.drawGrid(
+			this.getSceneGroup(SceneGroups.Grid),
+			calcRenderCoordinates,
+		);
 		this.drawPlacedPieces(
 			this.getSceneGroup(SceneGroups.Pieces),
 			gameState,
@@ -406,14 +421,20 @@ export class GameRunner {
 		console.log({ sceneBoundingBox, size, sceneAspectRatio });
 		const cameraAreaDimension = Math.max(size.x, size.y);
 		if (camera instanceof OrthographicCamera) {
-			camera.left = -cameraAreaDimension / 2;
-			camera.right = cameraAreaDimension / 2;
-			camera.top = cameraAreaDimension / 2;
-			camera.bottom = -cameraAreaDimension / 2;
+			camera.left = -(cameraAreaDimension / 2 + renderSettings.renderPadding);
+			camera.right = cameraAreaDimension / 2 + renderSettings.renderPadding;
+			camera.top = cameraAreaDimension / 2 + renderSettings.renderPadding;
+			camera.bottom = -(cameraAreaDimension / 2 + renderSettings.renderPadding);
 			camera.updateProjectionMatrix();
 		}
 
 		this.getRenderer().render(scene, camera);
+	}
+
+	private drawGrid(
+		group: Group,
+		calcRenderCoordinates: CalcedRenderCoords,
+	): void {
 	}
 
 	private drawBoard(
@@ -464,13 +485,10 @@ export class GameRunner {
 	/**
 	* TODO timers
 	**/
-	private calcRenderCoordinates(gameState: Game, renderSettings: RenderSettings): {
-		spaceCenterPoints: Vector3[][],
-		whiteStandCoords: HeldPiecesStand;
-		blackStandCoords: HeldPiecesStand;
-		boardWidth: number;
-		boardHeight: number;
-	} {
+	private calcRenderCoordinates(
+		gameState: Game,
+		renderSettings: RenderSettings
+	): CalcedRenderCoords {
 		const {files, ranks} = gameState.board;
 		const {boardSpaceWidth, boardSpaceHeight} = renderSettings;
 
