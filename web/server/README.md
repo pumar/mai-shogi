@@ -10,5 +10,5 @@
     - you can also use [Docker Desktop for Windows](https://docs.docker.com/desktop/install/windows-install/), as this project should meet the requirements for free usage of it
 
 
-## Accredations
+## Acknowledgements
 - [shogi pieces svgs](https://github.com/Ka-hu/shogi-pieces)
