@@ -23,6 +23,7 @@ function createGame(): Game {
 	return {
 		board,
 		players,
+		viewPoint: "black",
 	}
 }
 
@@ -98,7 +99,7 @@ function makeKnights(turn: Turn): PlacedPiece[] {
 }
 
 function makeSilvers(turn: Turn): PlacedPiece[] {
-	const name = "gold";
+	const name = "silver";
 	const locations = turn === "black" ?
 		[{rank: 9, file: 7}, {rank: 9, file: 3}] :
 		[{rank: 1, file: 7}, {rank: 1, file: 3}];
@@ -106,7 +107,7 @@ function makeSilvers(turn: Turn): PlacedPiece[] {
 }
 
 function makeGolds(turn: Turn): PlacedPiece[] {
-	const name = "silver";
+	const name = "gold";
 	const locations = turn === "black" ?
 		[{rank: 9, file: 6}, {rank: 9, file: 4}] :
 		[{rank: 1, file: 6}, {rank: 1, file: 4}];

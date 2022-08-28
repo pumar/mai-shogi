@@ -1,8 +1,10 @@
 export {
+	Piece,
 	PlacedPiece,
 	HeldPiece,
 	isPlaced,
 	isPromotable,
+	isHeldPiece,
 	Placed,
 }
 
@@ -40,6 +42,9 @@ type PlacedPiece = GamePiece & Placed;
 type HeldPiece = GamePiece & {
 	/** it's possible to hold multiples of the same piece */
 	count: number;
+}
+function isHeldPiece(obj: Record<string, any>): obj is HeldPiece {
+	return (obj as HeldPiece).count !== undefined;
 }
 
 type Piece = PlacedPiece | HeldPiece;

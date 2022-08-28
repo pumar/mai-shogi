@@ -14,13 +14,16 @@ export type RenderSettings = {
 	renderPadding: number;
 	boardSpaceWidth: number;
 	boardSpaceHeight: number;
+	/* the padding around the entire scene, so that the game objects do not touch the
+	* edges of the viewport */
 }
 
 function defaultRenderSettings(): RenderSettings {
 	return {
 		gridStrokeColor: "black",
 		boardBackgroundColor: "#ffaf4f",
-		renderPadding: 10,
+		/** TODO don't need this */
+		renderPadding: 5,
 		boardSpaceWidth: 11,
 		boardSpaceHeight: 12,
 	}
