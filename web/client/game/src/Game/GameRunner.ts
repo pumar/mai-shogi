@@ -1,7 +1,9 @@
-import { Box3, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry,  Vector3, WebGLRenderer } from "three";
+import { Box3, BoxBufferGeometry, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry,  Vector3, WebGLRenderer } from "three";
 import { SVGLoader, SVGResult } from "three/examples/jsm/loaders/SVGLoader.js";
 import { makeExistsGuard } from "../utils/Guards";
+import { measureTime } from "../utils/Performance";
 import { buildForRange } from "../utils/Range";
+import { debounce } from "../utils/Throttling";
 
 import { createGame } from "./GameCreator";
 import { defaultRenderSettings, RenderSettings } from "./Renderer/Renderer";
@@ -35,6 +37,12 @@ type CalcedRenderCoords = {
 	* easier to figure which points are which
 	**/
 	gridCoords: Vector3[];
+	/**
+	* return the logical size of the game space. If you measure the threejs scene
+	* itself, the scaling factors will be represented in this number, which we
+	* don't want
+	**/
+	gameSpaceSize: [number, number];
 }
 
 /**
@@ -188,75 +196,99 @@ export class GameRunner {
 			this.images[result[0]] = imageTag;
 		});
 
-		console.log({ textures });
-
 		const svgRequestResults: [string, SVGResult][] = await Promise.all(this.loadSvgs(boardAndPiecesSvgSetting));
-		console.log('svg request results', { svgRequestResults });
 		const measurePieceSizeVector = new Vector3();
-		const svgObjects: [string, Group][] = svgRequestResults.map(filenameSvgResult => {
-			const svgName = filenameSvgResult[0];
-			const data = filenameSvgResult[1];
-			const paths = data.paths;
-			const group = new Group();
+		//TODO too slow -> can you serialize the threejs objects? that way this loop doesn't need to run every game
+		const svgObjects: [string, Group][] = measureTime(() => {
+			return svgRequestResults.map(filenameSvgResult => {
+				const svgName = filenameSvgResult[0];
+				const data = filenameSvgResult[1];
+				const paths = data.paths;
+				const group = new Group();
 
-			//copy pasted this from the threejs svgloader example
-			for (let i = 0; i < paths.length; i++) {
+				//copy pasted this from the threejs svgloader example
+				const start = performance.now();
+				for (let i = 0; i < paths.length; i++) {
 
-				const path = paths[ i ];
+					const path = paths[ i ];
 
-				const material = new MeshBasicMaterial( {
-					color: path.color,
-					side: DoubleSide,
-					//I was debugging why the pieces were drawn behind the board,
-					//and it was because this code that I pasted from the example
-					//was setting depthWrite to false...
-					depthWrite: true
-				} );
+					const material = new MeshBasicMaterial( {
+						color: path.color,
+						side: DoubleSide,
+						//I was debugging why the pieces were drawn behind the board,
+						//and it was because this code that I pasted from the example
+						//was setting depthWrite to false...
+						depthWrite: true
+					} );
 
-				const shapes = SVGLoader.createShapes( path );
+					const shapes = SVGLoader.createShapes( path );
 
-				for (let j = 0;j < shapes.length;j++) {
-					const shape = shapes[ j ];
-					const geometry = new ShapeGeometry( shape );
-					const mesh = new Mesh( geometry, material );
-					group.add( mesh );
+					for (let j = 0;j < shapes.length;j++) {
+						const shape = shapes[ j ];
+						const geometry = new ShapeGeometry( shape );
+						const mesh = new Mesh( geometry, material );
+						group.add( mesh );
+					}
 				}
-			}
-			//scale the y coordinates by -1 to go from SVG space to threejs world space
-			group.scale.setY(-1);
-			//center the contents of the svg about the center of the group object they are in
-			const svgArea = new Box3().setFromObject(group);
-			const svgSize = svgArea.getSize(measurePieceSizeVector);
-			//console.log({ svgSize });
-			const translateGroup = new Group();
-			translateGroup.name = "translate_piece_svg_group";
-			translateGroup.add(group);
-			group.position.set(-svgSize.x / 2, svgSize.y / 2, group.position.z);
-			group.updateMatrixWorld();
+				const time = performance.now() - start;
+				console.log(`loop time:${time}, piece:${filenameSvgResult[0]}`);
+				//scale the y coordinates by -1 to go from SVG space to threejs world space
+				group.scale.setY(-1);
+				//center the contents of the svg about the center of the group object they are in
+				const svgArea = new Box3().setFromObject(group);
+				const svgSize = svgArea.getSize(measurePieceSizeVector);
+				const translateGroup = new Group();
+				translateGroup.name = "translate_piece_svg_group";
+				translateGroup.add(group);
+				group.position.set(-svgSize.x / 2, svgSize.y / 2, group.position.z);
+				group.updateMatrixWorld();
 
-			return [svgName, translateGroup];
-		});
+				return [svgName, translateGroup];
+			});
+		}, (time) => console.log(`svg parsing time:${time}`));
 
-		//Object.assign(this.images, Object.fromEntries(textures));
-
-		console.log('svg groups', svgObjects);
 		Object.assign(this.gameAssets.pieces, Object.fromEntries(svgObjects));
 		console.log({ gameAssets: this.gameAssets, pieceKeys: Object.keys(this.gameAssets.pieces) });
 		//resize the pieces TODO move this to a helper function, we will need to do this on a screen
 		//resize at some point
 		const renderSettings = this.renderSettingsOrDefault();
+		//TODO the svgs are getting crushed when the game is resized, you need to
+		//redo this scaling at that time as well
 		Object.values(this.gameAssets.pieces).forEach((piece: Group) => {
 			const pieceSize = new Vector3();
 			const pieceBox = new Box3().setFromObject(piece);
 			pieceBox.getSize(pieceSize);
 			const sizeRatioX = pieceSize.x / renderSettings.boardSpaceWidth;
 			const sizeRatioY = pieceSize.y / renderSettings.boardSpaceHeight;
-			console.log({ pieceSize, sizeRatioX, sizeRatioY });
 			//increased the magnitude of the scaling factors by 10% because the pieces are
 			//a little bit bigger than the game squares
 			piece.scale.set(1 / (sizeRatioX * 1.1), 1 / (sizeRatioY * 1.1), 1);
 			piece.updateMatrixWorld();
 		});
+	}
+	
+	public setResizeHandlers(): void {
+		const gameThis = this;
+		const canvasResizeObserver = new ResizeObserver(debounce((entries: ResizeObserverEntry[], _: ResizeObserver) => {
+			entries.forEach((entry: ResizeObserverEntry) => {
+				//TODO it would be cool to keep a map of elements and what callback
+				//should be called when that element is resized, and then loop over the entries
+				//calling the appropriate callback
+				const canvas = this.getCanvas();
+				if (entry.target === canvas) {
+					gameThis.setGameCanvasSizeToMatchLayout();
+					gameThis.renderStep();
+				}
+			});
+		}, 100));
+		canvasResizeObserver.observe(this.getCanvas());
+	}
+
+	public setGameCanvasSizeToMatchLayout(): void {
+		const gameCanvas = this.getCanvas();
+		const {width, height} = gameCanvas.getBoundingClientRect();
+		gameCanvas.width = width;
+		gameCanvas.height = height;
 	}
 
 	private initCamera(): void {
@@ -363,6 +395,15 @@ export class GameRunner {
 		const blackStandGroup = this.makeNamedGroup(SceneGroups.BlackStand);
 		const whiteStandGroup = this.makeNamedGroup(SceneGroups.WhiteStand);
 		piecesStand.add(blackStandGroup, whiteStandGroup);
+
+		//TODO debug flag
+		const centerSquare = new Mesh(
+			new BoxBufferGeometry(5, 5),
+			new MeshBasicMaterial({	color: new Color(1, 1, 0) })
+		);
+		scene.add(centerSquare);
+		centerSquare.position.set(0, 0, 0);
+		centerSquare.updateMatrixWorld();
 	}
 
 	public run(initialGameState?: Game): void {
@@ -371,7 +412,6 @@ export class GameRunner {
 		} else {
 			this.gameStates.push(createGame());
 		}
-		console.log('running game');
 
 		requestAnimationFrame(this.renderStep.bind(this));
 	}
@@ -386,56 +426,94 @@ export class GameRunner {
 			gameState,
 			renderSettings,
 		);
-		console.log({ calcRenderCoordinates });
-		this.drawHeldPiecesStand(
-			this.getSceneGroup(SceneGroups.Stands),
-			calcRenderCoordinates.whiteStandCoords,
-			calcRenderCoordinates.blackStandCoords,
-		);
-		//TODO skipping this, draw the pieces on the board first
-		//this.drawHeldPieces(
-		//	this.getSceneGroup(SceneGroups.Stands),
-		//	gameState.viewPoint,
-		//	gameState.players,
-		//);
-		//TODO you only need to do this once, the spaces can't movee
-		this.drawBoard(
-			this.getSceneGroup(SceneGroups.Board),
-			calcRenderCoordinates.spaceCenterPoints,
-			calcRenderCoordinates.boardWidth,
-			calcRenderCoordinates.boardHeight,
-		);
-		this.drawGrid(
-			this.getSceneGroup(SceneGroups.Grid),
-			calcRenderCoordinates,
-		);
-		this.drawPlacedPieces(
-			this.getSceneGroup(SceneGroups.Pieces),
-			gameState,
-			calcRenderCoordinates.spaceCenterPoints,
-			renderSettings,
-		);
+		measureTime(() => {
+			this.drawHeldPiecesStand(
+				this.getSceneGroup(SceneGroups.Stands),
+				calcRenderCoordinates.whiteStandCoords,
+				calcRenderCoordinates.blackStandCoords,
+			);
+			//TODO skipping this, draw the pieces on the board first
+			//this.drawHeldPieces(
+			//	this.getSceneGroup(SceneGroups.Stands),
+			//	gameState.viewPoint,
+			//	gameState.players,
+			//);
+			//TODO you only need to do this once, the spaces can't movee
+			this.drawBoard(
+				this.getSceneGroup(SceneGroups.Board),
+				calcRenderCoordinates.spaceCenterPoints,
+				calcRenderCoordinates.boardWidth,
+				calcRenderCoordinates.boardHeight,
+			);
+			this.drawGrid(
+				this.getSceneGroup(SceneGroups.Grid),
+				calcRenderCoordinates,
+			);
+			this.drawPlacedPieces(
+				this.getSceneGroup(SceneGroups.Pieces),
+				gameState,
+				calcRenderCoordinates.spaceCenterPoints,
+				renderSettings,
+			);
+		}, time => console.log(`renderStep threejs object processing time:${time}`));
 
+		this.handleSceneScaling(renderSettings, calcRenderCoordinates.gameSpaceSize);
+
+
+		measureTime(
+			() => this.getRenderer().render(scene, this.getCamera()),
+			time => console.log(`threejs render time:${time}`)
+		);
+	}
+
+	private handleSceneScaling(
+		renderSettings: RenderSettings,
+		gameSpaceSize: [number, number],
+	  ): void {
+		const scene = this.getScene();
 		const camera = this.getCamera();
-		//const {clientWidth, clientHeight} = this.getCanvas();
-		//const {width, height} = this.getCanvas();
-		const sceneBoundingBox = new Box3().setFromObject(this.getScene());
 
-		const size = new Vector3();
-		sceneBoundingBox.getSize(size);
+		const canvas = this.getCanvas();
+		
+		const [gameWidth, gameHeight] = gameSpaceSize;
 
-		const sceneAspectRatio = size.x / size.y;
-		console.log({ sceneBoundingBox, size, sceneAspectRatio });
-		const cameraAreaDimension = Math.max(size.x, size.y);
+		const { width, height } = canvas;
+
+		//console.log({ gameAspectRatio, canvasAspectRatio, gameToCanvasX, gameToCanvasY });
+
+		scene.scale.set(width / gameWidth, height / gameHeight, 1);
+		//scene.scale.set(gameToCanvasX, gameToCanvasY, 1);
+		//scene.updateMatrixWorld();
+		//hey dummy you have to set the renderer size too, or the image
+		//won't be centered in the canvas's viewport
+		//pass false to this so it doesn't mess with the canvas's style attributes
+		this.getRenderer().setSize(width, height, false);
+
 		if (camera instanceof OrthographicCamera) {
-			camera.left = -(cameraAreaDimension / 2 + renderSettings.renderPadding);
-			camera.right = cameraAreaDimension / 2 + renderSettings.renderPadding;
-			camera.top = cameraAreaDimension / 2 + renderSettings.renderPadding;
-			camera.bottom = -(cameraAreaDimension / 2 + renderSettings.renderPadding);
-			camera.updateProjectionMatrix();
+			this.updateOrtho(
+				camera,
+				-(width / 2 + renderSettings.renderPadding),
+				width / 2 + renderSettings.renderPadding,
+				height / 2 + renderSettings.renderPadding,
+				-(height / 2 + renderSettings.renderPadding),
+			);
 		}
 
-		this.getRenderer().render(scene, camera);
+	}
+
+	private updateOrtho(
+		camera: OrthographicCamera,
+		left: number,
+		right: number,
+		top: number,
+		bottom: number
+	): void {
+		console.log('update ortho', { left, right, top, bottom });
+		camera.left = left;
+		camera.right = right;
+		camera.top = top;
+		camera.bottom = bottom;
+		camera.updateProjectionMatrix();
 	}
 
 	private drawGrid(
@@ -443,7 +521,6 @@ export class GameRunner {
 		calcRenderCoordinates: CalcedRenderCoords,
 	): void {
 		const lineGeometry = new BufferGeometry();
-		const points: Vector3[] = [];
 
 		lineGeometry.setFromPoints(calcRenderCoordinates.gridCoords);
 		const lineMaterial = new MeshBasicMaterial({
@@ -501,7 +578,7 @@ export class GameRunner {
 	}
 
 	/**
-	* TODO timers
+	* TODO draw the move clock
 	**/
 	private calcRenderCoordinates(
 		gameState: Game,
@@ -597,6 +674,10 @@ export class GameRunner {
 				height: standHeight,
 			},
 			gridCoords,
+			gameSpaceSize: [
+				boardWidth + standWidth * 2 + standGap * 2 + renderSettings.renderPadding * 2,
+				boardHeight + renderSettings.renderPadding * 2
+			],
 		}
 	}
 
@@ -771,14 +852,14 @@ export class GameRunner {
 
 		console.log({ pieceGraphicsObjects });
 
-		const numPieces = piecesGroup.children.length;
+		//const numPieces = piecesGroup.children.length;
 		piecesGroup.remove(...piecesGroup.children);
 		piecesGroup.add(...pieceGraphicsObjects);
-		console.log({ piecesRemoved: numPieces, piecesAdded: pieceGraphicsObjects.length });
+		//console.log({ piecesRemoved: numPieces, piecesAdded: pieceGraphicsObjects.length });
 		placedPiecesPerPlayer.forEach((player) => {
 			player.pieces.forEach((drawPiece: DrawPiece) => {
 				const graphicsObject = drawPiece.graphicsObject;
-				console.error('draw piece', drawPiece);
+				//console.error('draw piece', drawPiece);
 				//TODO consider actually loading in the white & the black pieces,
 				//instead of just loading in half of them and then rotating them
 				if (player.turn === gameState.viewPoint) {

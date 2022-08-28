@@ -2,18 +2,33 @@
 <html>
 <head>
 <style>
+html, body{
+	margin: 0;
+	padding: 0;
+	height: 100%;
+	width: 100%;
+}
 div.center {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 }
+div.contentColumn {
+	min-width: 600px;
+}
+.fill {
+	width: 100%;
+	height: 100%;
+}
 </style>
 <script type="text/javascript" src="./test_main.js"></script>
 </head>
 <body>
-	<div class="center">
-		<canvas id="testcanvas" width=600 height=600>
-		</canvas>
+	<div class="center fill">
+		<div class="contentColumn fill">
+			<canvas id="testcanvas" class="fill">
+			</canvas>
+		</div>
 	</div>
 </body>
 </html>

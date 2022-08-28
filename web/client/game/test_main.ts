@@ -8,6 +8,8 @@ window.addEventListener("DOMContentLoaded", async () => {
 	window.game = game;
 	game.setCanvas(canvas);
 	await game.initGraphics();
+	game.setGameCanvasSizeToMatchLayout();
+	game.setResizeHandlers();
 	game.setupScene();
 	game.run();
 });
