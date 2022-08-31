@@ -457,7 +457,7 @@ export class GameRunner {
 			);
 		}, time => console.log(`renderStep threejs object processing time:${time}`));
 
-		this.handleSceneScaling(renderSettings, calcRenderCoordinates.gameSpaceSize);
+		this.handleSceneScaling(calcRenderCoordinates.gameSpaceSize);
 
 
 		measureTime(
@@ -467,7 +467,6 @@ export class GameRunner {
 	}
 
 	private handleSceneScaling(
-		renderSettings: RenderSettings,
 		gameSpaceSize: [number, number],
 	  ): void {
 		const scene = this.getScene();
@@ -477,25 +476,52 @@ export class GameRunner {
 		
 		const [gameWidth, gameHeight] = gameSpaceSize;
 
-		const { width, height } = canvas;
+		const { width: canvasWidth, height: canvasHeight } = canvas;
 
-		//console.log({ gameAspectRatio, canvasAspectRatio, gameToCanvasX, gameToCanvasY });
+		const gameAspectRatio = gameWidth / gameHeight;
+		const canvasAspectRatio = canvasWidth / canvasHeight;
 
-		scene.scale.set(width / gameWidth, height / gameHeight, 1);
-		//scene.scale.set(gameToCanvasX, gameToCanvasY, 1);
-		//scene.updateMatrixWorld();
-		//hey dummy you have to set the renderer size too, or the image
-		//won't be centered in the canvas's viewport
-		//pass false to this so it doesn't mess with the canvas's style attributes
-		this.getRenderer().setSize(width, height, false);
+		//find the biggest rect within the size of the canvas's dimensions that has
+		//the same aspect ratio as the game scene, so that we can set the camera's frustum size
+		let cameraWidth: number;
+		let cameraHeight: number;
+		cameraHeight = canvasHeight;
+		cameraWidth = cameraHeight * gameAspectRatio;
+		//if the scene's width is very narrow, then the calculated camera width can become
+		//wider than the canvas, and in that case we set the camera width to be equal to the canvas width,
+		//and then calculate the camera height based on that value and the game's aspect ratio
+		if (cameraWidth > canvasWidth) {
+			cameraWidth = canvasWidth;
+			cameraHeight = cameraWidth / gameAspectRatio;
+		}
+
+		scene.scale.set(cameraWidth / gameWidth, cameraHeight / gameHeight, 1);
+
+		//in order to ensure that the aspect ratio matches the game logic's aspect ratio (so that the spaces aren't stretched or distorted)
+		//we need to set the renderer's viewport to be the same aspect ratio as the camera. Setting it to cameraWidth and cameraHeight is
+		//easy enough, but if the x and y args to setviewport are 0, then the image is NOT centered within the canvas
+		//so, we gotta set the viewport's x and y to be half the difference of the canvas's dimension (width and height) and the camera's
+		const viewPortWidth = (canvasWidth - cameraWidth) / 2;
+		const viewPortHeight = (canvasHeight - cameraHeight) / 2;
+		console.log({
+			cameraWidth,
+			cameraHeight,
+			cameraAspectRatio: cameraWidth / cameraHeight,
+			canvasWidth,
+			canvasHeight,
+			canvasAspectRatio,
+			viewPortWidth,
+			viewPortHeight,
+		});
+		this.getRenderer().setViewport(viewPortWidth, viewPortHeight, cameraWidth, cameraHeight);
 
 		if (camera instanceof OrthographicCamera) {
 			this.updateOrtho(
 				camera,
-				-(width / 2 + renderSettings.renderPadding),
-				width / 2 + renderSettings.renderPadding,
-				height / 2 + renderSettings.renderPadding,
-				-(height / 2 + renderSettings.renderPadding),
+				-(cameraWidth / 2),
+				cameraWidth / 2,
+				cameraHeight / 2,
+				-(cameraHeight / 2),
 			);
 		}
 
