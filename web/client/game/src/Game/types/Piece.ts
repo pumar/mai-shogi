@@ -6,6 +6,15 @@ export {
 	isPromotable,
 	isHeldPiece,
 	Placed,
+	Pawn,
+	Lance,
+	Knight,
+	Silver,
+	Gold,
+	Bishop,
+	Rook,
+	GamePiece,
+	PieceNames,
 }
 
 function isPlaced(obj: Piece): obj is PlacedPiece {
@@ -23,15 +32,25 @@ type Promotable = {
 	isPromoted?: boolean;
 }
 
-type Pawn = Promotable & { name: "pawn" };
-type Lance = Promotable & { name: "lance" };
-type Knight = Promotable & { name: "knight" };
-type Silver = Promotable & { name: "silver" };
-type Bishop = Promotable & { name: "bishop" };
-type Rook = Promotable & { name: "rook" };
+enum PieceNames {
+	Pawn = "pawn",
+	Lance = "lance",
+	Knight = "knight",
+	Silver = "silver",
+	Bishop = "bishop",
+	Rook = "rook",
+	Gold = "gold",
+	King = "king",
+};
+type Pawn = Promotable & { name: PieceNames.Pawn };
+type Lance = Promotable & { name: PieceNames.Lance };
+type Knight = Promotable & { name: PieceNames.Knight };
+type Silver = Promotable & { name: PieceNames.Silver };
+type Bishop = Promotable & { name: PieceNames.Bishop };
+type Rook = Promotable & { name: PieceNames.Rook };
 
-type Gold = { name: "gold" };
-type King = { name: "king" };
+type Gold = { name: PieceNames.Gold };
+type King = { name: PieceNames.King };
 
 type GamePiece = Pawn | Lance | Knight | Silver | Gold | Bishop | Rook | King;
 

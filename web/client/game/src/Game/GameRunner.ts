@@ -9,7 +9,7 @@ import { createGame } from "./GameCreator";
 import { defaultRenderSettings, RenderSettings } from "./Renderer/Renderer";
 import { getAssetKeyForPiece } from "./types/AssetKeys";
 import { Game } from "./types/Game";
-import { isHeldPiece, isPlaced, Piece } from "./types/Piece";
+import { Bishop, Gold, isHeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, Rook, Silver } from "./types/Piece";
 import { Player, Turn } from "./types/Player";
 
 type HeldPiecesStand = {
@@ -29,6 +29,8 @@ type CalcedRenderCoords = {
 	spaceCenterPoints: Vector3[][],
 	whiteStandCoords: HeldPiecesStand;
 	blackStandCoords: HeldPiecesStand;
+	blackHeldPiecesLocations: Map<PieceNames, Vector3>,
+	whiteHeldPiecesLocations: Map<PieceNames, Vector3>,
 	boardWidth: number;
 	boardHeight: number;
 	/** the start-end pair coordinates that are necessary to draw the grid lines
@@ -252,8 +254,7 @@ export class GameRunner {
 		//resize the pieces TODO move this to a helper function, we will need to do this on a screen
 		//resize at some point
 		const renderSettings = this.renderSettingsOrDefault();
-		//TODO the svgs are getting crushed when the game is resized, you need to
-		//redo this scaling at that time as well
+
 		Object.values(this.gameAssets.pieces).forEach((piece: Group) => {
 			const pieceSize = new Vector3();
 			const pieceBox = new Box3().setFromObject(piece);
@@ -393,8 +394,11 @@ export class GameRunner {
 		boardGroup.updateMatrixWorld();
 
 		const blackStandGroup = this.makeNamedGroup(SceneGroups.BlackStand);
+		const blackStandPiecesGroup = this.makeNamedGroup(SceneGroups.BlackStandPieces);
 		const whiteStandGroup = this.makeNamedGroup(SceneGroups.WhiteStand);
+		const whiteStandPiecesGroup = this.makeNamedGroup(SceneGroups.WhiteStandPieces);
 		piecesStand.add(blackStandGroup, whiteStandGroup);
+		piecesStand.add(blackStandPiecesGroup, whiteStandPiecesGroup);
 
 		//TODO debug flag
 		const centerSquare = new Mesh(
@@ -432,12 +436,12 @@ export class GameRunner {
 				calcRenderCoordinates.whiteStandCoords,
 				calcRenderCoordinates.blackStandCoords,
 			);
-			//TODO skipping this, draw the pieces on the board first
-			//this.drawHeldPieces(
-			//	this.getSceneGroup(SceneGroups.Stands),
-			//	gameState.viewPoint,
-			//	gameState.players,
-			//);
+			this.drawHeldPieces(
+				gameState,
+				this.getSceneGroup(SceneGroups.Stands),
+				gameState.players,
+				calcRenderCoordinates,
+			);
 			//TODO you only need to do this once, the spaces can't movee
 			this.drawBoard(
 				this.getSceneGroup(SceneGroups.Board),
@@ -681,6 +685,20 @@ export class GameRunner {
 			boardSpaceHeight,
 			standGap
 		);
+
+		const blackHeldPiecesLocations: Map<PieceNames, Vector3> = this.getLocationsForHeldPieces(
+			boardSpaceWidth,
+			boardSpaceHeight,
+			gameState.viewPoint === "black",
+			blackPiecesStandBasePoint,
+		);
+
+		const whiteHeldPiecesLocations = this.getLocationsForHeldPieces(
+			boardSpaceWidth,
+			boardSpaceHeight,
+			gameState.viewPoint === "white",
+			whitePiecesStandBasePoint,
+		);
 		
 		const standWidth = boardSpaceWidth * 4;
 		const standHeight = boardSpaceHeight * 2;
@@ -699,12 +717,43 @@ export class GameRunner {
 				width: standWidth,
 				height: standHeight,
 			},
+			blackHeldPiecesLocations,
+			whiteHeldPiecesLocations,
 			gridCoords,
 			gameSpaceSize: [
 				boardWidth + standWidth * 2 + standGap * 2 + renderSettings.renderPadding * 2,
 				boardHeight + renderSettings.renderPadding * 2
 			],
 		}
+	}
+
+	private getLocationsForHeldPieces(
+		boardSpaceWidth: number,
+		boardSpaceHeight: number,
+		isMainViewPoint: boolean,
+		standCenterPoint: Vector3
+	): Map<PieceNames, Vector3> {
+		const pieceZ = zIndexes.pieces;
+		const halfSpaceHeight = boardSpaceHeight * 0.5;
+		const halfSpaceWidth = boardSpaceWidth * 0.5;
+
+		const upperRowYOffset = isMainViewPoint ? halfSpaceHeight : -halfSpaceHeight;
+		const upperRowY = standCenterPoint.y + upperRowYOffset;
+
+		const lowerRowYOffset = -upperRowYOffset;
+		const lowerRowY = standCenterPoint.y + lowerRowYOffset;
+
+		//TODO ugly, find a cleaner way to adjust the x offsets based off of the viewpoint
+		const map = new Map<PieceNames, Vector3>();
+		map.set(PieceNames.Pawn, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * 1.5 * boardSpaceWidth, upperRowY, pieceZ));
+		map.set(PieceNames.Lance, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * halfSpaceWidth, upperRowY, pieceZ));
+		map.set(PieceNames.Knight, new Vector3(standCenterPoint.x + (isMainViewPoint ? 1 : -1) * halfSpaceWidth, upperRowY, pieceZ));
+		map.set(PieceNames.Silver, new Vector3(standCenterPoint.x + (isMainViewPoint ? 1 : -1) * 1.5 * boardSpaceWidth, upperRowY, pieceZ));
+		map.set(PieceNames.Gold, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * 1.5 * boardSpaceWidth, lowerRowY, pieceZ));
+		map.set(PieceNames.Bishop, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * halfSpaceWidth, lowerRowY, pieceZ));
+		map.set(PieceNames.Rook, new Vector3(standCenterPoint.x + (isMainViewPoint ? 1 : -1) * halfSpaceWidth, lowerRowY, pieceZ));
+
+		return map;
 	}
 
 	private getStandCenterPoints(
@@ -761,33 +810,106 @@ export class GameRunner {
 		return spaceCenterPoints;
 	}
 
-	private drawHeldPieces(standsGroup: Group, viewpoint: Turn, players: Player[]): void {
+	/** TODO you only need to draw this once: just draw the pieces, and then put a number next to it that
+	* tells you how many of that piece you are holding */
+	private drawHeldPieces(
+		gameState: Game,
+		standsGroup: Group,
+		players: Player[],
+		calcedRenderCoords: CalcedRenderCoords,
+	): void {
 		const blackPlayer = players.find(player => player.turn === "black");
 		const whitePlayer = players.find(player => player.turn === "white");
 		if(!blackPlayer || !whitePlayer) {
 			throw new Error(`black or white player could not be found:${players.map(player => player.turn).join(' ')}`);
 		}
 
-		const isBlackMainViewPoint = viewpoint === "black";
-		const blackPlayerHeldPieces: DrawPiece[] = this.getPiecesGraphicsObjects(
-			blackPlayer.pieces.filter(piece => isHeldPiece(piece)),
-		);
-
-		const whitePlayerHeldPieces: DrawPiece[] = this.getPiecesGraphicsObjects(
-			whitePlayer.pieces.filter(piece => isHeldPiece(piece)),
-		);
-
-		console.log({ blackPlayerHeldPieces, whitePlayerHeldPieces });
-		
-		const blackStandsGroup = standsGroup.getObjectByName(SceneGroups.BlackStand);
-		const whiteStandsGroup = standsGroup.getObjectByName(SceneGroups.WhiteStand);
-		if (blackStandsGroup === undefined || whiteStandsGroup === undefined) {
+		const blackStandPiecesGroup: Object3D | undefined = standsGroup.getObjectByName(SceneGroups.BlackStandPieces);
+		const whiteStandPiecesGroup: Object3D | undefined = standsGroup.getObjectByName(SceneGroups.WhiteStandPieces);
+		const foundGroup = (obj: Object3D | undefined) => obj !== undefined && (obj as Group).isGroup;
+		if (!foundGroup(blackStandPiecesGroup) || !foundGroup(whiteStandPiecesGroup)) {
 			throw new Error(`no stand group`);
 		}
-		blackStandsGroup.remove(...blackStandsGroup.children);
-		blackStandsGroup.add(...blackPlayerHeldPieces.map(drawPiece => drawPiece.graphicsObject));
-		whiteStandsGroup.remove(...whiteStandsGroup.children);
-		whiteStandsGroup.add(...whitePlayerHeldPieces.map(drawPiece => drawPiece.graphicsObject));
+
+		//const blackHeldPieces: DrawPiece[] = this.getPiecesGraphicsObjects(
+		//	blackPlayer.pieces.filter(piece => isHeldPiece(piece)),
+		//);
+		this.placeHeldPieces(
+			blackStandPiecesGroup as Group,
+			calcedRenderCoords.blackHeldPiecesLocations,
+			gameState.viewPoint === "black",
+		);
+
+		//const whiteHeldPieces: DrawPiece[] = this.getPiecesGraphicsObjects(
+		//	whitePlayer.pieces.filter(piece => isHeldPiece(piece)),
+		//);
+
+		//TODO this just draws the icons for the heldPieces, you only need to this once
+		//and you need to draw a number 0~N for how many pieces of that kind you are holding
+		this.placeHeldPieces(
+			whiteStandPiecesGroup as Group,
+			calcedRenderCoords.whiteHeldPiecesLocations,
+			gameState.viewPoint === "white",
+		);
+	}
+
+	/** set the locations for the held pieces for a player's side */
+	private placeHeldPieces(
+		group: Group,
+		pieceLocations: Map<PieceNames, Vector3>,
+		isMainViewPoint: boolean,
+	): void {
+		const pieces = [
+			{ name: PieceNames.Pawn, isPromoted: false } as Pawn,
+			{ name: PieceNames.Lance, isPromoted: false } as Lance,
+			{ name: PieceNames.Knight, isPromoted: false } as Knight,
+			{ name: PieceNames.Silver, isPromoted: false } as Silver,
+			{ name: PieceNames.Gold, isPromoted: false } as Gold,
+			{ name: PieceNames.Bishop, isPromoted: false } as Bishop,
+			{ name: PieceNames.Rook, isPromoted: false } as Rook,
+		];
+		const findPieceLocation = (pieceName: PieceNames) => {
+			const location = pieceLocations.get(pieceName);
+			if (location === undefined) {
+				throw new Error(`placeHeldPieces, pieceName:${pieceName} 's location couldn't be found`);
+			}
+			return location;
+		}
+		const pieceGraphicsObjects: { name: PieceNames; graphicsObject: Object3D; location: Vector3; }[] = pieces.map(piece => {
+			return {
+				name: piece.name,
+				graphicsObject: this.gameAssets.pieces[piece.name].clone(),
+				location: findPieceLocation(piece.name)
+			}
+		});
+
+		//Rotate the pieces for the side of the player, so that they are facing upright
+		if(isMainViewPoint){
+			pieceGraphicsObjects.forEach((piece) => {
+				piece.graphicsObject.position.set(0, 0, 0);
+				piece.graphicsObject.rotateZ(Math.PI);
+				//make the icons transparent
+				//TODO instead of looping through all of the objects and copying them and then
+				//adding transparency to all of their materials, put a plane in front of the entire section and make it
+				//semi-transparent -> this would make the stand that the pieces are on semi-transparent as well, so consider
+				//just making it a representation of what you're holding and not an actual physical, textured object
+				//const material: Material | Material[] = (piece.graphicsObject as Mesh).material;
+				//if (Array.isArray(material)) {
+				//} else {
+				//}
+				//material.opacity = 0.5;
+				//(piece.graphicsObject as Mesh).material = material;
+			});
+		}
+
+
+		pieceGraphicsObjects.forEach(piece => {
+			piece.graphicsObject.position.copy(piece.location);
+		});
+
+		console.error({ pieces });
+		group.remove(...group.children);
+		group.add(...pieceGraphicsObjects.map(drawPiece => drawPiece.graphicsObject));
 	}
 
 	private drawHeldPiecesStand(
