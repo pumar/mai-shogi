@@ -1,3 +1,4 @@
+import { createGame } from "./src/Game/GameCreator";
 import { GameRunner } from "./src/Game/GameRunner";
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -11,5 +12,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 	game.setGameCanvasSizeToMatchLayout();
 	game.setResizeHandlers();
 	game.setupScene();
-	game.run();
+	const initialGameState = createGame();
+	game.drawStaticObjects(initialGameState);
+	game.run(initialGameState);
 });

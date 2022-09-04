@@ -1,5 +1,7 @@
 import { Box3, BoxBufferGeometry, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry,  Vector3, WebGLRenderer } from "three";
 import { SVGLoader, SVGResult } from "three/examples/jsm/loaders/SVGLoader.js";
+import { Font, FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
+import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 import { makeExistsGuard } from "../utils/Guards";
 import { measureTime } from "../utils/Performance";
 import { buildForRange } from "../utils/Range";
@@ -9,7 +11,7 @@ import { createGame } from "./GameCreator";
 import { defaultRenderSettings, RenderSettings } from "./Renderer/Renderer";
 import { getAssetKeyForPiece } from "./types/AssetKeys";
 import { Game } from "./types/Game";
-import { Bishop, Gold, isHeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, Rook, Silver } from "./types/Piece";
+import { Bishop, Gold, HeldPiece, isHeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, Rook, Silver } from "./types/Piece";
 import { Player, Turn } from "./types/Player";
 
 type HeldPiecesStand = {
@@ -23,6 +25,7 @@ const zIndexes = {
 	grid: 0,
 	timer: 0,
 	pieces: 1,
+	floating: 2,//above pieces
 }
 
 type CalcedRenderCoords = {
@@ -58,11 +61,17 @@ enum SceneGroups {
 	Stands = "stands",
 	WhiteStand = "white_stand",
 	WhiteStandPieces = "white_stand_pieces",
+	WhiteStandPiecesCounts = "white_stand_pieces_counts",
 	BlackStand = "black_stand",
 	BlackStandPieces = "black_stand_pieces",
+	BlackStandPiecesCounts = "black_stand_pieces_counts",
 	Debug = "Debug",
 	Grid = "grid",
 }
+
+//TODO make this configurable - so that it can be loaded from the web server
+//this will only work with the local server for this directory
+const fontPath = 'fonts/helvetiker_regular.typeface.json';
 
 type DrawPiece = Piece & {
 	graphicsObject: Object3D;
@@ -141,10 +150,12 @@ export class GameRunner {
 		geometries: {[index: string]: BufferGeometry},
 		materials: {[index: string]: Material},
 		pieces: {[index: string]: Group},
+		fonts: {[index: string]: Font},
 	} = {
 		geometries: {},
 		materials: {},
 		pieces: {},
+		fonts: {},
 	};
 
 	public async initGraphics(
@@ -196,6 +207,21 @@ export class GameRunner {
 			//for debugging
 			document.body.appendChild(imageTag);
 			this.images[result[0]] = imageTag;
+		});
+
+		const fontLoader = new FontLoader();
+		const fontPromise: Promise<Font> = new Promise((resolve, reject) => {
+			fontLoader.load(
+				fontPath,
+				(font) => {
+					resolve(font);
+				},
+				undefined,
+				(err) => {
+					console.error(`font loading error`);
+					reject(err)
+				}
+			);
 		});
 
 		const svgRequestResults: [string, SVGResult][] = await Promise.all(this.loadSvgs(boardAndPiecesSvgSetting));
@@ -266,6 +292,9 @@ export class GameRunner {
 			piece.scale.set(1 / (sizeRatioX * 1.1), 1 / (sizeRatioY * 1.1), 1);
 			piece.updateMatrixWorld();
 		});
+
+		const font = await fontPromise;
+		this.gameAssets.fonts[fontPath] = font;
 	}
 	
 	public setResizeHandlers(): void {
@@ -302,7 +331,7 @@ export class GameRunner {
 			100
 		);
 		this.setCamera(camera);
-		camera.position.copy(new Vector3(0, 0, 5));
+		camera.position.copy(new Vector3(0, 0, 7));
 	}
 	private initRenderer(): void {
 		const renderer = new WebGLRenderer({
@@ -399,6 +428,10 @@ export class GameRunner {
 		const whiteStandPiecesGroup = this.makeNamedGroup(SceneGroups.WhiteStandPieces);
 		piecesStand.add(blackStandGroup, whiteStandGroup);
 		piecesStand.add(blackStandPiecesGroup, whiteStandPiecesGroup);
+		piecesStand.add(
+			this.makeNamedGroup(SceneGroups.BlackStandPiecesCounts),
+			this.makeNamedGroup(SceneGroups.WhiteStandPiecesCounts)
+		);
 
 		//TODO debug flag
 		const centerSquare = new Mesh(
@@ -431,26 +464,9 @@ export class GameRunner {
 			renderSettings,
 		);
 		measureTime(() => {
-			this.drawHeldPiecesStand(
+			this.drawHeldPiecesCounts(
 				this.getSceneGroup(SceneGroups.Stands),
-				calcRenderCoordinates.whiteStandCoords,
-				calcRenderCoordinates.blackStandCoords,
-			);
-			this.drawHeldPieces(
 				gameState,
-				this.getSceneGroup(SceneGroups.Stands),
-				gameState.players,
-				calcRenderCoordinates,
-			);
-			//TODO you only need to do this once, the spaces can't movee
-			this.drawBoard(
-				this.getSceneGroup(SceneGroups.Board),
-				calcRenderCoordinates.spaceCenterPoints,
-				calcRenderCoordinates.boardWidth,
-				calcRenderCoordinates.boardHeight,
-			);
-			this.drawGrid(
-				this.getSceneGroup(SceneGroups.Grid),
 				calcRenderCoordinates,
 			);
 			this.drawPlacedPieces(
@@ -468,6 +484,109 @@ export class GameRunner {
 			() => this.getRenderer().render(scene, this.getCamera()),
 			time => console.log(`threejs render time:${time}`)
 		);
+	}
+
+	private drawHeldPiecesCounts(
+		standsGroup: Group,
+		gameState: Game,
+		calcRenderCoords: CalcedRenderCoords,
+	): void {
+		const getGroup: (groupName: string) => Group = (groupName: string) => {
+			const group = standsGroup.getObjectByName(groupName);
+			if(group === undefined) {
+				throw new Error(`drawHeldPiecesCounts no group for group name:${groupName}`);
+			}
+			if(!(group as Group).isGroup){
+				throw new Error(`drawHeldPiecesCounts found object, but it isn't a group:${groupName}`);
+			}
+			return group as Group;
+		}
+		const blackPiecesCountsGroup = getGroup(SceneGroups.BlackStandPiecesCounts);
+		const whitePiecesCountsGroup = getGroup(SceneGroups.WhiteStandPiecesCounts);
+
+		const blackPlayer = gameState.players.find(player => player.turn === "black");
+		const whitePlayer = gameState.players.find(player => player.turn === "white");
+		if(blackPlayer === undefined || whitePlayer === undefined) throw new Error('no player');
+		
+		const countPiecesMapBlack = this.getCountPiecesMap(blackPlayer.pieces.filter(piece => isHeldPiece(piece)) as HeldPiece[]);
+		this.drawCounts(blackPiecesCountsGroup, countPiecesMapBlack, calcRenderCoords.blackHeldPiecesLocations);
+		const countPiecesMapWhite = this.getCountPiecesMap(whitePlayer.pieces.filter(piece => isHeldPiece(piece)) as HeldPiece[]);;
+		this.drawCounts(whitePiecesCountsGroup, countPiecesMapWhite, calcRenderCoords.whiteHeldPiecesLocations);
+	}
+
+	private drawCounts(
+		group: Group,
+		counts: Map<PieceNames, number>,
+		locations: Map<PieceNames, Vector3>,
+	): void {
+		console.log('draw counts', { counts, locations });
+		const meshes: Mesh[] = [];
+		const font = this.gameAssets.fonts[fontPath];
+		console.log('found font:', font);
+		locations.forEach((loc: Vector3, key: PieceNames) => {
+			const count = counts.get(key);
+			if(count === undefined) {
+				throw new Error(`drawCounts no count for piece:${key}`);
+			}
+			//TODO the text for the counts is too big
+			//a player can hold up to 18 pawns, so the numbers will need to be made
+			//to be smaller, and have their position ajusted so that they fit nicely
+			//within a corner of their square
+			const countGeometry = new TextGeometry(
+				count.toString(),
+				{
+					font,
+					size: 10,
+					height: 50,
+				}
+			);
+			const textMesh = new Mesh(
+				countGeometry,
+				new MeshBasicMaterial({
+					color: new Color(0, 0, 1),
+					side: DoubleSide
+				})
+			);
+			const box = new Box3().setFromObject(textMesh);
+			const sizeV = new Vector3();
+			box.getSize(sizeV);
+			//For debugging the location when you can't see the text
+			//const square = new Mesh(
+			//	new PlaneGeometry(5, 5),
+			//	new MeshBasicMaterial({ color: new Color(1, 1, 0) }),
+			//);
+			//square.position.copy(loc);
+			//square.position.setZ(zIndexes.floating);
+			textMesh.position.copy(loc);
+			textMesh.position.setX(textMesh.position.x - sizeV.x / 2);
+			textMesh.position.setY(textMesh.position.y - sizeV.y / 2);
+			textMesh.position.setZ(zIndexes.floating);
+			//meshes.push(textMesh, square);
+			meshes.push(textMesh);
+		});
+		group.remove(...group.children);
+		group.add(...meshes);
+	}
+
+	private getCountPiecesMap(heldPieces: HeldPiece[]): Map<PieceNames, number> {
+		const map = new Map<PieceNames, number>([
+			[PieceNames.Pawn, 0],
+			[PieceNames.Lance, 0],
+			[PieceNames.Knight, 0],
+			[PieceNames.Silver, 0],
+			[PieceNames.Gold, 0],
+			[PieceNames.Bishop, 0],
+			[PieceNames.Rook, 0],
+		]);
+		//TODO there really is no reason to have the held pieces in the same array
+		//as the placed ones, for instance, here there is no need to count the # of held
+		//pawn objects because the held pieces type carries the count, this type should always
+		//just be a map of piece names to the count...
+		heldPieces.forEach(piece => {
+			const count = map.get(piece.name) as number;
+			map.set(piece.name, count + piece.count);
+		});
+		return map;
 	}
 
 	private handleSceneScaling(
@@ -562,6 +681,32 @@ export class GameRunner {
 		group.add(grid);
 	}
 
+	public drawStaticObjects(gameState: Game, renderSettings = this.renderSettingsOrDefault()): void {
+		const calcRenderCoords = this.calcRenderCoordinates(gameState, renderSettings);
+		this.drawBoard(
+			this.getSceneGroup(SceneGroups.Board),
+			calcRenderCoords.spaceCenterPoints,
+			calcRenderCoords.boardWidth,
+			calcRenderCoords.boardHeight
+		);
+
+		this.drawGrid(
+			this.getSceneGroup(SceneGroups.Grid),
+			calcRenderCoords,
+		);
+		this.drawHeldPiecesStand(
+			this.getSceneGroup(SceneGroups.Stands),
+			calcRenderCoords.whiteStandCoords,
+			calcRenderCoords.blackStandCoords
+		);
+		this.drawHeldPiecesIcons(
+			gameState,
+			this.getSceneGroup(SceneGroups.Stands),
+			gameState.players,
+			calcRenderCoords,
+		);
+	}
+
 	private drawBoard(
 		boardGroup: Group,
 		spaceCenterPoints: Vector3[][],
@@ -579,6 +724,8 @@ export class GameRunner {
 		//});
 		const boardMaterial = new MeshBasicMaterial({
 			color: new Color(1, 0, 0),
+			transparent: true,
+			opacity: 0.25,
 		});
 
 		const boardMesh = new Mesh(boardGeometry, boardMaterial);
@@ -812,7 +959,7 @@ export class GameRunner {
 
 	/** TODO you only need to draw this once: just draw the pieces, and then put a number next to it that
 	* tells you how many of that piece you are holding */
-	private drawHeldPieces(
+	private drawHeldPiecesIcons(
 		gameState: Game,
 		standsGroup: Group,
 		players: Player[],
@@ -943,6 +1090,8 @@ export class GameRunner {
 			//map: new Texture(this.images["tile_texture"]),
 			//TODO figure out why the texture is not working
 			color: new Color(0, 1, 0),
+			transparent: true,
+			opacity: 0.25,
 		});
 
 		const mesh = new Mesh(planeGeometry, material);
