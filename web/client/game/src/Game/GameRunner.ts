@@ -339,16 +339,15 @@ export class GameRunner {
 			const sizeRatioX = pieceSize.x / renderSettings.boardSpaceWidth;
 			const sizeRatioY = pieceSize.y / renderSettings.boardSpaceHeight;
 
-			//trying to figure out why the pieces become so tiny,
-			//they should fit perfectly into the board space
-			console.log({
-				px: pieceSize.x,
-				py: pieceSize.y,
-				bsw: renderSettings.boardSpaceWidth,
-				bsh: renderSettings.boardSpaceHeight,
-				sizeRatioX,
-				sizeRatioY,
-			});
+			//debug svgscaling
+			//console.log({
+			//	px: pieceSize.x,
+			//	py: pieceSize.y,
+			//	bsw: renderSettings.boardSpaceWidth,
+			//	bsh: renderSettings.boardSpaceHeight,
+			//	sizeRatioX,
+			//	sizeRatioY,
+			//});
 
 			piece.scale.set(1 / sizeRatioX, 1 / sizeRatioY, 1);
 			piece.updateMatrixWorld();
