@@ -5,7 +5,8 @@ import { isPlaced, isPromotable, PlacedPiece } from "../types/Piece";
 export {
 	drawGame,
 	defaultRenderSettings,
-	clearCanvas
+	clearCanvas,
+	debugRenderSettings,
 }
 
 export type RenderSettings = {
@@ -16,6 +17,28 @@ export type RenderSettings = {
 	boardSpaceHeight: number;
 	/* the padding around the entire scene, so that the game objects do not touch the
 	* edges of the viewport */
+	debug: {
+		boardLocations: boolean;
+		boardCenter: boolean;
+		svgCoordinateAdjustments: boolean;
+	};
+}
+
+/**
+* build a render settings object for debugging
+**/
+function debugRenderSettings(): RenderSettings {
+	return Object.assign(
+		{},
+		defaultRenderSettings(),
+		{
+			debug: {
+				boardLocations: true,
+				boadrCenter: true,
+				svgCoordinatedAdjustments: true,
+			}
+		},
+	);
 }
 
 function defaultRenderSettings(): RenderSettings {
@@ -26,6 +49,11 @@ function defaultRenderSettings(): RenderSettings {
 		renderPadding: 5,
 		boardSpaceWidth: 11,
 		boardSpaceHeight: 12,
+		debug: {
+			boardLocations: false,
+			boardCenter: false,
+			svgCoordinateAdjustments: false
+		},
 	}
 }
 

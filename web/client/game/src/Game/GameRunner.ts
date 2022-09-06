@@ -107,6 +107,9 @@ export class GameRunner {
 	private renderSettingsOrDefault(): RenderSettings {
 		return this.renderSettings !== undefined ? this.renderSettings : defaultRenderSettings();
 	}
+	public setRenderSettings(newSettings: RenderSettings): void {
+		this.renderSettings = newSettings;
+	}
 
 	private _canvas?: HTMLCanvasElement;
 	public setCanvas(newCanvas: HTMLCanvasElement) {
@@ -164,6 +167,8 @@ export class GameRunner {
 		this.initCamera();
 		this.setScene(new Scene());
 		this.initRenderer();
+
+		const renderSettings = this.renderSettingsOrDefault();
 
 		const textureRequestInfo: [string, string][] = [
 			[
@@ -233,6 +238,7 @@ export class GameRunner {
 				const data = filenameSvgResult[1];
 				const paths = data.paths;
 				const group = new Group();
+				group.name = "svg_piece_group";
 
 				//copy pasted this from the threejs svgloader example
 				const start = performance.now();
@@ -260,15 +266,61 @@ export class GameRunner {
 				}
 				const time = performance.now() - start;
 				console.log(`loop time:${time}, piece:${filenameSvgResult[0]}`);
+
+				//we need the SVGS to have their own local space
+				//so that we can convert from the svg coord space to the gl coord space
+				//translations and scalings at this group object changes the object about
+				//translateGroup's center point
+				//so, later in the application logic, we can apply scaling and translations
+				//to translateGroup, without messing up the svg's adjustments
+				const translateGroup = new Group();
+				translateGroup.add(group);
 				//scale the y coordinates by -1 to go from SVG space to threejs world space
 				group.scale.setY(-1);
+
 				//center the contents of the svg about the center of the group object they are in
 				const svgArea = new Box3().setFromObject(group);
 				const svgSize = svgArea.getSize(measurePieceSizeVector);
-				const translateGroup = new Group();
+				const svgCenterVec = new Vector3();
+
+				const svgCenter = svgArea.getCenter(svgCenterVec);
+				const diffFromCenter = new Vector3(0, 0, 0).sub(svgCenter);
+
+				group.position.add(diffFromCenter);
+
+				if(renderSettings.debug.svgCoordinateAdjustments) {
+					const svgAreaIndicator = new Mesh(
+						new PlaneGeometry(svgSize.x, svgSize.y),
+						new MeshBasicMaterial({
+							color: new Color(0, 0, 1),
+							transparent: true,
+							opacity: 0.25,
+						}),
+					);
+					const centerVec = new Vector3();
+					svgArea.getCenter(centerVec);
+					svgAreaIndicator.position.copy(centerVec);
+					translateGroup.add(svgAreaIndicator);
+				}
+
 				translateGroup.name = "translate_piece_svg_group";
-				translateGroup.add(group);
-				group.position.set(-svgSize.x / 2, svgSize.y / 2, group.position.z);
+				if(renderSettings.debug.svgCoordinateAdjustments) {
+					const svgBox = new Box3().setFromObject(group);
+					const center = new Vector3();
+					const size = new Vector3();
+					svgBox.getSize(size);
+					svgBox.getCenter(center);
+					const svgBoxMesh = new Mesh(
+						new PlaneGeometry(size.x, size.y),
+						new MeshBasicMaterial({
+							color: new Color(0, 1, 0),
+							transparent: true,
+							opacity: 0.25,
+						})
+					);
+					svgBoxMesh.position.copy(center);
+					translateGroup.add(svgBoxMesh);
+				}
 				group.updateMatrixWorld();
 
 				return [svgName, translateGroup];
@@ -279,7 +331,6 @@ export class GameRunner {
 		console.log({ gameAssets: this.gameAssets, pieceKeys: Object.keys(this.gameAssets.pieces) });
 		//resize the pieces TODO move this to a helper function, we will need to do this on a screen
 		//resize at some point
-		const renderSettings = this.renderSettingsOrDefault();
 
 		Object.values(this.gameAssets.pieces).forEach((piece: Group) => {
 			const pieceSize = new Vector3();
@@ -287,9 +338,19 @@ export class GameRunner {
 			pieceBox.getSize(pieceSize);
 			const sizeRatioX = pieceSize.x / renderSettings.boardSpaceWidth;
 			const sizeRatioY = pieceSize.y / renderSettings.boardSpaceHeight;
-			//increased the magnitude of the scaling factors by 10% because the pieces are
-			//a little bit bigger than the game squares
-			piece.scale.set(1 / (sizeRatioX * 1.1), 1 / (sizeRatioY * 1.1), 1);
+
+			//trying to figure out why the pieces become so tiny,
+			//they should fit perfectly into the board space
+			console.log({
+				px: pieceSize.x,
+				py: pieceSize.y,
+				bsw: renderSettings.boardSpaceWidth,
+				bsh: renderSettings.boardSpaceHeight,
+				sizeRatioX,
+				sizeRatioY,
+			});
+
+			piece.scale.set(1 / sizeRatioX, 1 / sizeRatioY, 1);
 			piece.updateMatrixWorld();
 		});
 
@@ -432,15 +493,10 @@ export class GameRunner {
 			this.makeNamedGroup(SceneGroups.BlackStandPiecesCounts),
 			this.makeNamedGroup(SceneGroups.WhiteStandPiecesCounts)
 		);
+	}
 
-		//TODO debug flag
-		const centerSquare = new Mesh(
-			new BoxBufferGeometry(5, 5),
-			new MeshBasicMaterial({	color: new Color(1, 1, 0) })
-		);
-		scene.add(centerSquare);
-		centerSquare.position.set(0, 0, 0);
-		centerSquare.updateMatrixWorld();
+	public addGameState(game: Game): void {
+		this.gameStates.push(game);
 	}
 
 	public run(initialGameState?: Game): void {
@@ -705,6 +761,22 @@ export class GameRunner {
 			gameState.players,
 			calcRenderCoords,
 		);
+		if(renderSettings.debug.boardLocations){
+			this.debugSpaceCoords(
+				this.gameStates[this.gameStates.length - 1],
+				renderSettings,
+			);
+		}
+
+		if(renderSettings.debug.boardCenter) {
+			const centerSquare = new Mesh(
+				new BoxBufferGeometry(2, 2),
+				new MeshBasicMaterial({	color: new Color(1, 1, 0) })
+			);
+			this.getSceneGroup(SceneGroups.Debug).add(centerSquare);
+			centerSquare.position.set(0, 0, zIndexes.floating);
+			centerSquare.updateMatrixWorld();
+		}
 	}
 
 	private drawBoard(
@@ -1203,7 +1275,7 @@ export class GameRunner {
 		);
 		console.log({ renderCoords });
 		const cube = new Mesh(
-			new PlaneGeometry(2, 2),
+			new PlaneGeometry(1, 1),
 			new MeshBasicMaterial({
 				color: new Color(0, 0, 1),
 			})
@@ -1218,7 +1290,7 @@ export class GameRunner {
 				const insertCube = cube.clone();
 				placeDebugObjects.push(insertCube);
 				insertCube.position.copy(renderCoords[rankIndex][fileIndex]);
-				insertCube.position.setZ(zIndexes.pieces);
+				insertCube.position.setZ(zIndexes.floating);
 				insertCube.matrixWorldNeedsUpdate = true;
 			}
 		}

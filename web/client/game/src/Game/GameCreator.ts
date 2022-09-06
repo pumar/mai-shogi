@@ -18,7 +18,7 @@ function createGame(): Game {
 	};
 
 	const players: Player[] = (["black", "white"] as Turn[]).map(makePlayer);
-	console.log({players});
+	//console.log({players});
 
 	return {
 		board,
@@ -59,6 +59,8 @@ function makePawns(turn: Turn, files: number): PlacedPiece[] {
 	});
 	return makePlacedPieces(
 		"pawn",
+		//place a piece in the very center of the board for debugging
+		//turn === "black" ? [...locations, { rank: 5, file: 5 }] : locations,
 		locations,
 		{
 			isPromoted: false,
