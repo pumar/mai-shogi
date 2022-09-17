@@ -13,42 +13,8 @@ import { getAssetKeyForPiece } from "./types/AssetKeys";
 import { Game } from "./types/Game";
 import { Bishop, Gold, HeldPiece, isHeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, Rook, Silver } from "./types/Piece";
 import { Player, Turn } from "./types/Player";
+import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, zIndexes } from "./RenderCalculations";
 
-type HeldPiecesStand = {
-	basePoint: Vector3;
-	width: number;
-	height: number;
-}
-
-const zIndexes = {
-	board: -1,
-	grid: 0,
-	timer: 0,
-	pieces: 1,
-	floating: 2,//above pieces
-}
-
-type CalcedRenderCoords = {
-	spaceCenterPoints: Vector3[][],
-	whiteStandCoords: HeldPiecesStand;
-	blackStandCoords: HeldPiecesStand;
-	blackHeldPiecesLocations: Map<PieceNames, Vector3>,
-	whiteHeldPiecesLocations: Map<PieceNames, Vector3>,
-	boardWidth: number;
-	boardHeight: number;
-	/** the start-end pair coordinates that are necessary to draw the grid lines
-	* for the board. The order is probably start1, end1, start2, end2...startN, endN
-	* but I'm not actually sure. It might be good to rework it so that it's
-	* easier to figure which points are which
-	**/
-	gridCoords: Vector3[];
-	/**
-	* return the logical size of the game space. If you measure the threejs scene
-	* itself, the scaling factors will be represented in this number, which we
-	* don't want
-	**/
-	gameSpaceSize: [number, number];
-}
 
 /**
 * names of objects that are added to and removed from the scene
@@ -514,7 +480,7 @@ export class GameRunner {
 
 		const renderSettings = this.renderSettingsOrDefault();
 
-		const calcRenderCoordinates = this.calcRenderCoordinates(
+		const renderCoordinates = calcRenderCoordinates(
 			gameState,
 			renderSettings,
 		);
@@ -522,17 +488,17 @@ export class GameRunner {
 			this.drawHeldPiecesCounts(
 				this.getSceneGroup(SceneGroups.Stands),
 				gameState,
-				calcRenderCoordinates,
+				renderCoordinates,
 			);
 			this.drawPlacedPieces(
 				this.getSceneGroup(SceneGroups.Pieces),
 				gameState,
-				calcRenderCoordinates.spaceCenterPoints,
+				renderCoordinates.spaceCenterPoints,
 				renderSettings,
 			);
 		}, time => console.log(`renderStep threejs object processing time:${time}`));
 
-		this.handleSceneScaling(calcRenderCoordinates.gameSpaceSize);
+		this.handleSceneScaling(renderCoordinates.gameSpaceSize);
 
 
 		measureTime(
@@ -737,28 +703,28 @@ export class GameRunner {
 	}
 
 	public drawStaticObjects(gameState: Game, renderSettings = this.renderSettingsOrDefault()): void {
-		const calcRenderCoords = this.calcRenderCoordinates(gameState, renderSettings);
+		const renderCoords = calcRenderCoordinates(gameState, renderSettings);
 		this.drawBoard(
 			this.getSceneGroup(SceneGroups.Board),
-			calcRenderCoords.spaceCenterPoints,
-			calcRenderCoords.boardWidth,
-			calcRenderCoords.boardHeight
+			renderCoords.spaceCenterPoints,
+			renderCoords.boardWidth,
+			renderCoords.boardHeight
 		);
 
 		this.drawGrid(
 			this.getSceneGroup(SceneGroups.Grid),
-			calcRenderCoords,
+			renderCoords,
 		);
 		this.drawHeldPiecesStand(
 			this.getSceneGroup(SceneGroups.Stands),
-			calcRenderCoords.whiteStandCoords,
-			calcRenderCoords.blackStandCoords
+			renderCoords.whiteStandCoords,
+			renderCoords.blackStandCoords
 		);
 		this.drawHeldPiecesIcons(
 			gameState,
 			this.getSceneGroup(SceneGroups.Stands),
 			gameState.players,
-			calcRenderCoords,
+			renderCoords,
 		);
 		if(renderSettings.debug.boardLocations){
 			this.debugSpaceCoords(
@@ -807,226 +773,8 @@ export class GameRunner {
 		boardMesh.updateMatrixWorld();
 	}
 
-	public getBoardTopRightCorner(boardWidth: number, boardHeight: number): [number, number] {
-		return [boardWidth, boardHeight].map(num => num / 2) as [number, number];
-	}
 
-	public getSpaceStartPoint(
-		boardTopRightCornerX: number,
-		boardTopRightCornerY: number,
-		boardSpaceWidth: number,
-		boardSpaceHeight: number
-	): {spaceStartPointX: number; spaceStartPointY: number;} {
-		const spaceStartPointX = boardTopRightCornerX - boardSpaceWidth / 2;
-		const spaceStartPointY = boardTopRightCornerY - boardSpaceHeight / 2;
-		return {
-			spaceStartPointX,
-			spaceStartPointY
-		}
-	}
 
-	/**
-	* TODO draw the move clock
-	**/
-	private calcRenderCoordinates(
-		gameState: Game,
-		renderSettings: RenderSettings
-	): CalcedRenderCoords {
-		const {files, ranks} = gameState.board;
-		const {boardSpaceWidth, boardSpaceHeight} = renderSettings;
-
-		const boardWidth = boardSpaceWidth * files;
-		const boardHeight = boardSpaceHeight * ranks;
-		const [boardTopRightCornerX, boardTopRightCornerY] = this.getBoardTopRightCorner(boardWidth, boardHeight);
-
-		const verticalLines = buildForRange(1, gameState.board.files - 1, (index: number) => {
-			const xCoord = boardTopRightCornerX - boardSpaceWidth * index 
-			return [
-				new Vector3(
-					xCoord,
-					boardTopRightCornerY,
-					zIndexes.grid,
-				),
-				new Vector3(
-					xCoord,
-					boardTopRightCornerY - boardHeight,
-					zIndexes.grid,
-
-				),
-			]
-		}).flat();
-
-		const horizontalLines = buildForRange(1, gameState.board.ranks - 1, (index: number) => {
-			const yCoord = boardTopRightCornerY - boardSpaceHeight * index;
-			return [
-				new Vector3(
-					boardTopRightCornerX,
-					yCoord,
-					zIndexes.grid,
-				),
-				new Vector3(
-					boardTopRightCornerX - boardWidth,
-					yCoord,
-					zIndexes.grid,
-				),
-			]
-		}).flat();
-
-		const gridCoords: Vector3[] = [
-			...verticalLines,
-			...horizontalLines,
-		];
-
-		const {spaceStartPointX, spaceStartPointY} = this.getSpaceStartPoint(
-			boardTopRightCornerX,
-			boardTopRightCornerY,
-			boardSpaceWidth,
-			boardSpaceHeight,
-		);
-
-		const spaceCenterPoints: Vector3[][] = this.calcSpaceCoordinates(
-			ranks,
-			files,
-			spaceStartPointX,
-			spaceStartPointY,
-			boardSpaceWidth,
-			boardSpaceHeight
-		);
-
-		const standGap: number = 4;
-
-		const { whitePiecesStandBasePoint, blackPiecesStandBasePoint } = this.getStandCenterPoints(
-			gameState,
-			boardWidth,
-			boardHeight,
-			boardSpaceWidth,
-			boardSpaceHeight,
-			standGap
-		);
-
-		const blackHeldPiecesLocations: Map<PieceNames, Vector3> = this.getLocationsForHeldPieces(
-			boardSpaceWidth,
-			boardSpaceHeight,
-			gameState.viewPoint === "black",
-			blackPiecesStandBasePoint,
-		);
-
-		const whiteHeldPiecesLocations = this.getLocationsForHeldPieces(
-			boardSpaceWidth,
-			boardSpaceHeight,
-			gameState.viewPoint === "white",
-			whitePiecesStandBasePoint,
-		);
-		
-		const standWidth = boardSpaceWidth * 4;
-		const standHeight = boardSpaceHeight * 2;
-
-		return {
-			boardWidth,
-			boardHeight,
-			spaceCenterPoints,
-			whiteStandCoords: {
-				basePoint: whitePiecesStandBasePoint,
-				width: standWidth,
-				height: standHeight,
-			},
-			blackStandCoords: {
-				basePoint: blackPiecesStandBasePoint,
-				width: standWidth,
-				height: standHeight,
-			},
-			blackHeldPiecesLocations,
-			whiteHeldPiecesLocations,
-			gridCoords,
-			gameSpaceSize: [
-				boardWidth + standWidth * 2 + standGap * 2 + renderSettings.renderPadding * 2,
-				boardHeight + renderSettings.renderPadding * 2
-			],
-		}
-	}
-
-	private getLocationsForHeldPieces(
-		boardSpaceWidth: number,
-		boardSpaceHeight: number,
-		isMainViewPoint: boolean,
-		standCenterPoint: Vector3
-	): Map<PieceNames, Vector3> {
-		const pieceZ = zIndexes.pieces;
-		const halfSpaceHeight = boardSpaceHeight * 0.5;
-		const halfSpaceWidth = boardSpaceWidth * 0.5;
-
-		const upperRowYOffset = isMainViewPoint ? halfSpaceHeight : -halfSpaceHeight;
-		const upperRowY = standCenterPoint.y + upperRowYOffset;
-
-		const lowerRowYOffset = -upperRowYOffset;
-		const lowerRowY = standCenterPoint.y + lowerRowYOffset;
-
-		//TODO ugly, find a cleaner way to adjust the x offsets based off of the viewpoint
-		const map = new Map<PieceNames, Vector3>();
-		map.set(PieceNames.Pawn, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * 1.5 * boardSpaceWidth, upperRowY, pieceZ));
-		map.set(PieceNames.Lance, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * halfSpaceWidth, upperRowY, pieceZ));
-		map.set(PieceNames.Knight, new Vector3(standCenterPoint.x + (isMainViewPoint ? 1 : -1) * halfSpaceWidth, upperRowY, pieceZ));
-		map.set(PieceNames.Silver, new Vector3(standCenterPoint.x + (isMainViewPoint ? 1 : -1) * 1.5 * boardSpaceWidth, upperRowY, pieceZ));
-		map.set(PieceNames.Gold, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * 1.5 * boardSpaceWidth, lowerRowY, pieceZ));
-		map.set(PieceNames.Bishop, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * halfSpaceWidth, lowerRowY, pieceZ));
-		map.set(PieceNames.Rook, new Vector3(standCenterPoint.x + (isMainViewPoint ? 1 : -1) * halfSpaceWidth, lowerRowY, pieceZ));
-
-		return map;
-	}
-
-	private getStandCenterPoints(
-		game: Game,
-		boardWidth: number,
-		boardHeight: number,
-		boardSpaceWidth: number,
-		boardSpaceHeight: number,
-		standGap: number,
-	): { whitePiecesStandBasePoint: Vector3, blackPiecesStandBasePoint: Vector3 } {
-		//board center point to center point of piece holder
-		const standDistFromBoardCenterPointX = boardWidth / 2 + standGap + 2 * boardSpaceWidth;
-		const standDistFromBoardCenterPointY = -boardHeight / 2 + 2 * boardSpaceHeight;
-		const bottomRightStand = new Vector3(
-			standDistFromBoardCenterPointX,
-			standDistFromBoardCenterPointY,
-		);
-
-		//invert the coordinates to get the position of the other player's hand
-		const topLeftStand = bottomRightStand.clone();
-		topLeftStand.x *= -1;
-		topLeftStand.y *= -1;
-
-		return {
-			whitePiecesStandBasePoint: game.viewPoint === "white" ? bottomRightStand : topLeftStand,
-			blackPiecesStandBasePoint: game.viewPoint === "black" ? bottomRightStand : topLeftStand,
-		}
-	}
-
-	private calcSpaceCoordinates(
-		ranks: number,
-		files: number,
-		spaceStartPointX: number,
-		spaceStartPointY: number,
-		boardSpaceWidth: number,
-		boardSpaceHeight: number,
-	): Vector3[][] {
-		const spaceCenterPoints: Vector3[][] = [];
-		for(let rankIndex = 0; rankIndex < ranks; rankIndex++) {
-			const filePoints: Vector3[] = [];
-			for(let fileIndex = 0; fileIndex < files; fileIndex++) {
-				filePoints.push(new Vector3(
-					spaceStartPointX - boardSpaceWidth * fileIndex,
-					spaceStartPointY - boardSpaceHeight * rankIndex,
-					//note, when you use these vector3s to place things, and you
-					//need modify the coordinates, you need to modify a copy of the vector,
-					//not the vector itself. use vector.clone
-					0,
-				));
-			}
-			spaceCenterPoints.push(filePoints);
-		}
-
-		return spaceCenterPoints;
-	}
 
 	/** TODO you only need to draw this once: just draw the pieces, and then put a number next to it that
 	* tells you how many of that piece you are holding */
@@ -1254,17 +1002,17 @@ export class GameRunner {
 		const game = gameState !== undefined ? gameState : this.gameStates[this.gameStates.length - 1];
 		const boardWidth = renderSettings.boardSpaceWidth * game.board.files;
 		const boardHeight = renderSettings.boardSpaceHeight * game.board.ranks;
-		const [boardTopRightCornerX, boardTopRightCornerY] = this.getBoardTopRightCorner(
+		const [boardTopRightCornerX, boardTopRightCornerY] = getBoardTopRightCorner(
 			boardWidth,
 			boardHeight,
 		);
-		const { spaceStartPointX, spaceStartPointY } = this.getSpaceStartPoint(
+		const { spaceStartPointX, spaceStartPointY } = getSpaceStartPoint(
 			boardTopRightCornerX,
 			boardTopRightCornerY,
 			renderSettings.boardSpaceWidth,
 			renderSettings.boardSpaceHeight,
 		);
-		const renderCoords = this.calcSpaceCoordinates(
+		const renderCoords = calcSpaceCoordinates(
 			game.board.ranks,
 			game.board.files,
 			spaceStartPointX,
