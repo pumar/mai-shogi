@@ -2,6 +2,8 @@
 //import { Game } from "../types/Game";
 //import { isPlaced, isPromotable, PlacedPiece } from "../types/Piece";
 
+import { Color, Group, Mesh, MeshBasicMaterial, PlaneGeometry } from "three";
+
 export {
 //	drawGame,
 //	defaultRenderSettings,
@@ -9,6 +11,7 @@ export {
 //	debugRenderSettings,
 	RenderSettings,
 	defaultRenderSettings,
+	setCanvasSizeToMatchLayout,
 }
 
 type RenderSettings = {
@@ -279,3 +282,9 @@ function defaultRenderSettings(): RenderSettings {
 //	callback(context);
 //	context.restore();
 //}
+
+function setCanvasSizeToMatchLayout(canvas: HTMLCanvasElement): void {
+	const {width, height} = canvas.getBoundingClientRect();
+	canvas.width = width;
+	canvas.height = height;
+}

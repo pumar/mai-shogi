@@ -7,12 +7,13 @@ import { measureTime } from "../utils/Performance";
 import { debounce } from "../utils/Throttling";
 
 import { createGame } from "./GameCreator";
-import { defaultRenderSettings, RenderSettings } from "./Renderer/Renderer";
+import { defaultRenderSettings, RenderSettings, setCanvasSizeToMatchLayout } from "./Renderer/Renderer";
 import { getAssetKeyForPiece } from "./types/AssetKeys";
 import { Game } from "./types/Game";
-import { Bishop, Gold, HeldPiece, isHeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, PlacedPiece, Rook, Silver } from "./types/Piece";
+import { Bishop, Gold, HeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, PlacedPiece, Rook, Silver } from "./types/Piece";
 import { Player } from "./types/Player";
 import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, zIndexes } from "./RenderCalculations";
+import { makeLocationDebugSquare, makeSvgDebugMesh } from "./Entities";
 
 
 /**
@@ -254,13 +255,9 @@ export class GameRunner {
 				group.position.add(diffFromCenter);
 
 				if(renderSettings.debug.svgCoordinateAdjustments) {
-					const svgAreaIndicator = new Mesh(
-						new PlaneGeometry(svgSize.x, svgSize.y),
-						new MeshBasicMaterial({
-							color: new Color(0, 0, 1),
-							transparent: true,
-							opacity: 0.25,
-						}),
+					const svgAreaIndicator = makeSvgDebugMesh(
+						svgSize,
+						new Color(0, 0, 1),
 					);
 					const centerVec = new Vector3();
 					svgArea.getCenter(centerVec);
@@ -275,13 +272,9 @@ export class GameRunner {
 					const size = new Vector3();
 					svgBox.getSize(size);
 					svgBox.getCenter(center);
-					const svgBoxMesh = new Mesh(
-						new PlaneGeometry(size.x, size.y),
-						new MeshBasicMaterial({
-							color: new Color(0, 1, 0),
-							transparent: true,
-							opacity: 0.25,
-						})
+					const svgBoxMesh = makeSvgDebugMesh(
+						size,
+						new Color(0, 1, 0),
 					);
 					svgBoxMesh.position.copy(center);
 					translateGroup.add(svgBoxMesh);
@@ -294,9 +287,8 @@ export class GameRunner {
 
 		Object.assign(this.gameAssets.pieces, Object.fromEntries(svgObjects));
 		console.log({ gameAssets: this.gameAssets, pieceKeys: Object.keys(this.gameAssets.pieces) });
-		//resize the pieces TODO move this to a helper function, we will need to do this on a screen
-		//resize at some point
 
+		//resize the pieces
 		Object.values(this.gameAssets.pieces).forEach((piece: Group) => {
 			const pieceSize = new Vector3();
 			const pieceBox = new Box3().setFromObject(piece);
@@ -331,19 +323,12 @@ export class GameRunner {
 				//calling the appropriate callback
 				const canvas = this.getCanvas();
 				if (entry.target === canvas) {
-					gameThis.setGameCanvasSizeToMatchLayout();
+					setCanvasSizeToMatchLayout(gameThis.getCanvas());
 					gameThis.renderStep();
 				}
 			});
 		}, 100));
 		canvasResizeObserver.observe(this.getCanvas());
-	}
-
-	public setGameCanvasSizeToMatchLayout(): void {
-		const gameCanvas = this.getCanvas();
-		const {width, height} = gameCanvas.getBoundingClientRect();
-		gameCanvas.width = width;
-		gameCanvas.height = height;
 	}
 
 	private initCamera(): void {
@@ -493,7 +478,6 @@ export class GameRunner {
 				this.getSceneGroup(SceneGroups.Pieces),
 				gameState,
 				renderCoordinates.spaceCenterPoints,
-				renderSettings,
 			);
 		}, time => console.log(`renderStep threejs object processing time:${time}`));
 
@@ -940,7 +924,6 @@ export class GameRunner {
 		piecesGroup: Group, 
 		gameState: Game,
 		spaceCenterPointLookup: Vector3[][],
-		renderSettings: RenderSettings,
 	): void {
 		//const placedPieces = gameState.players
 		//	.flatMap(player => player.pieces)
@@ -1020,27 +1003,20 @@ export class GameRunner {
 			renderSettings.boardSpaceHeight
 		);
 		console.log({ renderCoords });
-		const cube = new Mesh(
-			new PlaneGeometry(1, 1),
-			new MeshBasicMaterial({
-				color: new Color(0, 0, 1),
-			})
-		);
-
-		const debugGroup = this.getSceneGroup(SceneGroups.Debug);
-		debugGroup.remove(...debugGroup.children);
-
+		const debugSceneGroup = this.getSceneGroup(SceneGroups.Debug);
+		debugSceneGroup.remove(...debugSceneGroup.children);
 		const placeDebugObjects = []
+		const square = makeLocationDebugSquare();
 		for(let rankIndex = 0; rankIndex < game.board.ranks; rankIndex++) {
 			for(let fileIndex = 0; fileIndex < game.board.files; fileIndex++) {
-				const insertCube = cube.clone();
+				const insertCube = square.clone();
 				placeDebugObjects.push(insertCube);
 				insertCube.position.copy(renderCoords[rankIndex][fileIndex]);
 				insertCube.position.setZ(zIndexes.floating);
 				insertCube.matrixWorldNeedsUpdate = true;
 			}
 		}
-		debugGroup.add(...placeDebugObjects);
+		debugSceneGroup.add(...placeDebugObjects);
 		requestAnimationFrame(this.renderStep.bind(this));
 	}
 }

@@ -1,6 +1,6 @@
 import { createGame } from "./src/Game/GameCreator";
 import { GameRunner } from "./src/Game/GameRunner";
-import { debugRenderSettings, defaultRenderSettings } from "./src/Game/Renderer/Renderer";
+import { debugRenderSettings, defaultRenderSettings, setCanvasSizeToMatchLayout } from "./src/Game/Renderer/Renderer";
 
 window.addEventListener("DOMContentLoaded", async () => {
 	const canvas = document.querySelector("canvas#testcanvas") as HTMLCanvasElement;
@@ -18,7 +18,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 	const initialGameState = createGame();
 	game.addGameState(initialGameState);
 	await game.initGraphics();
-	game.setGameCanvasSizeToMatchLayout();
+	setCanvasSizeToMatchLayout(game.getCanvas());
 	game.setResizeHandlers();
 	game.setupScene();
 	game.drawStaticObjects(initialGameState);
