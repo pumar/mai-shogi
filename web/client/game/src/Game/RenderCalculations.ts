@@ -47,6 +47,9 @@ type CalcedRenderCoords = {
 	gameSpaceSize: [number, number];
 }
 
+/** holds the position information of where to draw the board that
+* holds the pieces that the players have in their hand
+**/
 type HeldPiecesStand = {
 	basePoint: Vector3;
 	width: number;
@@ -55,7 +58,9 @@ type HeldPiecesStand = {
 
 
 /**
-* TODO draw the move clock
+* calculate a bunch of positional information about where to draw things
+* this logic should be just in game coordinates, nothing to do with screen coordinates
+* or, what the coordinates would be as a result of scaling the scene
 **/
 function calcRenderCoordinates(
 	gameState: Game,
@@ -174,6 +179,12 @@ function calcRenderCoordinates(
 	}
 }
 
+/**
+* calculates the position from which the loop that calcuales the center position
+* of all of the files * ranks = N number of positions on the board
+* that loop starts drawing from the top right corner, so this function returns
+* the center of space 1x1
+**/
 function getSpaceStartPoint(
 	boardTopRightCornerX: number,
 	boardTopRightCornerY: number,

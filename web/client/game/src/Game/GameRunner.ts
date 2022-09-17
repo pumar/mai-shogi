@@ -4,15 +4,14 @@ import { Font, FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 import { makeExistsGuard } from "../utils/Guards";
 import { measureTime } from "../utils/Performance";
-import { buildForRange } from "../utils/Range";
 import { debounce } from "../utils/Throttling";
 
 import { createGame } from "./GameCreator";
 import { defaultRenderSettings, RenderSettings } from "./Renderer/Renderer";
 import { getAssetKeyForPiece } from "./types/AssetKeys";
 import { Game } from "./types/Game";
-import { Bishop, Gold, HeldPiece, isHeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, Rook, Silver } from "./types/Piece";
-import { Player, Turn } from "./types/Player";
+import { Bishop, Gold, HeldPiece, isHeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, PlacedPiece, Rook, Silver } from "./types/Piece";
+import { Player } from "./types/Player";
 import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, zIndexes } from "./RenderCalculations";
 
 
@@ -39,7 +38,7 @@ enum SceneGroups {
 //this will only work with the local server for this directory
 const fontPath = 'fonts/helvetiker_regular.typeface.json';
 
-type DrawPiece = Piece & {
+type DrawPiece = PlacedPiece & {
 	graphicsObject: Object3D;
 }
 
@@ -529,9 +528,9 @@ export class GameRunner {
 		const whitePlayer = gameState.players.find(player => player.turn === "white");
 		if(blackPlayer === undefined || whitePlayer === undefined) throw new Error('no player');
 		
-		const countPiecesMapBlack = this.getCountPiecesMap(blackPlayer.pieces.filter(piece => isHeldPiece(piece)) as HeldPiece[]);
+		const countPiecesMapBlack = this.getCountPiecesMap(blackPlayer.heldPieces);
 		this.drawCounts(blackPiecesCountsGroup, countPiecesMapBlack, calcRenderCoords.blackHeldPiecesLocations);
-		const countPiecesMapWhite = this.getCountPiecesMap(whitePlayer.pieces.filter(piece => isHeldPiece(piece)) as HeldPiece[]);;
+		const countPiecesMapWhite = this.getCountPiecesMap(whitePlayer.heldPieces);
 		this.drawCounts(whitePiecesCountsGroup, countPiecesMapWhite, calcRenderCoords.whiteHeldPiecesLocations);
 	}
 
@@ -957,7 +956,7 @@ export class GameRunner {
 			return {
 				turn: player.turn,
 				pieces: this.getPiecesGraphicsObjects(
-					player.pieces.filter(piece => isPlaced(piece))
+					player.placedPieces.filter(piece => isPlaced(piece))
 				)
 			}
 		});

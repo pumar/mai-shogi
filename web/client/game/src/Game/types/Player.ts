@@ -9,6 +9,7 @@ type Turn = "black" | "white";
 
 type Player = {
 	turn: Turn;
-	pieces: (HeldPiece | PlacedPiece)[];
+	placedPieces: PlacedPiece[];
+	heldPieces: HeldPiece[];
 	moves: [];
 }

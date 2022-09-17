@@ -28,19 +28,20 @@ function createGame(): Game {
 }
 
 function makePlayer(turn: Turn): Player {
-	const pieces: PlacedPiece[] = [];
+	const placedPieces: PlacedPiece[] = [];
 
-	pieces.push(...makePawns(turn, 9));
-	pieces.push(...makeLances(turn));
-	pieces.push(...makeKnights(turn));
-	pieces.push(...makeSilvers(turn));
-	pieces.push(...makeGolds(turn));
-	pieces.push(...makeKing(turn));
-	pieces.push(...makeBishop(turn));
-	pieces.push(...makeRook(turn));
+	placedPieces.push(...makePawns(turn, 9));
+	placedPieces.push(...makeLances(turn));
+	placedPieces.push(...makeKnights(turn));
+	placedPieces.push(...makeSilvers(turn));
+	placedPieces.push(...makeGolds(turn));
+	placedPieces.push(...makeKing(turn));
+	placedPieces.push(...makeBishop(turn));
+	placedPieces.push(...makeRook(turn));
 
 	return {
-		pieces,
+		placedPieces,
+		heldPieces: [],
 		turn,
 		moves: [],
 	}

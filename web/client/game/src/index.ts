@@ -1,9 +1,9 @@
 import { createGame } from "./Game/GameCreator";
-import { drawGame, defaultRenderSettings, clearCanvas } from "./Game/Renderer/Renderer";
+import { /*drawGame,*/ defaultRenderSettings, /*clearCanvas*/ } from "./Game/Renderer/Renderer";
 
 export {
-	drawGame,
+	/*drawGame,*/
 	defaultRenderSettings,
 	createGame,
-	clearCanvas,
+	/*clearCanvas,*/
 }
