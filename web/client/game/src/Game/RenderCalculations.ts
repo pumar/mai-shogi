@@ -1,4 +1,4 @@
-import { Scene, Vector3, Vector4, WebGLRenderer } from "three";
+import { Box2, Box3, Scene, Vector2, Vector3, Vector4, WebGLRenderer } from "three";
 import { buildForRange } from "../utils/Range";
 import { RenderSettings } from "./Renderer/Renderer";
 import { Game } from "./types/Game";
@@ -293,7 +293,8 @@ function mouseToWorld(
 	canvas: HTMLCanvasElement,
 	renderer: WebGLRenderer,
 	scene: Scene,
-	//renderCoords: CalcedRenderCoords
+	renderCoords: CalcedRenderCoords,
+	renderSettings: RenderSettings,
 ) {
 	//const { boardWidth, boardHeight } = renderCoords;
 	const { width: canvasWidth, height: canvasHeight } = canvas;
@@ -302,13 +303,12 @@ function mouseToWorld(
 
 	const scale = scene.scale;
 
-	const cartesianCoords = new Vector3(
+	const cartesianCoords = new Vector2(
 		x - canvasWidth / 2,
 		-1 * (y - canvasHeight / 2),
-		0
 	);
 
-	const scaledCartesian = new Vector3(
+	const scaledCartesian = new Vector2(
 		cartesianCoords.x / Math.abs(scene.scale.x),
 		cartesianCoords.y / Math.abs(scene.scale.y),
 	);
@@ -317,12 +317,56 @@ function mouseToWorld(
 		`mouse coords:(${x}, ${y})`,
 		`canvas size:(${canvasWidth}, ${canvasHeight})`,
 		`viewport:(${JSON.stringify(viewport)})`,
-		`scene scale:${vec3ToString(scale)}`,
-		`cartesian coords:${vec3ToString(cartesianCoords)}`,
-		`scaled cartesian:${vec3ToString(scaledCartesian)}`,
+		`scene scale:${vecToString(scale)}`,
+		`cartesian coords:${vecToString(cartesianCoords)}`,
+		`scaled cartesian:${vecToString(scaledCartesian)}`,
 	].join(' '));
+
+	const spaceBoxes = spaceCenterPointsToBoxes(
+		renderCoords.spaceCenterPoints,
+		renderSettings,
+	);
+
+	const hitSpace = spaceBoxes.find(spaceBox => spaceBox.box.containsPoint(scaledCartesian));
+	if (hitSpace) {
+		console.log('found space:', hitSpace);
+	}
 }
 
-function vec3ToString(vec: Vector3): string {
-	return `(${vec.x}, ${vec.y}, ${vec.z})`;
+type SpaceBox = {
+	box: Box2,
+	rank: number,
+	file: number,
+}
+
+function spaceCenterPointsToBoxes(
+	spaceCenterPoints: Vector3[][],
+	renderSettings: RenderSettings,
+): SpaceBox[] {
+	const halfSpaceWidth = renderSettings.boardSpaceWidth / 2;
+	const halfSpaceHeight = renderSettings.boardSpaceHeight / 2;
+	const spaceBoxes: SpaceBox[] = [];
+	spaceCenterPoints.forEach((rank, rankIdx) => {
+		rank.forEach((center, fileIdx) => {
+			const box = new Box2()
+			box.min.x = center.x - halfSpaceWidth;
+			box.max.x = center.x + halfSpaceWidth;
+			box.min.y = center.y - halfSpaceHeight;
+			box.max.y = center.y + halfSpaceHeight;
+
+			spaceBoxes.push({
+				box,
+				rank: rankIdx + 1,
+				file: fileIdx + 1
+			});
+		});
+	});
+
+	return spaceBoxes;
+}
+
+function vecToString(vec: Vector3 | Vector2): string {
+	return vec instanceof Vector3 ?
+		`(${vec.x}, ${vec.y}, ${vec.z})`
+		: `(${vec.x}, ${vec.y}`;
 }

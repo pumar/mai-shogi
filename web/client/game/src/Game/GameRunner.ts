@@ -1049,7 +1049,8 @@ export class GameRunner implements IEventQueueListener {
 			this.getCanvas(),
 			this.getRenderer(),
 			this.getScene(),
-			//renderCoords
+			renderCoords,
+			this.renderSettingsOrDefault()
 		);
 	}
 
