@@ -14,7 +14,7 @@ import { Bishop, Gold, HeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNam
 import { Player } from "./types/Player";
 import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, zIndexes } from "./RenderCalculations";
 import { makeLocationDebugSquare, makeSvgDebugMesh } from "./Entities";
-import { EventWrapper, IEventQueueListener } from "./Input/EventQueue";
+import { EventType, EventWrapper, IEventQueueListener } from "./Input/EventQueue";
 
 
 /**
@@ -1023,5 +1023,24 @@ export class GameRunner implements IEventQueueListener {
 
 	public newEventNotification(event: EventWrapper) {
 		console.log("game notified of event:", event);
+		switch(event.type) {
+			case EventType.Mouse:
+				this.handleMouseEvent(event);
+				break;
+			case EventType.Keyboard:
+				this.handleKeyboardEvent(event);
+				break;
+			default:
+				return;
+		}
+	}
+
+	private handleMouseEvent(event: EventWrapper): void {
+		const { x, y } = event.event as MouseEvent;
+		console.log(`click @ (${x}, ${y})`);
+	}
+
+	private handleKeyboardEvent(event: EventWrapper): void {
+		console.log({ keyboardEvent: event.event});
 	}
 }

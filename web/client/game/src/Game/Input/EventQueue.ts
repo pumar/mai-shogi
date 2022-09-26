@@ -3,7 +3,7 @@ export interface IEventQueueListener {
 	newEventNotification: (event: EventWrapper) => void;
 }
 
-enum EventType {
+export enum EventType {
 	Mouse,
 	Keyboard,
 }
