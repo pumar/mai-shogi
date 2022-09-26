@@ -1,4 +1,4 @@
-import { Vector3 } from "three";
+import { Scene, Vector3, Vector4, WebGLRenderer } from "three";
 import { buildForRange } from "../utils/Range";
 import { RenderSettings } from "./Renderer/Renderer";
 import { Game } from "./types/Game";
@@ -12,6 +12,7 @@ export {
 	zIndexes,
 	HeldPiecesStand,
 	getSpaceStartPoint,
+	mouseToWorld,
 }
 
 /** set z indexes for items to ensure that they are drawn in order
@@ -284,4 +285,44 @@ function calcSpaceCoordinates(
 	}
 
 	return spaceCenterPoints;
+}
+
+function mouseToWorld(
+	x: number,
+	y: number,
+	canvas: HTMLCanvasElement,
+	renderer: WebGLRenderer,
+	scene: Scene,
+	//renderCoords: CalcedRenderCoords
+) {
+	//const { boardWidth, boardHeight } = renderCoords;
+	const { width: canvasWidth, height: canvasHeight } = canvas;
+	const viewport = new Vector4();
+	renderer.getViewport(viewport);
+
+	const scale = scene.scale;
+
+	const cartesianCoords = new Vector3(
+		x - canvasWidth / 2,
+		-1 * (y - canvasHeight / 2),
+		0
+	);
+
+	const scaledCartesian = new Vector3(
+		cartesianCoords.x / Math.abs(scene.scale.x),
+		cartesianCoords.y / Math.abs(scene.scale.y),
+	);
+
+	console.log([
+		`mouse coords:(${x}, ${y})`,
+		`canvas size:(${canvasWidth}, ${canvasHeight})`,
+		`viewport:(${JSON.stringify(viewport)})`,
+		`scene scale:${vec3ToString(scale)}`,
+		`cartesian coords:${vec3ToString(cartesianCoords)}`,
+		`scaled cartesian:${vec3ToString(scaledCartesian)}`,
+	].join(' '));
+}
+
+function vec3ToString(vec: Vector3): string {
+	return `(${vec.x}, ${vec.y}, ${vec.z})`;
 }

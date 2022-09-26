@@ -12,7 +12,7 @@ import { getAssetKeyForPiece } from "./types/AssetKeys";
 import { Game } from "./types/Game";
 import { Bishop, Gold, HeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, PlacedPiece, Rook, Silver } from "./types/Piece";
 import { Player } from "./types/Player";
-import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, zIndexes } from "./RenderCalculations";
+import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, mouseToWorld, zIndexes } from "./RenderCalculations";
 import { makeLocationDebugSquare, makeSvgDebugMesh } from "./Entities";
 import { EventType, EventWrapper, IEventQueueListener } from "./Input/EventQueue";
 
@@ -209,28 +209,28 @@ export class GameRunner implements IEventQueueListener {
 
 				//copy pasted this from the threejs svgloader example
 				const start = performance.now();
-				for (let i = 0; i < paths.length; i++) {
+				//for (let i = 0; i < paths.length; i++) {
 
-					const path = paths[ i ];
+				//	const path = paths[ i ];
 
-					const material = new MeshBasicMaterial( {
-						color: path.color,
-						side: DoubleSide,
-						//I was debugging why the pieces were drawn behind the board,
-						//and it was because this code that I pasted from the example
-						//was setting depthWrite to false...
-						depthWrite: true
-					} );
+				//	const material = new MeshBasicMaterial( {
+				//		color: path.color,
+				//		side: DoubleSide,
+				//		//I was debugging why the pieces were drawn behind the board,
+				//		//and it was because this code that I pasted from the example
+				//		//was setting depthWrite to false...
+				//		depthWrite: true
+				//	} );
 
-					const shapes = SVGLoader.createShapes( path );
+				//	const shapes = SVGLoader.createShapes( path );
 
-					for (let j = 0;j < shapes.length;j++) {
-						const shape = shapes[ j ];
-						const geometry = new ShapeGeometry( shape );
-						const mesh = new Mesh( geometry, material );
-						group.add( mesh );
-					}
-				}
+				//	for (let j = 0;j < shapes.length;j++) {
+				//		const shape = shapes[ j ];
+				//		const geometry = new ShapeGeometry( shape );
+				//		const mesh = new Mesh( geometry, material );
+				//		group.add( mesh );
+				//	}
+				//}
 				const time = performance.now() - start;
 				console.log(`loop time:${time}, piece:${filenameSvgResult[0]}`);
 
@@ -1038,6 +1038,19 @@ export class GameRunner implements IEventQueueListener {
 	private handleMouseEvent(event: EventWrapper): void {
 		const { x, y } = event.event as MouseEvent;
 		console.log(`click @ (${x}, ${y})`);
+		const renderCoords = calcRenderCoordinates(
+			this.gameStates[this.gameStates.length - 1],
+			this.renderSettingsOrDefault(),
+		);
+
+		const mouseCoords = mouseToWorld(
+			x,
+			y,
+			this.getCanvas(),
+			this.getRenderer(),
+			this.getScene(),
+			//renderCoords
+		);
 	}
 
 	private handleKeyboardEvent(event: EventWrapper): void {
