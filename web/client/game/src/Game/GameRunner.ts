@@ -12,7 +12,7 @@ import { getAssetKeyForPiece } from "./types/AssetKeys";
 import { Game } from "./types/Game";
 import { Bishop, Gold, HeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, PlacedPiece, Rook, Silver } from "./types/Piece";
 import { Player } from "./types/Player";
-import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, mouseToWorld, zIndexes } from "./RenderCalculations";
+import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, mouseToWorld, spaceCenterPointsToBoxes, zIndexes } from "./RenderCalculations";
 import { makeLocationDebugSquare, makeSvgDebugMesh } from "./Entities";
 import { EventType, EventWrapper, IEventQueueListener } from "./Input/EventQueue";
 
@@ -1035,6 +1035,10 @@ export class GameRunner implements IEventQueueListener {
 		}
 	}
 
+	/**
+	* TODO this is running for both mouse down and mouse up, need to
+	* use both effectively for the piece drag & drop
+	**/
 	private handleMouseEvent(event: EventWrapper): void {
 		const { x, y } = event.event as MouseEvent;
 		console.log(`click @ (${x}, ${y})`);
@@ -1043,15 +1047,25 @@ export class GameRunner implements IEventQueueListener {
 			this.renderSettingsOrDefault(),
 		);
 
+		const renderSettings = this.renderSettingsOrDefault();
+
 		const mouseCoords = mouseToWorld(
 			x,
 			y,
 			this.getCanvas(),
-			this.getRenderer(),
+			//this.getRenderer(),
 			this.getScene(),
-			renderCoords,
-			this.renderSettingsOrDefault()
 		);
+
+		const spaceBoxes = spaceCenterPointsToBoxes(
+			renderCoords.spaceCenterPoints,
+			renderSettings,
+		);
+
+		const hitSpace = spaceBoxes.find(spaceBox => spaceBox.box.containsPoint(mouseCoords));
+		if (hitSpace) {
+			console.log('found space:', hitSpace);
+		}
 	}
 
 	private handleKeyboardEvent(event: EventWrapper): void {

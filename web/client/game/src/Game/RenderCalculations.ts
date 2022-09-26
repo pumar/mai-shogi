@@ -13,6 +13,7 @@ export {
 	HeldPiecesStand,
 	getSpaceStartPoint,
 	mouseToWorld,
+	spaceCenterPointsToBoxes,
 }
 
 /** set z indexes for items to ensure that they are drawn in order
@@ -287,19 +288,23 @@ function calcSpaceCoordinates(
 	return spaceCenterPoints;
 }
 
+/**
+* convert screen coordinates into game world coordinates
+* mouse click event location information is relative to the
+* top-left corner, so we need to convert them to be relative to the
+* center, and consider the scene scaling
+**/
 function mouseToWorld(
 	x: number,
 	y: number,
 	canvas: HTMLCanvasElement,
-	renderer: WebGLRenderer,
+	//renderer: WebGLRenderer,
 	scene: Scene,
-	renderCoords: CalcedRenderCoords,
-	renderSettings: RenderSettings,
 ) {
 	//const { boardWidth, boardHeight } = renderCoords;
 	const { width: canvasWidth, height: canvasHeight } = canvas;
-	const viewport = new Vector4();
-	renderer.getViewport(viewport);
+	//const viewport = new Vector4();
+	//renderer.getViewport(viewport);
 
 	const scale = scene.scale;
 
@@ -309,28 +314,21 @@ function mouseToWorld(
 	);
 
 	const scaledCartesian = new Vector2(
-		cartesianCoords.x / Math.abs(scene.scale.x),
-		cartesianCoords.y / Math.abs(scene.scale.y),
+		cartesianCoords.x / Math.abs(scale.x),
+		cartesianCoords.y / Math.abs(scale.y),
 	);
 
-	console.log([
-		`mouse coords:(${x}, ${y})`,
-		`canvas size:(${canvasWidth}, ${canvasHeight})`,
-		`viewport:(${JSON.stringify(viewport)})`,
-		`scene scale:${vecToString(scale)}`,
-		`cartesian coords:${vecToString(cartesianCoords)}`,
-		`scaled cartesian:${vecToString(scaledCartesian)}`,
-	].join(' '));
+	//console.log([
+	//	`mouse coords:(${x}, ${y})`,
+	//	`canvas size:(${canvasWidth}, ${canvasHeight})`,
+	//	`viewport:(${JSON.stringify(viewport)})`,
+	//	`scene scale:${vecToString(scale)}`,
+	//	`cartesian coords:${vecToString(cartesianCoords)}`,
+	//	`scaled cartesian:${vecToString(scaledCartesian)}`,
+	//].join(' '));
 
-	const spaceBoxes = spaceCenterPointsToBoxes(
-		renderCoords.spaceCenterPoints,
-		renderSettings,
-	);
+	return scaledCartesian;
 
-	const hitSpace = spaceBoxes.find(spaceBox => spaceBox.box.containsPoint(scaledCartesian));
-	if (hitSpace) {
-		console.log('found space:', hitSpace);
-	}
 }
 
 type SpaceBox = {
