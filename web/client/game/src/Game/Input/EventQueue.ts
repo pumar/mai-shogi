@@ -1,5 +1,5 @@
 
-interface IEventQueueListener {
+export interface IEventQueueListener {
 	newEventNotification: (event: EventWrapper) => void;
 }
 
@@ -8,7 +8,7 @@ enum EventType {
 	Keyboard,
 }
 
-type EventWrapper = {
+export type EventWrapper = {
 	type: EventType;
 	event: Event;
 }
@@ -24,21 +24,35 @@ export class EventQueue {
 
 	private events: EventWrapper[] = [];
 
+	private mkPushEvent(eventType: EventType): (event: MouseEvent | KeyboardEvent) => void {
+		return (incomingEvent: MouseEvent | KeyboardEvent) => {
+			this.events.push({
+				type: eventType,
+				event: incomingEvent,
+			});
+
+			this.broadcast();
+		}
+	}
+
+	private broadcast(): void {
+		const events = this.events;
+		this.listeners.forEach(lis => lis.newEventNotification(events[events.length - 1]));
+	}
+
 	public registerCallbacks(root: Window) {
-		const pushMouseEvent = (mouseEvent: MouseEvent) => this.events.push({
-			type: EventType.Mouse,
-			event: mouseEvent
-		});
+		//const pushMouseEvent = (mouseEvent: MouseEvent) => this.events.push({
+		//	type: EventType.Mouse,
+		//	event: mouseEvent
+		//});
+		const pushMouseEvent = this.mkPushEvent(EventType.Mouse);
 
 		root.addEventListener("mousedown", pushMouseEvent);
 
 		root.addEventListener("mouseup", pushMouseEvent);
 
-		root.addEventListener("keydown", (keyboardEvent: KeyboardEvent) => {
-			this.events.push({
-				type: EventType.Keyboard,
-				event: keyboardEvent,
-			});
-		});
+		const pushKeyboardEvent = this.mkPushEvent(EventType.Keyboard);
+
+		root.addEventListener("keydown", pushKeyboardEvent);
 	}
 }

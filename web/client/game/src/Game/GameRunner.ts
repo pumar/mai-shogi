@@ -14,6 +14,7 @@ import { Bishop, Gold, HeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNam
 import { Player } from "./types/Player";
 import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, zIndexes } from "./RenderCalculations";
 import { makeLocationDebugSquare, makeSvgDebugMesh } from "./Entities";
+import { EventWrapper, IEventQueueListener } from "./Input/EventQueue";
 
 
 /**
@@ -65,7 +66,7 @@ export type SvgLoadConfig = {
 	};
 }
 
-export class GameRunner {
+export class GameRunner implements IEventQueueListener {
 	private gameStates: Game[] = [];
 	private checkDefined = makeExistsGuard("GameRunner");
 
@@ -1018,5 +1019,9 @@ export class GameRunner {
 		}
 		debugSceneGroup.add(...placeDebugObjects);
 		requestAnimationFrame(this.renderStep.bind(this));
+	}
+
+	public newEventNotification(event: EventWrapper) {
+		console.log("game notified of event:", event);
 	}
 }
