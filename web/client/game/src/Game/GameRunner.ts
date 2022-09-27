@@ -1078,14 +1078,14 @@ export class GameRunner implements IEventQueueListener {
 			halfSpaceHeight
 		);
 
-		const clickedBlackPiece = Object.entries(blackPieceNameToSpaceArea)
-			.find(entry => entry.values
+		//const clickedBlackPiece = Object.entries(blackPieceNameToSpaceArea)
+		//	.find(entry => entry.values
 
-		const whitePieceNameToSpaceArea = this.getBoxesForHeldPieces(
-			renderCoords.whiteHeldPiecesLocations,
-			halfSpaceWidth,
-			halfSpaceHeight,
-		);
+		//const whitePieceNameToSpaceArea = this.getBoxesForHeldPieces(
+		//	renderCoords.whiteHeldPiecesLocations,
+		//	halfSpaceWidth,
+		//	halfSpaceHeight,
+		//);
 	}
 
 	private getBoxesForHeldPieces(
