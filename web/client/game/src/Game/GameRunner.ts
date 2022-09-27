@@ -1,4 +1,4 @@
-import { Box3, BoxBufferGeometry, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry,  Vector3, WebGLRenderer } from "three";
+import { Box2, Box3, BoxBufferGeometry, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry,  Vector3, WebGLRenderer } from "three";
 import { SVGLoader, SVGResult } from "three/examples/jsm/loaders/SVGLoader.js";
 import { Font, FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
@@ -12,7 +12,7 @@ import { getAssetKeyForPiece } from "./types/AssetKeys";
 import { Game } from "./types/Game";
 import { Bishop, Gold, HeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, PlacedPiece, Rook, Silver } from "./types/Piece";
 import { Player } from "./types/Player";
-import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, mouseToWorld, spaceCenterPointsToBoxes, zIndexes } from "./RenderCalculations";
+import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, mouseToWorld, SpaceBox, spaceCenterPointsToBoxes, spaceCenterToBox, zIndexes } from "./RenderCalculations";
 import { makeLocationDebugSquare, makeSvgDebugMesh } from "./Entities";
 import { EventType, EventWrapper, IEventQueueListener } from "./Input/EventQueue";
 
@@ -1048,6 +1048,8 @@ export class GameRunner implements IEventQueueListener {
 		);
 
 		const renderSettings = this.renderSettingsOrDefault();
+		const halfSpaceWidth = renderSettings.boardSpaceWidth / 2;
+		const halfSpaceHeight = renderSettings.boardSpaceHeight / 2;
 
 		const mouseCoords = mouseToWorld(
 			x,
@@ -1065,7 +1067,42 @@ export class GameRunner implements IEventQueueListener {
 		const hitSpace = spaceBoxes.find(spaceBox => spaceBox.box.containsPoint(mouseCoords));
 		if (hitSpace) {
 			console.log('found space:', hitSpace);
+			return;
 		}
+
+		//didn't hit a board space, need to check the held pieces
+		//const clickedBlackHeldPiece = renderCoords.blackHeldPiecesLocations
+		const blackPieceNameToSpaceArea = this.getBoxesForHeldPieces(
+			renderCoords.blackHeldPiecesLocations,
+			halfSpaceWidth,
+			halfSpaceHeight
+		);
+
+		const clickedBlackPiece = Object.entries(blackPieceNameToSpaceArea)
+			.find(entry => entry.values
+
+		const whitePieceNameToSpaceArea = this.getBoxesForHeldPieces(
+			renderCoords.whiteHeldPiecesLocations,
+			halfSpaceWidth,
+			halfSpaceHeight,
+		);
+	}
+
+	private getBoxesForHeldPieces(
+		heldPieceLocations: Map<PieceNames, Vector3>,
+		halfSpaceWidth: number,
+		halfSpaceHeight: number,
+	): Map<PieceNames, Box2> {
+		const pieceNameToBox = new Map<PieceNames, Box2>();
+		heldPieceLocations.forEach((value, key) => {
+				pieceNameToBox.set(key, spaceCenterToBox(
+					value,
+					halfSpaceWidth,
+					halfSpaceHeight
+				));
+			});
+
+		return pieceNameToBox;
 	}
 
 	private handleKeyboardEvent(event: EventWrapper): void {

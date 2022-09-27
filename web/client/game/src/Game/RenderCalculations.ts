@@ -14,6 +14,8 @@ export {
 	getSpaceStartPoint,
 	mouseToWorld,
 	spaceCenterPointsToBoxes,
+	SpaceBox,
+	spaceCenterToBox,
 }
 
 /** set z indexes for items to ensure that they are drawn in order
@@ -346,11 +348,11 @@ function spaceCenterPointsToBoxes(
 	const spaceBoxes: SpaceBox[] = [];
 	spaceCenterPoints.forEach((rank, rankIdx) => {
 		rank.forEach((center, fileIdx) => {
-			const box = new Box2()
-			box.min.x = center.x - halfSpaceWidth;
-			box.max.x = center.x + halfSpaceWidth;
-			box.min.y = center.y - halfSpaceHeight;
-			box.max.y = center.y + halfSpaceHeight;
+			const box = spaceCenterToBox(
+				center,
+				halfSpaceWidth,
+				halfSpaceHeight,
+			);
 
 			spaceBoxes.push({
 				box,
@@ -361,6 +363,25 @@ function spaceCenterPointsToBoxes(
 	});
 
 	return spaceBoxes;
+}
+
+/**
+* from a space (board or held pieces) center location and the
+* size of the spaces setting, determine a box2 that represents that
+* area
+**/
+function spaceCenterToBox(
+	center: Vector3,
+	halfSpaceWidth: number,
+	halfSpaceHeight: number,
+): Box2 {
+	const box = new Box2();
+	box.min.x = center.x - halfSpaceWidth;
+	box.max.x = center.x + halfSpaceWidth;
+	box.min.y = center.y - halfSpaceHeight;
+	box.max.y = center.y + halfSpaceHeight;
+
+	return box;
 }
 
 function vecToString(vec: Vector3 | Vector2): string {
