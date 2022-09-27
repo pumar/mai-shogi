@@ -199,6 +199,7 @@ export class GameRunner implements IEventQueueListener {
 		const svgRequestResults: [string, SVGResult][] = await Promise.all(this.loadSvgs(boardAndPiecesSvgSetting));
 		const measurePieceSizeVector = new Vector3();
 		//TODO too slow -> can you serialize the threejs objects? that way this loop doesn't need to run every game
+		//I confirmed that this is really slow on both of my machines, something needs done
 		const svgObjects: [string, Group][] = measureTime(() => {
 			return svgRequestResults.map(filenameSvgResult => {
 				const svgName = filenameSvgResult[0];
