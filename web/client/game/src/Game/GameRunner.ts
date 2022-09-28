@@ -1113,7 +1113,6 @@ export class GameRunner implements IEventQueueListener {
 			halfSpaceHeight
 		);
 
-		//TODO this needs to be relative to whether the player is white or black
 		const clickedBlackPiece = blackPieceNameToSpaceArea
 			.find((entry: [PieceNames, Box2]) => { console.log(entry); return entry[1].containsPoint(mouseCoords);});
 		if (clickedBlackPiece) {
