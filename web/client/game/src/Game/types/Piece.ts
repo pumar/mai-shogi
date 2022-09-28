@@ -15,6 +15,7 @@ export {
 	Rook,
 	GamePiece,
 	PieceNames,
+	mkHeldPiece,
 }
 
 function isPlaced(obj: Piece): obj is PlacedPiece {
@@ -64,6 +65,12 @@ type HeldPiece = GamePiece & {
 }
 function isHeldPiece(obj: Record<string, any>): obj is HeldPiece {
 	return (obj as HeldPiece).count !== undefined;
+}
+function mkHeldPiece(pieceName: PieceNames, count: number): HeldPiece {
+	return {
+		name: pieceName,
+		count,
+	}
 }
 
 type Piece = PlacedPiece | HeldPiece;

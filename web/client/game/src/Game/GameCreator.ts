@@ -1,7 +1,7 @@
 import { buildForRange } from "../utils/Range";
 import { PlayerColor } from "./Consts";
 import { Game } from "./types/Game";
-import { Placed, PlacedPiece } from "./types/Piece";
+import { mkHeldPiece, PieceNames, Placed, PlacedPiece } from "./types/Piece";
 import { Player, Turn } from "./types/Player";
 
 export {
@@ -42,7 +42,15 @@ function makePlayer(turn: Turn): Player {
 
 	return {
 		placedPieces,
-		heldPieces: [],
+		heldPieces: [
+			mkHeldPiece(PieceNames.Pawn, 0),
+			mkHeldPiece(PieceNames.Lance, 0),
+			mkHeldPiece(PieceNames.Knight, 0),
+			mkHeldPiece(PieceNames.Silver, 0),
+			mkHeldPiece(PieceNames.Bishop, 0),
+			mkHeldPiece(PieceNames.Rook, 0),
+			mkHeldPiece(PieceNames.Gold, 0),
+		],
 		turn,
 		moves: [],
 	}

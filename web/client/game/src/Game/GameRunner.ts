@@ -614,30 +614,12 @@ export class GameRunner implements IEventQueueListener {
 	}
 
 	/**
-	* count the number of held pieces
-	* TODO this function probably does nothing since you refactored the way
-	* held pieces are stored in the game state data structure
+	* convert the held pieces array into a list of tuples
 	**/
 	private getCountPiecesMap(heldPieces: HeldPiece[]): [PieceNames, number][] {
-		const counts: [PieceNames, number][] = [
-			[PieceNames.Pawn, 0],
-			[PieceNames.Lance, 0],
-			[PieceNames.Knight, 0],
-			[PieceNames.Silver, 0],
-			[PieceNames.Gold, 0],
-			[PieceNames.Bishop, 0],
-			[PieceNames.Rook, 0],
-		];
-
-		heldPieces.forEach(piece => {
-			const countEntry = counts.find(count => count[0] === piece.name);
-			if (countEntry === undefined) {
-				throw new Error(`getCountPiecesMap bad piece name:${piece.name}`);
-			}
-			countEntry[1] += 1;
+		return heldPieces.map(heldPiece => {
+			return [heldPiece.name, heldPiece.count];
 		});
-
-		return counts;
 	}
 
 	private handleSceneScaling(
