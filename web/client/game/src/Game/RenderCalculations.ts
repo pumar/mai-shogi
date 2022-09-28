@@ -384,9 +384,3 @@ function spaceCenterToBox(
 
 	return box;
 }
-
-function vecToString(vec: Vector3 | Vector2): string {
-	return vec instanceof Vector3 ?
-		`(${vec.x}, ${vec.y}, ${vec.z})`
-		: `(${vec.x}, ${vec.y}`;
-}

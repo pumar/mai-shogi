@@ -15,6 +15,7 @@ import { Player } from "./types/Player";
 import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, mouseToWorld, SpaceBox, spaceCenterPointsToBoxes, spaceCenterToBox, zIndexes } from "./RenderCalculations";
 import { makeLocationDebugSquare, makeSvgDebugMesh } from "./Entities";
 import { EventType, EventWrapper, IEventQueueListener } from "./Input/EventQueue";
+import { boxToString } from "../threeUtils/Printing";
 
 
 /**
@@ -1116,24 +1117,20 @@ export class GameRunner implements IEventQueueListener {
 		const clickedBlackPiece = blackPieceNameToSpaceArea
 			.find((entry: [PieceNames, Box2]) => { console.log(entry); return entry[1].containsPoint(mouseCoords);});
 		if (clickedBlackPiece) {
-			console.log(`clicked black held piece:${clickedBlackPiece[0]} ${clickedBlackPiece[1]}`);
+			console.log(`clicked black held piece:${clickedBlackPiece[0]} ${boxToString(clickedBlackPiece[1])}`);
 			return;
 		}
 
-		//const whitePieceNameToSpaceArea = this.getBoxesForHeldPieces(
-		//	renderCoords.whiteHeldPiecesLocations,
-		//	halfSpaceWidth,
-		//	halfSpaceHeight,
-		//);
-		//const clickedWhitePiece = (Object.entries(whitePieceNameToSpaceArea) as [PieceNames, Box2][])
-		//	.find((entry: [PieceNames, Box2]) => entry[1].containsPoint(mouseCoords));
-		//if (clickedBlackPiece) {
-		//	console.log(`clicked held piece:${clickedBlackPiece[0]} ${clickedBlackPiece[1]}`);
-		//	return;
-		//}
-		//if (clickedWhitePiece) {
-		//	console.log(`clicked black held piece:${clickedWhitePiece[0]} ${clickedWhitePiece[1]}`);
-		//}
+		const whitePieceNameToSpaceArea = this.getBoxesForHeldPieces(
+			renderCoords.whiteHeldPiecesLocations,
+			halfSpaceWidth,
+			halfSpaceHeight,
+		);
+		const clickedWhitePiece = whitePieceNameToSpaceArea
+			.find((entry: [PieceNames, Box2]) => entry[1].containsPoint(mouseCoords));
+		if (clickedWhitePiece) {
+			console.log(`clicked white held piece:${clickedWhitePiece[0]} ${boxToString(clickedWhitePiece[1])}`);
+		}
 	}
 
 	private getBoxesForHeldPieces(
