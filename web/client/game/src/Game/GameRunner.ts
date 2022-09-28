@@ -178,6 +178,9 @@ export class GameRunner implements IEventQueueListener {
 		}));
 		console.log('texture base64 encoding over');
 
+		//TODO the texture is black. If the image is appended to the DOM, it looks fine
+		//can't tell if it's an asynchronous issue, or a problem with the way
+		//the texture is setup
 		const textureAssignPromises = fileReaderResults.map((result: [string, string | ArrayBuffer | null]) => {
 			console.log("fileReaderResult, base64 encoding", result);
 			if (typeof result[1] !== "string") {
