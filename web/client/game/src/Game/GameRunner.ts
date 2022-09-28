@@ -6,10 +6,10 @@ import { makeExistsGuard } from "../utils/Guards";
 import { measureTime } from "../utils/Performance";
 import { debounce } from "../utils/Throttling";
 
-import { createGame } from "./GameCreator";
+import { createGame, getPawnStartRank } from "./GameCreator";
 import { defaultRenderSettings, RenderSettings, setCanvasSizeToMatchLayout } from "./Renderer/Renderer";
 import { getAssetKeyForPiece } from "./types/AssetKeys";
-import { findPlayer, Game } from "./types/Game";
+import { findPlacedPieceAndPlayer, findPlayer, Game } from "./types/Game";
 import { Bishop, Gold, HeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, PlacedPiece, Rook, Silver } from "./types/Piece";
 import { Player } from "./types/Player";
 import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, mouseToWorld, SpaceBox, spaceCenterPointsToBoxes, spaceCenterToBox, zIndexes } from "./RenderCalculations";
@@ -1058,6 +1058,8 @@ export class GameRunner implements IEventQueueListener {
 		switch(event.type) {
 			case EventType.Mouse:
 				this.handleMouseEvent(event);
+				//TODO only need to re-render if the game state actuall changed
+				this.renderStep();
 				break;
 			case EventType.Keyboard:
 				this.handleKeyboardEvent(event);
@@ -1103,13 +1105,35 @@ export class GameRunner implements IEventQueueListener {
 
 		const hitSpace = spaceBoxes.find(spaceBox => spaceBox.box.containsPoint(mouseCoords));
 		if (hitSpace) {
+			//hit a space, if there is a piece on that space we need to
+			//grab it and pass that into the interaction logic
+			//if not, treat it as a piece move
 			console.log('clicked space:', hitSpace);
-			interactionController.handleClick({
-				clickedEntity: {
-					rank: hitSpace.rank,
-					file: hitSpace.file,
-				},
-			}, currentGameState);
+			const piecePlayer = findPlacedPieceAndPlayer(
+				currentGameState,
+				hitSpace.rank,
+				hitSpace.file,
+			);
+
+			if(piecePlayer !== undefined) {
+				const { player, piece: clickedPiece } = piecePlayer;
+				const newGame = interactionController.handleClick({
+					clickedEntity: {
+						piece: clickedPiece,
+						pieceOwner: player,
+					}
+				}, currentGameState);
+				this.gameStates.push(newGame);
+			} else {
+				const newGame = interactionController.handleClick({
+					clickedEntity: {
+						rank: hitSpace.rank,
+						file: hitSpace.file,
+					},
+				}, currentGameState);
+				this.gameStates.push(newGame);
+			}
+
 			return;
 		}
 
@@ -1121,6 +1145,7 @@ export class GameRunner implements IEventQueueListener {
 			halfSpaceHeight
 		);
 
+		//TODO de-dupe the white and black held piece cases
 		const clickedBlackPiece = blackPieceNameToSpaceArea
 			.find((entry: [PieceNames, Box2]) => { console.log(entry); return entry[1].containsPoint(mouseCoords);});
 		if (clickedBlackPiece) {

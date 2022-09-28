@@ -1,7 +1,10 @@
+import { Turn } from "./Player";
+
 export {
 	Piece,
 	PlacedPiece,
 	HeldPiece,
+	PlayerHeldPiece,
 	isPlaced,
 	isPromotable,
 	isHeldPiece,
@@ -16,6 +19,7 @@ export {
 	GamePiece,
 	PieceNames,
 	mkHeldPiece,
+	arePiecesEqual,
 }
 
 function isPlaced(obj: Piece): obj is PlacedPiece {
@@ -63,6 +67,11 @@ type HeldPiece = GamePiece & {
 	/** it's possible to hold multiples of the same piece */
 	count: number;
 }
+
+type PlayerHeldPiece = HeldPiece & {
+	player: Turn;
+}
+
 function isHeldPiece(obj: Record<string, any>): obj is HeldPiece {
 	return (obj as HeldPiece).count !== undefined;
 }
@@ -70,6 +79,20 @@ function mkHeldPiece(pieceName: PieceNames, count: number): HeldPiece {
 	return {
 		name: pieceName,
 		count,
+	}
+}
+
+//TODO unit test
+function arePiecesEqual(piece1: PlayerHeldPiece | PlacedPiece, piece2: PlayerHeldPiece | PlacedPiece) {
+	if(isHeldPiece(piece1) && !isHeldPiece(piece2)) return false;
+	if(isPlaced(piece1) && !isPlaced(piece2)) return false;
+	if(isHeldPiece(piece1)){
+		//held pieces are equal if the piece names are the same,
+		//and both pieces are held by the same player
+		return piece1.name === piece2.name && piece1.player === (piece2 as PlayerHeldPiece).player;
+	} else {
+		//placed pieces are equal if they are on the same rank and file
+		return piece1.rank === (piece2 as PlacedPiece).rank && piece1.file === (piece2 as PlacedPiece).file;
 	}
 }
 
