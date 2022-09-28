@@ -1,4 +1,4 @@
-import { Box2, Box3, BoxBufferGeometry, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry,  Vector3, WebGLRenderer } from "three";
+import { Box2, Box3, BoxBufferGeometry, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry,  Texture,  Vector3, WebGLRenderer } from "three";
 import { SVGLoader, SVGResult } from "three/examples/jsm/loaders/SVGLoader.js";
 import { Font, FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
@@ -110,7 +110,7 @@ export class GameRunner implements IEventQueueListener {
 		return this.checkDefined(this._scene, "getScene() scene undefined");
 	}
 
-	private images: {[index: string]: any;} = {};
+	private images: {[index: string]: HTMLImageElement;} = {};
 
 	/**
 	* not sure if it's okay to just store the materials and geometries and then make the
@@ -170,16 +170,27 @@ export class GameRunner implements IEventQueueListener {
 		}));
 		console.log('texture base64 encoding over');
 
-		fileReaderResults.forEach((result: [string, string | ArrayBuffer | null]) => {
+		const textureAssignPromises = fileReaderResults.map((result: [string, string | ArrayBuffer | null]) => {
+			console.log("fileReaderResult, base64 encoding", result);
 			if (typeof result[1] !== "string") {
 				throw new Error('could not convert png file to an image tag src');
 			}
 			const imageTag = document.createElement("img");
-			imageTag.src = result[1];
 			//for debugging
 			document.body.appendChild(imageTag);
-			this.images[result[0]] = imageTag;
+			const srcAssignPromise = new Promise<void>((resolve, _) => {
+				imageTag.onload = () => {
+					console.log("image src assignment is over");
+					resolve();
+				};
+			}).then(() => {
+				this.images[result[0]] = imageTag;
+			});
+			imageTag.src = result[1] as string;
+			return srcAssignPromise;
 		});
+		await Promise.all(textureAssignPromises);
+		console.log("done waiting for texture file reader results");
 
 		const fontLoader = new FontLoader();
 		const fontPromise: Promise<Font> = new Promise((resolve, reject) => {
@@ -233,7 +244,7 @@ export class GameRunner implements IEventQueueListener {
 				//	}
 				//}
 				const time = performance.now() - start;
-				console.log(`loop time:${time}, piece:${filenameSvgResult[0]}`);
+				//console.log(`loop time:${time}, piece:${filenameSvgResult[0]}`);
 
 				//we need the SVGS to have their own local space
 				//so that we can convert from the svg coord space to the gl coord space
@@ -663,7 +674,7 @@ export class GameRunner implements IEventQueueListener {
 		top: number,
 		bottom: number
 	): void {
-		console.log('update ortho', { left, right, top, bottom });
+		//console.log('update ortho', { left, right, top, bottom });
 		camera.left = left;
 		camera.right = right;
 		camera.top = top;
@@ -735,14 +746,18 @@ export class GameRunner implements IEventQueueListener {
 		boardWidth: number,
 		boardHeight: number
 	): void {
+		console.warn("draw board");
 		//TODO make the tile texture properly fit into each square of the board
 		const boardGeometry = new PlaneGeometry(boardWidth, boardHeight);
 		const boardTexture = this.images["tile_texture"];
 		if (boardTexture === undefined) {
 			throw new Error(`draw board, no space texture`);
 		}
+		//TODO 2020-09-28 still black despite debugging efforts...
 		//const boardMaterial = new MeshBasicMaterial({
-		//	map: new Texture(boardTexture)
+		//	map: new Texture(boardTexture),
+		//	side: DoubleSide,
+		//	transparent: false,
 		//});
 		const boardMaterial = new MeshBasicMaterial({
 			color: new Color(1, 0, 0),
