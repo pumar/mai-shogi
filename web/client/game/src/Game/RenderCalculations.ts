@@ -33,8 +33,8 @@ type CalcedRenderCoords = {
 	spaceCenterPoints: Vector3[][],
 	whiteStandCoords: HeldPiecesStand;
 	blackStandCoords: HeldPiecesStand;
-	blackHeldPiecesLocations: Map<PieceNames, Vector3>,
-	whiteHeldPiecesLocations: Map<PieceNames, Vector3>,
+	blackHeldPiecesLocations: [PieceNames, Vector3][],
+	whiteHeldPiecesLocations: [PieceNames, Vector3][],
 	boardWidth: number;
 	boardHeight: number;
 	/** the start-end pair coordinates that are necessary to draw the grid lines
@@ -142,7 +142,7 @@ function calcRenderCoordinates(
 		standGap
 	);
 
-	const blackHeldPiecesLocations: Map<PieceNames, Vector3> = getLocationsForHeldPieces(
+	const blackHeldPiecesLocations: [PieceNames, Vector3][] = getLocationsForHeldPieces(
 		boardSpaceWidth,
 		boardSpaceHeight,
 		gameState.viewPoint === "black",
@@ -212,7 +212,7 @@ function getLocationsForHeldPieces(
 	boardSpaceHeight: number,
 	isMainViewPoint: boolean,
 	standCenterPoint: Vector3
-): Map<PieceNames, Vector3> {
+): [PieceNames, Vector3][] {
 	const pieceZ = zIndexes.pieces;
 	const halfSpaceHeight = boardSpaceHeight * 0.5;
 	const halfSpaceWidth = boardSpaceWidth * 0.5;
@@ -224,16 +224,17 @@ function getLocationsForHeldPieces(
 	const lowerRowY = standCenterPoint.y + lowerRowYOffset;
 
 	//TODO ugly, find a cleaner way to adjust the x offsets based off of the viewpoint
-	const map = new Map<PieceNames, Vector3>();
-	map.set(PieceNames.Pawn, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * 1.5 * boardSpaceWidth, upperRowY, pieceZ));
-	map.set(PieceNames.Lance, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * halfSpaceWidth, upperRowY, pieceZ));
-	map.set(PieceNames.Knight, new Vector3(standCenterPoint.x + (isMainViewPoint ? 1 : -1) * halfSpaceWidth, upperRowY, pieceZ));
-	map.set(PieceNames.Silver, new Vector3(standCenterPoint.x + (isMainViewPoint ? 1 : -1) * 1.5 * boardSpaceWidth, upperRowY, pieceZ));
-	map.set(PieceNames.Gold, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * 1.5 * boardSpaceWidth, lowerRowY, pieceZ));
-	map.set(PieceNames.Bishop, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * halfSpaceWidth, lowerRowY, pieceZ));
-	map.set(PieceNames.Rook, new Vector3(standCenterPoint.x + (isMainViewPoint ? 1 : -1) * halfSpaceWidth, lowerRowY, pieceZ));
+	const locations: [PieceNames, Vector3][] = [
+		[PieceNames.Pawn, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * 1.5 * boardSpaceWidth, upperRowY, pieceZ)],
+		[PieceNames.Lance, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * halfSpaceWidth, upperRowY, pieceZ)],
+		[PieceNames.Knight, new Vector3(standCenterPoint.x + (isMainViewPoint ? 1 : -1) * halfSpaceWidth, upperRowY, pieceZ)],
+		[PieceNames.Silver, new Vector3(standCenterPoint.x + (isMainViewPoint ? 1 : -1) * 1.5 * boardSpaceWidth, upperRowY, pieceZ)],
+		[PieceNames.Gold, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * 1.5 * boardSpaceWidth, lowerRowY, pieceZ)],
+		[PieceNames.Bishop, new Vector3(standCenterPoint.x + (isMainViewPoint ? -1 : 1) * halfSpaceWidth, lowerRowY, pieceZ)],
+		[PieceNames.Rook, new Vector3(standCenterPoint.x + (isMainViewPoint ? 1 : -1) * halfSpaceWidth, lowerRowY, pieceZ)],
+	];
 
-	return map;
+	return locations;
 }
 
 function getStandCenterPoints(

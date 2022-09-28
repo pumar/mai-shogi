@@ -42,7 +42,14 @@ const fontPath = 'fonts/helvetiker_regular.typeface.json';
 
 type DrawPiece = PlacedPiece & {
 	graphicsObject: Object3D;
+
 }
+
+type PieceGraphicsObject = {
+	name: PieceNames;
+	graphicsObject: Object3D;
+	location: Vector3;
+};
 
 export const getDefaultSvgLoadConfig: () => SvgLoadConfig = () => {
 	return {
@@ -533,15 +540,17 @@ export class GameRunner implements IEventQueueListener {
 
 	private drawCounts(
 		group: Group,
-		counts: Map<PieceNames, number>,
-		locations: Map<PieceNames, Vector3>,
+		counts: [PieceNames, number][],
+		locations: [PieceNames, Vector3][],
 	): void {
 		console.log('draw counts', { counts, locations });
 		const meshes: Mesh[] = [];
 		const font = this.gameAssets.fonts[fontPath];
 		console.log('found font:', font);
-		locations.forEach((loc: Vector3, key: PieceNames) => {
-			const count = counts.get(key);
+		locations.forEach((locationInfo: [PieceNames, Vector3]) => {
+			const key = locationInfo[0];
+			const loc = locationInfo[1];
+			const count = counts.find(count => count[0] === key);
 			if(count === undefined) {
 				throw new Error(`drawCounts no count for piece:${key}`);
 			}
@@ -550,7 +559,7 @@ export class GameRunner implements IEventQueueListener {
 			//to be smaller, and have their position ajusted so that they fit nicely
 			//within a corner of their square
 			const countGeometry = new TextGeometry(
-				count.toString(),
+				count[1].toString(),
 				{
 					font,
 					size: 10,
@@ -585,8 +594,13 @@ export class GameRunner implements IEventQueueListener {
 		group.add(...meshes);
 	}
 
-	private getCountPiecesMap(heldPieces: HeldPiece[]): Map<PieceNames, number> {
-		const map = new Map<PieceNames, number>([
+	/**
+	* count the number of held pieces
+	* TODO this function probably does nothing since you refactored the way
+	* held pieces are stored in the game state data structure
+	**/
+	private getCountPiecesMap(heldPieces: HeldPiece[]): [PieceNames, number][] {
+		const counts: [PieceNames, number][] = [
 			[PieceNames.Pawn, 0],
 			[PieceNames.Lance, 0],
 			[PieceNames.Knight, 0],
@@ -594,16 +608,17 @@ export class GameRunner implements IEventQueueListener {
 			[PieceNames.Gold, 0],
 			[PieceNames.Bishop, 0],
 			[PieceNames.Rook, 0],
-		]);
-		//TODO there really is no reason to have the held pieces in the same array
-		//as the placed ones, for instance, here there is no need to count the # of held
-		//pawn objects because the held pieces type carries the count, this type should always
-		//just be a map of piece names to the count...
+		];
+
 		heldPieces.forEach(piece => {
-			const count = map.get(piece.name) as number;
-			map.set(piece.name, count + piece.count);
+			const countEntry = counts.find(count => count[0] === piece.name);
+			if (countEntry === undefined) {
+				throw new Error(`getCountPiecesMap bad piece name:${piece.name}`);
+			}
+			countEntry[1] += 1;
 		});
-		return map;
+
+		return counts;
 	}
 
 	private handleSceneScaling(
@@ -822,7 +837,7 @@ export class GameRunner implements IEventQueueListener {
 	/** set the locations for the held pieces for a player's side */
 	private placeHeldPieces(
 		group: Group,
-		pieceLocations: Map<PieceNames, Vector3>,
+		pieceLocations: [PieceNames, Vector3][],
 		isMainViewPoint: boolean,
 	): void {
 		const pieces = [
@@ -835,13 +850,13 @@ export class GameRunner implements IEventQueueListener {
 			{ name: PieceNames.Rook, isPromoted: false } as Rook,
 		];
 		const findPieceLocation = (pieceName: PieceNames) => {
-			const location = pieceLocations.get(pieceName);
+			const location = pieceLocations.find(pce => pce[0] === pieceName);
 			if (location === undefined) {
 				throw new Error(`placeHeldPieces, pieceName:${pieceName} 's location couldn't be found`);
 			}
-			return location;
+			return location[1];
 		}
-		const pieceGraphicsObjects: { name: PieceNames; graphicsObject: Object3D; location: Vector3; }[] = pieces.map(piece => {
+		const pieceGraphicsObjects: PieceGraphicsObject[] = pieces.map(piece => {
 			return {
 				name: piece.name,
 				graphicsObject: this.gameAssets.pieces[piece.name].clone(),
@@ -1056,6 +1071,9 @@ export class GameRunner implements IEventQueueListener {
 	* use both effectively for the piece drag & drop
 	**/
 	private handleMouseEvent(event: EventWrapper): void {
+		if (event.event.type !== "mouseup") {
+			return;
+		}
 		const { x, y } = event.event as MouseEvent;
 		console.log(`click @ (${x}, ${y})`);
 		const renderCoords = calcRenderCoordinates(
@@ -1082,7 +1100,7 @@ export class GameRunner implements IEventQueueListener {
 
 		const hitSpace = spaceBoxes.find(spaceBox => spaceBox.box.containsPoint(mouseCoords));
 		if (hitSpace) {
-			console.log('found space:', hitSpace);
+			console.log('clicked space:', hitSpace);
 			return;
 		}
 
@@ -1094,31 +1112,40 @@ export class GameRunner implements IEventQueueListener {
 			halfSpaceHeight
 		);
 
-		//const clickedBlackPiece = Object.entries(blackPieceNameToSpaceArea)
-		//	.find(entry => entry.values
+		//TODO this needs to be relative to whether the player is white or black
+		const clickedBlackPiece = blackPieceNameToSpaceArea
+			.find((entry: [PieceNames, Box2]) => { console.log(entry); return entry[1].containsPoint(mouseCoords);});
+		if (clickedBlackPiece) {
+			console.log(`clicked black held piece:${clickedBlackPiece[0]} ${clickedBlackPiece[1]}`);
+			return;
+		}
 
 		//const whitePieceNameToSpaceArea = this.getBoxesForHeldPieces(
 		//	renderCoords.whiteHeldPiecesLocations,
 		//	halfSpaceWidth,
 		//	halfSpaceHeight,
 		//);
+		//const clickedWhitePiece = (Object.entries(whitePieceNameToSpaceArea) as [PieceNames, Box2][])
+		//	.find((entry: [PieceNames, Box2]) => entry[1].containsPoint(mouseCoords));
+		//if (clickedBlackPiece) {
+		//	console.log(`clicked held piece:${clickedBlackPiece[0]} ${clickedBlackPiece[1]}`);
+		//	return;
+		//}
+		//if (clickedWhitePiece) {
+		//	console.log(`clicked black held piece:${clickedWhitePiece[0]} ${clickedWhitePiece[1]}`);
+		//}
 	}
 
 	private getBoxesForHeldPieces(
-		heldPieceLocations: Map<PieceNames, Vector3>,
+		heldPieceLocations: [PieceNames, Vector3][],
 		halfSpaceWidth: number,
 		halfSpaceHeight: number,
-	): Map<PieceNames, Box2> {
-		const pieceNameToBox = new Map<PieceNames, Box2>();
-		heldPieceLocations.forEach((value, key) => {
-				pieceNameToBox.set(key, spaceCenterToBox(
-					value,
-					halfSpaceWidth,
-					halfSpaceHeight
-				));
-			});
-
-		return pieceNameToBox;
+	): [PieceNames, Box2][] {
+		return heldPieceLocations.map(locationInfo => [locationInfo[0], spaceCenterToBox(
+			locationInfo[1],
+			halfSpaceWidth,
+			halfSpaceHeight,
+		)]);
 	}
 
 	private handleKeyboardEvent(event: EventWrapper): void {
