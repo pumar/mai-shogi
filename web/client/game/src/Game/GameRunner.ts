@@ -17,6 +17,7 @@ import { makeLocationDebugSquare, makeSvgDebugMesh } from "./Entities";
 import { EventType, EventWrapper, IEventQueueListener } from "./Input/EventQueue";
 import { boxToString } from "../threeUtils/Printing";
 import { GameInteractionController } from "./Input/UserInteraction";
+import { PlayerColor } from "./Consts";
 
 
 /**
@@ -546,8 +547,8 @@ export class GameRunner implements IEventQueueListener {
 		const blackPiecesCountsGroup = getGroup(SceneGroups.BlackStandPiecesCounts);
 		const whitePiecesCountsGroup = getGroup(SceneGroups.WhiteStandPiecesCounts);
 
-		const blackPlayer = gameState.players.find(player => player.turn === "black");
-		const whitePlayer = gameState.players.find(player => player.turn === "white");
+		const blackPlayer = gameState.players.find(player => player.turn === PlayerColor.Black);
+		const whitePlayer = gameState.players.find(player => player.turn === PlayerColor.White);
 		if(blackPlayer === undefined || whitePlayer === undefined) throw new Error('no player');
 		
 		const countPiecesMapBlack = this.getCountPiecesMap(blackPlayer.heldPieces);
@@ -817,8 +818,8 @@ export class GameRunner implements IEventQueueListener {
 		players: Player[],
 		calcedRenderCoords: CalcedRenderCoords,
 	): void {
-		const blackPlayer = players.find(player => player.turn === "black");
-		const whitePlayer = players.find(player => player.turn === "white");
+		const blackPlayer = findPlayer(gameState, PlayerColor.Black);
+		const whitePlayer = findPlayer(gameState, PlayerColor.White);
 		if(!blackPlayer || !whitePlayer) {
 			throw new Error(`black or white player could not be found:${players.map(player => player.turn).join(' ')}`);
 		}
@@ -836,7 +837,7 @@ export class GameRunner implements IEventQueueListener {
 		this.placeHeldPieces(
 			blackStandPiecesGroup as Group,
 			calcedRenderCoords.blackHeldPiecesLocations,
-			gameState.viewPoint === "black",
+			gameState.viewPoint === PlayerColor.Black,
 		);
 
 		//const whiteHeldPieces: DrawPiece[] = this.getPiecesGraphicsObjects(
@@ -848,7 +849,7 @@ export class GameRunner implements IEventQueueListener {
 		this.placeHeldPieces(
 			whiteStandPiecesGroup as Group,
 			calcedRenderCoords.whiteHeldPiecesLocations,
-			gameState.viewPoint === "white",
+			gameState.viewPoint === PlayerColor.White,
 		);
 	}
 
@@ -1142,7 +1143,7 @@ export class GameRunner implements IEventQueueListener {
 			.find((entry: [PieceNames, Box2]) => { console.log(entry); return entry[1].containsPoint(mouseCoords);});
 		if (clickedBlackPiece) {
 			console.log(`clicked black held piece:${clickedBlackPiece[0]} ${boxToString(clickedBlackPiece[1])}`);
-			const blackPlayer = findPlayer(currentGameState, "black")
+			const blackPlayer = findPlayer(currentGameState, PlayerColor.Black)
 
 			const heldPiece = blackPlayer.heldPieces
 				.find(heldPiece => heldPiece.name === clickedBlackPiece[0]);
@@ -1151,7 +1152,7 @@ export class GameRunner implements IEventQueueListener {
 			interactionController.handleClick({
 				clickedEntity: {
 					piece: heldPiece,
-					pieceOwner: "black",
+					pieceOwner: PlayerColor.Black,
 				}
 			}, currentGameState);
 			return;
@@ -1166,7 +1167,7 @@ export class GameRunner implements IEventQueueListener {
 			.find((entry: [PieceNames, Box2]) => entry[1].containsPoint(mouseCoords));
 		if (clickedWhitePiece) {
 			console.log(`clicked white held piece:${clickedWhitePiece[0]} ${boxToString(clickedWhitePiece[1])}`);
-			const whitePlayer = findPlayer(currentGameState, "white");
+			const whitePlayer = findPlayer(currentGameState, PlayerColor.White);
 			const heldPiece = whitePlayer.heldPieces
 				.find(heldPiece => heldPiece.name === clickedWhitePiece[0]);
 			if(heldPiece === undefined) {
@@ -1175,7 +1176,7 @@ export class GameRunner implements IEventQueueListener {
 			interactionController.handleClick({
 				clickedEntity: {
 					piece: heldPiece,
-					pieceOwner: "white",
+					pieceOwner: PlayerColor.White,
 				}
 			}, currentGameState);
 		}

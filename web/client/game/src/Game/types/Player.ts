@@ -1,3 +1,4 @@
+import { PlayerColor } from "../Consts";
 import { HeldPiece, PlacedPiece } from "./Piece";
 export {
 	Player,
@@ -5,7 +6,7 @@ export {
 }
 
 /** gote(white) or sente(black) */
-type Turn = "black" | "white";
+type Turn = PlayerColor.Black | PlayerColor.White;
 
 type Player = {
 	turn: Turn;

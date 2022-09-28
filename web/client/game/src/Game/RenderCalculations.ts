@@ -1,5 +1,6 @@
 import { Box2, Box3, Scene, Vector2, Vector3, Vector4, WebGLRenderer } from "three";
 import { buildForRange } from "../utils/Range";
+import { PlayerColor } from "./Consts";
 import { RenderSettings } from "./Renderer/Renderer";
 import { Game } from "./types/Game";
 import { PieceNames } from "./types/Piece";
@@ -145,14 +146,14 @@ function calcRenderCoordinates(
 	const blackHeldPiecesLocations: [PieceNames, Vector3][] = getLocationsForHeldPieces(
 		boardSpaceWidth,
 		boardSpaceHeight,
-		gameState.viewPoint === "black",
+		gameState.viewPoint === PlayerColor.Black,
 		blackPiecesStandBasePoint,
 	);
 
 	const whiteHeldPiecesLocations = getLocationsForHeldPieces(
 		boardSpaceWidth,
 		boardSpaceHeight,
-		gameState.viewPoint === "white",
+		gameState.viewPoint === PlayerColor.White,
 		whitePiecesStandBasePoint,
 	);
 	
@@ -259,8 +260,8 @@ function getStandCenterPoints(
 	topLeftStand.y *= -1;
 
 	return {
-		whitePiecesStandBasePoint: game.viewPoint === "white" ? bottomRightStand : topLeftStand,
-		blackPiecesStandBasePoint: game.viewPoint === "black" ? bottomRightStand : topLeftStand,
+		whitePiecesStandBasePoint: game.viewPoint === PlayerColor.White ? bottomRightStand : topLeftStand,
+		blackPiecesStandBasePoint: game.viewPoint === PlayerColor.Black ? bottomRightStand : topLeftStand,
 	}
 }
 

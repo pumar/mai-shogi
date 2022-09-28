@@ -1,3 +1,4 @@
+import { PlayerColor } from "../Consts";
 import { Game } from "../types/Game";
 import { HeldPiece, PlacedPiece } from "../types/Piece";
 
@@ -8,7 +9,7 @@ type ClickedSpace = {
 
 type ClickedPiece = {
 	piece: HeldPiece | PlacedPiece;
-	pieceOwner: "black" | "white";
+	pieceOwner: PlayerColor;
 }
 
 function isClickedPieceEvent(e: InteractionEvent) {

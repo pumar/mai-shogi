@@ -1,4 +1,5 @@
 import { buildForRange } from "../utils/Range";
+import { PlayerColor } from "./Consts";
 import { Game } from "./types/Game";
 import { Placed, PlacedPiece } from "./types/Piece";
 import { Player, Turn } from "./types/Player";
@@ -17,13 +18,13 @@ function createGame(): Game {
 		files: 9,
 	};
 
-	const players: Player[] = (["black", "white"] as Turn[]).map(makePlayer);
+	const players: Player[] = ([PlayerColor.Black, PlayerColor.White] as Turn[]).map(makePlayer);
 	//console.log({players});
 
 	return {
 		board,
 		players,
-		viewPoint: "black",
+		viewPoint: PlayerColor.Black,
 	}
 }
 
@@ -61,7 +62,7 @@ function makePawns(turn: Turn, files: number): PlacedPiece[] {
 	return makePlacedPieces(
 		"pawn",
 		//place a piece in the very center of the board for debugging
-		//turn === "black" ? [...locations, { rank: 5, file: 5 }] : locations,
+		//turn === PlayerColor.Black ? [...locations, { rank: 5, file: 5 }] : locations,
 		locations,
 		{
 			isPromoted: false,
@@ -70,12 +71,12 @@ function makePawns(turn: Turn, files: number): PlacedPiece[] {
 }
 
 function getPawnStartRank(turn: Turn): number {
-	return turn === "black" ? 7 : 3;
+	return turn === PlayerColor.Black ? 7 : 3;
 }
 
 function makeLances(turn: Turn): PlacedPiece[] {
 	const name = "lance";
-	const pieceLocations = turn === "black" ?
+	const pieceLocations = turn === PlayerColor.Black ?
 		[{rank: 9, file: 9}, {rank: 9, file: 1}] :
 		[{rank: 1, file: 9}, {rank: 1, file: 1}];
 	return makePlacedPieces(
@@ -89,7 +90,7 @@ function makeLances(turn: Turn): PlacedPiece[] {
 
 function makeKnights(turn: Turn): PlacedPiece[] {
 	const name = "knight";
-	const locations = turn === "black" ?
+	const locations = turn === PlayerColor.Black ?
 		[{rank: 9, file: 8}, {rank: 9, file: 2}] :
 		[{rank: 1, file: 8}, {rank: 1, file: 2}];
 	return makePlacedPieces(
@@ -103,7 +104,7 @@ function makeKnights(turn: Turn): PlacedPiece[] {
 
 function makeSilvers(turn: Turn): PlacedPiece[] {
 	const name = "silver";
-	const locations = turn === "black" ?
+	const locations = turn === PlayerColor.Black ?
 		[{rank: 9, file: 7}, {rank: 9, file: 3}] :
 		[{rank: 1, file: 7}, {rank: 1, file: 3}];
 	return makePlacedPieces(name, locations, { isPromoted: false });
@@ -111,7 +112,7 @@ function makeSilvers(turn: Turn): PlacedPiece[] {
 
 function makeGolds(turn: Turn): PlacedPiece[] {
 	const name = "gold";
-	const locations = turn === "black" ?
+	const locations = turn === PlayerColor.Black ?
 		[{rank: 9, file: 6}, {rank: 9, file: 4}] :
 		[{rank: 1, file: 6}, {rank: 1, file: 4}];
 	return makePlacedPieces(name, locations, {});
@@ -129,18 +130,18 @@ function makePlacedPieces(name: string, locations: Placed[], attributes: Partial
 
 function makeKing(turn: Turn): PlacedPiece[] {
 	const name = "king";
-	const [rank, file] = turn === "black" ? [9, 5] : [1, 5];
+	const [rank, file] = turn === PlayerColor.Black ? [9, 5] : [1, 5];
 	return makePlacedPieces(name, [{rank, file}], {});
 }
 
 function makeRook(turn: Turn): PlacedPiece[] {
 	const name = "rook";
-	const [rank, file] = turn === "black" ? [8, 2] : [2, 8];
+	const [rank, file] = turn === PlayerColor.Black ? [8, 2] : [2, 8];
 	return makePlacedPieces(name, [{rank, file}], { isPromoted: false });
 }
 
 function makeBishop(turn: Turn): PlacedPiece[] {
 	const name = "bishop";
-	const [rank, file] = turn === "black" ? [8, 8] : [2, 2];
+	const [rank, file] = turn === PlayerColor.Black ? [8, 8] : [2, 2];
 	return makePlacedPieces(name, [{rank, file}], {isPromoted: false});
 }
