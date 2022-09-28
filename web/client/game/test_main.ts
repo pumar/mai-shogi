@@ -3,6 +3,7 @@ import { GameRunner } from "./src/Game/GameRunner";
 import { defaultRenderSettings, setCanvasSizeToMatchLayout } from "./src/Game/Renderer/Renderer";
 import { EventQueue } from "./src/Game/Input/EventQueue";
 import { DoubleSide, MeshBasicMaterial, Texture } from "three";
+import { GameInteractionController } from "./src/Game/Input/UserInteraction";
 
 window.addEventListener("DOMContentLoaded", async () => {
 	const canvas = document.querySelector("canvas#testcanvas") as HTMLCanvasElement;
@@ -27,6 +28,9 @@ window.addEventListener("DOMContentLoaded", async () => {
 	const eventQueue = new EventQueue();
 	eventQueue.registerCallbacks(window);
 	eventQueue.addListener(game);
+
+	const interactionController = new GameInteractionController();
+	game.setInteractionController(interactionController);
 
 	game.drawStaticObjects(initialGameState);
 	game.run(initialGameState);

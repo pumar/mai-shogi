@@ -3,6 +3,7 @@ import { Player, Turn } from "./Player";
 
 export {
 	Game,
+	findPlayer,
 }
 
 type Game = {
@@ -13,4 +14,13 @@ type Game = {
 	* if the user is playing the white pieces, this will be "white"
 	**/
 	viewPoint: Turn;
+}
+
+/**
+* find player in player array or throw error
+**/
+function findPlayer(game: Game, findPlayer: Turn): Player {
+	const player = game.players.find(player => player.turn === findPlayer);
+	if(player === undefined) throw new Error(`findPlayer player "${findPlayer}" not found`);
+	return player;
 }
