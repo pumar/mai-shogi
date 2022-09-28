@@ -60,6 +60,7 @@ export class GameInteractionController {
 	private movePiece(event: InteractionEvent, currentGameState: Game): Game {
 		const newGameState = structuredClone(currentGameState);
 		console.log("TODO movePiece", { event, currentGameState });
+		this.selectedPiece = undefined;
 		return newGameState;
 	}
 }
