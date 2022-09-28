@@ -1058,7 +1058,7 @@ export class GameRunner implements IEventQueueListener {
 		switch(event.type) {
 			case EventType.Mouse:
 				this.handleMouseEvent(event);
-				//TODO only need to re-render if the game state actuall changed
+				//TODO only need to re-render if the game state actually changed
 				this.renderStep();
 				break;
 			case EventType.Keyboard:
