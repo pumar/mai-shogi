@@ -520,23 +520,22 @@ export class GameRunner implements IEventQueueListener {
 			gameState,
 			renderSettings,
 		);
-		//TODO this is slow, 793 milliseconds?
-		measureTime(() => {
-			measureTime(() => {
+		//measureTime(() => {
+			//measureTime(() => {
 				this.drawHeldPiecesCounts(
 					this.getSceneGroup(SceneGroups.Stands),
 					gameState,
 					renderCoordinates,
 				);
-			}, time => console.log(`drawHeldPieces:${time}`));
-			measureTime(() => {
+			//}, time => console.log(`drawHeldPieces:${time}`));
+			//measureTime(() => {
 				this.drawPlacedPieces(
 					this.getSceneGroup(SceneGroups.Pieces),
 					gameState,
 					renderCoordinates.spaceCenterPoints,
 				);
-			}, time => console.log(`drawPlacedPieces:${time}`));
-		}, time => console.log(`renderStep threejs object processing time:${time}`));
+			//}, time => console.log(`drawPlacedPieces:${time}`));
+		//}, time => console.log(`renderStep threejs object processing time:${time}`));
 
 		this.handleSceneScaling(renderCoordinates.gameSpaceSize);
 
@@ -961,8 +960,6 @@ export class GameRunner implements IEventQueueListener {
 				throw new Error(`getPiecesForGraphicsObjects, piece graphics object not found, pieceName:${piece.name}, assetKey:${assetKey}, available keys:(${Object.keys(this.gameAssets.pieces).join(' ')})`);
 			}
 
-			//TODO the SVG groups have a large number of child objects,
-			//cloning them is really slow
 			return Object.assign(
 				{},
 				piece,
