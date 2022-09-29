@@ -1,4 +1,5 @@
 import { Box2, Box3, BoxBufferGeometry, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry,  Texture,  Vector3, WebGLRenderer } from "three";
+import { mergeBufferGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { SVGLoader, SVGResult } from "three/examples/jsm/loaders/SVGLoader.js";
 import { Font, FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
@@ -257,13 +258,25 @@ export class GameRunner implements IEventQueueListener {
 					} );
 
 					const shapes = SVGLoader.createShapes( path );
+					const geometries = [];
 
 					for (let j = 0;j < shapes.length;j++) {
 						const shape = shapes[ j ];
 						const geometry = new ShapeGeometry( shape );
-						const mesh = new Mesh( geometry, material );
-						group.add( mesh );
+						geometries.push(geometry);
+						//const mesh = new Mesh( geometry, material );
+						//group.add( mesh );
 					}
+					//merge the geometries into one geometry, and then
+					//make one mesh instead of several hundred for HUGE
+					//performance boost when the object needs to be cloned
+					//it drastically reduces # of sub objects
+					const mergedGeometry = mergeBufferGeometries(
+						geometries
+					);
+					const mergedMesh = new Mesh(mergedGeometry, material);
+					group.add(mergedMesh);
+
 				}
 				const time = performance.now() - start;
 				console.log(`loop time:${time}, piece:${filenameSvgResult[0]}`);
