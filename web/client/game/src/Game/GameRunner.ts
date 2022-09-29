@@ -334,7 +334,7 @@ export class GameRunner implements IEventQueueListener {
 		}, (time) => console.log(`svg parsing time:${time}`));
 
 		Object.assign(this.gameAssets.pieces, Object.fromEntries(svgObjects));
-		console.log({ gameAssets: this.gameAssets, pieceKeys: Object.keys(this.gameAssets.pieces) });
+		//console.log({ gameAssets: this.gameAssets, pieceKeys: Object.keys(this.gameAssets.pieces) });
 
 		//resize the pieces
 		Object.values(this.gameAssets.pieces).forEach((piece: Group) => {
@@ -676,16 +676,16 @@ export class GameRunner implements IEventQueueListener {
 		//so, we gotta set the viewport's x and y to be half the difference of the canvas's dimension (width and height) and the camera's
 		const viewPortWidth = (canvasWidth - cameraWidth) / 2;
 		const viewPortHeight = (canvasHeight - cameraHeight) / 2;
-		console.log({
-			cameraWidth,
-			cameraHeight,
-			cameraAspectRatio: cameraWidth / cameraHeight,
-			canvasWidth,
-			canvasHeight,
-			canvasAspectRatio,
-			viewPortWidth,
-			viewPortHeight,
-		});
+		//console.log({
+		//	cameraWidth,
+		//	cameraHeight,
+		//	cameraAspectRatio: cameraWidth / cameraHeight,
+		//	canvasWidth,
+		//	canvasHeight,
+		//	canvasAspectRatio,
+		//	viewPortWidth,
+		//	viewPortHeight,
+		//});
 		this.getRenderer().setViewport(viewPortWidth, viewPortHeight, cameraWidth, cameraHeight);
 
 		if (camera instanceof OrthographicCamera) {
@@ -906,7 +906,7 @@ export class GameRunner implements IEventQueueListener {
 			piece.graphicsObject.position.copy(piece.location);
 		});
 
-		console.error({ pieces });
+		//console.error({ pieces });
 		group.remove(...group.children);
 		group.add(...pieceGraphicsObjects.map(drawPiece => drawPiece.graphicsObject));
 	}
@@ -975,15 +975,15 @@ export class GameRunner implements IEventQueueListener {
 		gameState: Game,
 		spaceCenterPointLookup: Vector3[][],
 	): void {
-		const placedPiecesPerPlayer = measureTime(() => gameState.players.map(player => {
+		const placedPiecesPerPlayer = gameState.players.map(player => {
 			return {
 				turn: player.turn,
 				pieces: this.getPiecesGraphicsObjects(
 					player.placedPieces.filter(piece => isPlaced(piece))
 				)
 			}
-		}), time => console.log(`drawPlacedPieces gather piece draw objects for each player:${time}`));
-		console.log({ placedPiecesPerPlayer });
+		});
+		//console.log({ placedPiecesPerPlayer });
 
 		const pieceGraphicsObjects = placedPiecesPerPlayer
 			.flatMap(player => player.pieces.map(drawPiece => drawPiece.graphicsObject))
@@ -991,12 +991,12 @@ export class GameRunner implements IEventQueueListener {
 		//console.log({ pieceGraphicsObjects });
 
 		//const numPieces = piecesGroup.children.length;
-		measureTime(() => {
+		//measureTime(() => {
 			piecesGroup.remove(...piecesGroup.children);
 			piecesGroup.add(...pieceGraphicsObjects);
-		}, time => console.log(`drawPlacedPieces re-insert objects into the scene:${time}`));
+		//}, time => console.log(`drawPlacedPieces re-insert objects into the scene:${time}`));
 		//console.log({ piecesRemoved: numPieces, piecesAdded: pieceGraphicsObjects.length });
-		measureTime(() => {
+		//measureTime(() => {
 			placedPiecesPerPlayer.forEach((player) => {
 				player.pieces.forEach((drawPiece: DrawPiece) => {
 					const graphicsObject = drawPiece.graphicsObject;
@@ -1021,7 +1021,7 @@ export class GameRunner implements IEventQueueListener {
 					drawPiece.graphicsObject.updateMatrixWorld();
 				});
 			});
-		}, time => console.log(`drawPlacedPieces update piece coordinates:${time}`));
+		//}, time => console.log(`drawPlacedPieces update piece coordinates:${time}`));
 	}
 
 	public debugSpaceCoords(gameState: Game | undefined, renderSettings: RenderSettings = defaultRenderSettings()): void {
