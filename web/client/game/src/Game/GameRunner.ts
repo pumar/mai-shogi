@@ -507,17 +507,22 @@ export class GameRunner implements IEventQueueListener {
 			gameState,
 			renderSettings,
 		);
+		//TODO this is slow, 793 milliseconds?
 		measureTime(() => {
-			this.drawHeldPiecesCounts(
-				this.getSceneGroup(SceneGroups.Stands),
-				gameState,
-				renderCoordinates,
-			);
-			this.drawPlacedPieces(
-				this.getSceneGroup(SceneGroups.Pieces),
-				gameState,
-				renderCoordinates.spaceCenterPoints,
-			);
+			measureTime(() => {
+				this.drawHeldPiecesCounts(
+					this.getSceneGroup(SceneGroups.Stands),
+					gameState,
+					renderCoordinates,
+				);
+			}, time => console.log(`drawHeldPieces:${time}`));
+			measureTime(() => {
+				this.drawPlacedPieces(
+					this.getSceneGroup(SceneGroups.Pieces),
+					gameState,
+					renderCoordinates.spaceCenterPoints,
+				);
+			}, time => console.log(`drawPlacedPieces:${time}`));
 		}, time => console.log(`renderStep threejs object processing time:${time}`));
 
 		this.handleSceneScaling(renderCoordinates.gameSpaceSize);
@@ -943,6 +948,8 @@ export class GameRunner implements IEventQueueListener {
 				throw new Error(`getPiecesForGraphicsObjects, piece graphics object not found, pieceName:${piece.name}, assetKey:${assetKey}, available keys:(${Object.keys(this.gameAssets.pieces).join(' ')})`);
 			}
 
+			//TODO the SVG groups have a large number of child objects,
+			//cloning them is really slow
 			return Object.assign(
 				{},
 				piece,
@@ -958,14 +965,14 @@ export class GameRunner implements IEventQueueListener {
 		gameState: Game,
 		spaceCenterPointLookup: Vector3[][],
 	): void {
-		const placedPiecesPerPlayer = gameState.players.map(player => {
+		const placedPiecesPerPlayer = measureTime(() => gameState.players.map(player => {
 			return {
 				turn: player.turn,
 				pieces: this.getPiecesGraphicsObjects(
 					player.placedPieces.filter(piece => isPlaced(piece))
 				)
 			}
-		});
+		}), time => console.log(`drawPlacedPieces gather piece draw objects for each player:${time}`));
 		console.log({ placedPiecesPerPlayer });
 
 		const pieceGraphicsObjects = placedPiecesPerPlayer
@@ -974,33 +981,37 @@ export class GameRunner implements IEventQueueListener {
 		//console.log({ pieceGraphicsObjects });
 
 		//const numPieces = piecesGroup.children.length;
-		piecesGroup.remove(...piecesGroup.children);
-		piecesGroup.add(...pieceGraphicsObjects);
+		measureTime(() => {
+			piecesGroup.remove(...piecesGroup.children);
+			piecesGroup.add(...pieceGraphicsObjects);
+		}, time => console.log(`drawPlacedPieces re-insert objects into the scene:${time}`));
 		//console.log({ piecesRemoved: numPieces, piecesAdded: pieceGraphicsObjects.length });
-		placedPiecesPerPlayer.forEach((player) => {
-			player.pieces.forEach((drawPiece: DrawPiece) => {
-				const graphicsObject = drawPiece.graphicsObject;
-				//console.error('draw piece', drawPiece);
-				//TODO consider actually loading in the white & the black pieces,
-				//instead of just loading in half of them and then rotating them
-				if (player.turn === gameState.viewPoint) {
-					graphicsObject.position.set(0, 0, 0);
-					graphicsObject.rotateZ(Math.PI);
-				}
-				//TODO how do I tell the type system that these are placed pieces?
-				//I filtered them using isPlaced
-				const worldCoordinates = spaceCenterPointLookup[drawPiece.rank - 1][drawPiece.file - 1].clone();
-				graphicsObject.position.copy(worldCoordinates);
-				//const toString = (vector) => `(${vector.x}, ${vector.y}, ${vector.z})`;
-				//console.log('drew piece at:', {
-				//	rank: drawPiece.rank,
-				//	file: drawPiece.file,
-				//	coords: toString(drawPiece.graphicsObject.position)
-				//});
+		measureTime(() => {
+			placedPiecesPerPlayer.forEach((player) => {
+				player.pieces.forEach((drawPiece: DrawPiece) => {
+					const graphicsObject = drawPiece.graphicsObject;
+					//console.error('draw piece', drawPiece);
+					//TODO consider actually loading in the white & the black pieces,
+					//instead of just loading in half of them and then rotating them
+					if (player.turn === gameState.viewPoint) {
+						graphicsObject.position.set(0, 0, 0);
+						graphicsObject.rotateZ(Math.PI);
+					}
+					//TODO how do I tell the type system that these are placed pieces?
+					//I filtered them using isPlaced
+					const worldCoordinates = spaceCenterPointLookup[drawPiece.rank - 1][drawPiece.file - 1].clone();
+					graphicsObject.position.copy(worldCoordinates);
+					//const toString = (vector) => `(${vector.x}, ${vector.y}, ${vector.z})`;
+					//console.log('drew piece at:', {
+					//	rank: drawPiece.rank,
+					//	file: drawPiece.file,
+					//	coords: toString(drawPiece.graphicsObject.position)
+					//});
 
-				drawPiece.graphicsObject.updateMatrixWorld();
+					drawPiece.graphicsObject.updateMatrixWorld();
+				});
 			});
-		});
+		}, time => console.log(`drawPlacedPieces update piece coordinates:${time}`));
 	}
 
 	public debugSpaceCoords(gameState: Game | undefined, renderSettings: RenderSettings = defaultRenderSettings()): void {
