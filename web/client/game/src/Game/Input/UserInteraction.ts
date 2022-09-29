@@ -33,17 +33,19 @@ export class GameInteractionController {
 	private className = "GameInteractionController";
 	private selectedPiece?: PlayerHeldPiece | PlacedPiece;
 
-	public handleClick(event: InteractionEvent, currentGameState: Game): Game {
+	public handleClick(event: InteractionEvent, currentGameState: Game): Game | undefined {
 		if(isClickedSpace(event.clickedEntity)) {
 			if(this.selectedPiece !== undefined) {
 				return this.movePiece(event.clickedEntity, currentGameState);
 			} else {
-				return this.selectPiece(event, currentGameState);
+				this.selectPiece(event, currentGameState);
+				return undefined;
 			}
 		} else if(isClickedPiece(event.clickedEntity)) {
 			const clickedPiece = event.clickedEntity as ClickedPiece;
 			if(this.selectedPiece === undefined) {
-				return this.selectPiece(event, currentGameState);
+				this.selectPiece(event, currentGameState);
+				return undefined;
 			} else {
 				//if it is a held piece, we also need to know which player
 				//is holding that piece to check for their equality, so we convert
@@ -67,7 +69,7 @@ export class GameInteractionController {
 		return currentGameState;
 	}
 
-	private selectPiece(event: InteractionEvent, currentGameState: Game): Game {
+	private selectPiece(event: InteractionEvent, currentGameState: Game): void {
 		const clickedPiece = event.clickedEntity as ClickedPiece;
 		if(currentGameState.viewPoint === clickedPiece.pieceOwner) {
 			console.log(`${this.className}::selectPiece clicked piece`, clickedPiece);
@@ -77,8 +79,6 @@ export class GameInteractionController {
 		} else {
 			console.log(`${this.className}::selectPiece cannot select piece as it is not the player's`);
 		}
-
-		return currentGameState;
 	}
 
 	private movePiece(clickedEntity: ClickedSpace, currentGameState: Game): Game {

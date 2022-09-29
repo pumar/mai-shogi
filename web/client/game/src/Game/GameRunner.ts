@@ -562,10 +562,10 @@ export class GameRunner implements IEventQueueListener {
 		counts: [PieceNames, number][],
 		locations: [PieceNames, Vector3][],
 	): void {
-		console.log('draw counts', { counts, locations });
+		//console.log('draw counts', { counts, locations });
 		const meshes: Mesh[] = [];
 		const font = this.gameAssets.fonts[fontPath];
-		console.log('found font:', font);
+		//console.log('found font:', font);
 		locations.forEach((locationInfo: [PieceNames, Vector3]) => {
 			const key = locationInfo[0];
 			const loc = locationInfo[1];
@@ -958,16 +958,6 @@ export class GameRunner implements IEventQueueListener {
 		gameState: Game,
 		spaceCenterPointLookup: Vector3[][],
 	): void {
-		//const placedPieces = gameState.players
-		//	.flatMap(player => player.pieces)
-		//	.filter(piece => isPlaced(piece));
-		//const pieceObjects = placedPieces.map(placedPiece => {
-		//	const assetKey = getAssetKeyForPiece(placedPiece);
-		//	return new Mesh(
-		//		this.gameAssets.geometries[assetKey],
-		//		this.gameAssets.materials[assetKey],
-		//	);
-		//});
 		const placedPiecesPerPlayer = gameState.players.map(player => {
 			return {
 				turn: player.turn,
@@ -981,7 +971,7 @@ export class GameRunner implements IEventQueueListener {
 		const pieceGraphicsObjects = placedPiecesPerPlayer
 			.flatMap(player => player.pieces.map(drawPiece => drawPiece.graphicsObject))
 
-		console.log({ pieceGraphicsObjects });
+		//console.log({ pieceGraphicsObjects });
 
 		//const numPieces = piecesGroup.children.length;
 		piecesGroup.remove(...piecesGroup.children);
@@ -1057,9 +1047,11 @@ export class GameRunner implements IEventQueueListener {
 		console.log("game notified of event:", event);
 		switch(event.type) {
 			case EventType.Mouse:
-				this.handleMouseEvent(event);
-				//TODO only need to re-render if the game state actually changed
-				this.renderStep();
+				const newGameState = this.handleMouseEvent(event);
+				if(newGameState !== undefined) {
+					this.gameStates.push(newGameState);
+					this.renderStep();
+				}
 				break;
 			case EventType.Keyboard:
 				this.handleKeyboardEvent(event);
@@ -1072,10 +1064,11 @@ export class GameRunner implements IEventQueueListener {
 	/**
 	* TODO this is running for both mouse down and mouse up, need to
 	* use both effectively for the piece drag & drop
+	* @returns if game state was changed, the new game state is returned, if not, undefined
 	**/
-	private handleMouseEvent(event: EventWrapper): void {
+	private handleMouseEvent(event: EventWrapper): Game | undefined {
 		if (event.event.type !== "mouseup") {
-			return;
+			return undefined;
 		}
 		const interactionController = this.getInteractionController();
 		const currentGameState = this.getCurrentGameState();
@@ -1123,7 +1116,7 @@ export class GameRunner implements IEventQueueListener {
 						pieceOwner: player,
 					}
 				}, currentGameState);
-				this.gameStates.push(newGame);
+				return newGame;
 			} else {
 				const newGame = interactionController.handleClick({
 					clickedEntity: {
@@ -1131,10 +1124,8 @@ export class GameRunner implements IEventQueueListener {
 						file: hitSpace.file,
 					},
 				}, currentGameState);
-				this.gameStates.push(newGame);
+				return newGame;
 			}
-
-			return;
 		}
 
 		//didn't hit a board space, need to check the held pieces
@@ -1156,13 +1147,13 @@ export class GameRunner implements IEventQueueListener {
 				.find(heldPiece => heldPiece.name === clickedBlackPiece[0]);
 
 			if(heldPiece === undefined) throw new Error("TODO");
-			interactionController.handleClick({
+			const newGame = interactionController.handleClick({
 				clickedEntity: {
 					piece: heldPiece,
 					pieceOwner: PlayerColor.Black,
 				}
 			}, currentGameState);
-			return;
+			return newGame;
 		}
 
 		const whitePieceNameToSpaceArea = this.getBoxesForHeldPieces(
@@ -1180,12 +1171,13 @@ export class GameRunner implements IEventQueueListener {
 			if(heldPiece === undefined) {
 				throw new Error("TODO");
 			}
-			interactionController.handleClick({
+			const newGame = interactionController.handleClick({
 				clickedEntity: {
 					piece: heldPiece,
 					pieceOwner: PlayerColor.White,
 				}
 			}, currentGameState);
+			return newGame;
 		}
 	}
 
