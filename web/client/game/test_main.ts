@@ -1,6 +1,9 @@
 import { createGame } from "./src/Game/GameCreator";
 import { GameRunner } from "./src/Game/GameRunner";
-import { debugRenderSettings, defaultRenderSettings } from "./src/Game/Renderer/Renderer";
+import { defaultRenderSettings, setCanvasSizeToMatchLayout } from "./src/Game/Renderer/Renderer";
+import { EventQueue } from "./src/Game/Input/EventQueue";
+import { DoubleSide, MeshBasicMaterial, Texture } from "three";
+import { GameInteractionController } from "./src/Game/Input/UserInteraction";
 
 window.addEventListener("DOMContentLoaded", async () => {
 	const canvas = document.querySelector("canvas#testcanvas") as HTMLCanvasElement;
@@ -18,9 +21,27 @@ window.addEventListener("DOMContentLoaded", async () => {
 	const initialGameState = createGame();
 	game.addGameState(initialGameState);
 	await game.initGraphics();
-	game.setGameCanvasSizeToMatchLayout();
+	setCanvasSizeToMatchLayout(game.getCanvas());
 	game.setResizeHandlers();
 	game.setupScene();
+
+	const eventQueue = new EventQueue();
+	eventQueue.registerCallbacks(window);
+	eventQueue.addListener(game);
+
+	const interactionController = new GameInteractionController();
+	game.setInteractionController(interactionController);
+
 	game.drawStaticObjects(initialGameState);
 	game.run(initialGameState);
+	//trying to figure out why the tile texture is not working
+	//seeing if it was a timing issue by re-setting the
+	//texture after the fact from the browser console
+	//no luck
+	//window.getTex = (imageElem) => {
+	//	return new MeshBasicMaterial({
+	//		map: new Texture(imageElem),
+	//		side: DoubleSide,
+	//	});
+	//};
 });
