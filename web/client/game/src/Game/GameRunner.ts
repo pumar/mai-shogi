@@ -506,8 +506,11 @@ export class GameRunner implements IEventQueueListener {
 		requestAnimationFrame(this.renderStep.bind(this));
 	}
 
-	private getCurrentGameState(): Game {
-		return this.checkDefined(this.gameStates[this.gameStates.length - 1], this.className);
+	/**
+	* get a deep copy of the current game state
+	**/
+	public getCurrentGameState(): Game {
+		return structuredClone(this.checkDefined(this.gameStates[this.gameStates.length - 1], this.className));
 	}
 
 	private renderStep(): void {

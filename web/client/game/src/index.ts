@@ -1,5 +1,8 @@
 import { createGame } from "./Game/GameCreator";
-import { /*drawGame,*/ defaultRenderSettings, /*clearCanvas*/ } from "./Game/Renderer/Renderer";
+import { GameRunner } from "./Game/GameRunner";
+import { EventQueue } from "./Game/Input/EventQueue";
+import { GameInteractionController } from "./Game/Input/UserInteraction";
+import { /*drawGame,*/ defaultRenderSettings, setCanvasSizeToMatchLayout, /*clearCanvas*/ } from "./Game/Renderer/Renderer";
 
 export {
 	/*drawGame,*/
@@ -7,3 +10,4 @@ export {
 	createGame,
 	/*clearCanvas,*/
 }
+
