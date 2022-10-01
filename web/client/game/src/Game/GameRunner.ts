@@ -193,27 +193,31 @@ export class GameRunner implements IEventQueueListener {
 		//TODO the texture is black. If the image is appended to the DOM, it looks fine
 		//can't tell if it's an asynchronous issue, or a problem with the way
 		//the texture is setup
-		const textureAssignPromises = fileReaderResults.map((result: [string, string | ArrayBuffer | null]) => {
-			console.log("fileReaderResult, base64 encoding", result);
-			if (typeof result[1] !== "string") {
-				throw new Error('could not convert png file to an image tag src');
-			}
-			const imageTag = document.createElement("img");
-			//for debugging
-			document.body.appendChild(imageTag);
-			const srcAssignPromise = new Promise<void>((resolve, _) => {
-				imageTag.onload = () => {
-					console.log("image src assignment is over");
-					resolve();
-				};
-			}).then(() => {
-				this.images[result[0]] = imageTag;
-			});
-			imageTag.src = result[1] as string;
-			return srcAssignPromise;
-		});
-		await Promise.all(textureAssignPromises);
-		console.log("done waiting for texture file reader results");
+		//const textureAssignPromises = fileReaderResults.map((result: [string, string | ArrayBuffer | null]) => {
+		//	console.log("fileReaderResult, base64 encoding", result);
+		//	if (typeof result[1] !== "string") {
+		//		throw new Error('could not convert png file to an image tag src');
+		//	}
+		//	const imageTag = document.createElement("img");
+		//	//for debugging
+		//	document.body.appendChild(imageTag);
+		//	const srcAssignPromise = new Promise<void>((resolve, reject) => {
+		//		imageTag.onload = () => {
+		//			console.log("image src assignment is over");
+		//			resolve();
+		//		};
+		//		imageTag.onerror = (e) => {
+		//			console.error(`error loading tile texture`, e);
+		//			reject();
+		//		}
+		//	}).then(() => {
+		//		this.images[result[0]] = imageTag;
+		//	});
+		//	imageTag.src = result[1] as string;
+		//	return srcAssignPromise;
+		//});
+		//await Promise.all(textureAssignPromises);
+		//console.log("done waiting for texture file reader results");
 
 		const fontLoader = new FontLoader();
 		const fontPromise: Promise<Font> = new Promise((resolve, reject) => {
@@ -428,6 +432,7 @@ export class GameRunner implements IEventQueueListener {
 				pieceTuple[1]
 			])
 		]);
+		console.log('pieces paths:', piecesPaths);
 
 		//I had to run the shogi-tool.sh p2x function to change the filenames
 		//into more a more readable standard (xboard)

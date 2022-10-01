@@ -1,10 +1,15 @@
 <script lang="ts">
 import Game from "./Game.svelte";
 import { getWebsocketConnection, addEventHandler, WebsocketEvent } from "../Network/WebsocketConnection";
+
 export let message: string = "svelte";
+
+export let assetLoadingRootDir: string = "";
+
 let messagesFromServer = [];
 let websocketConn: WebSocket | undefined = undefined;
 let gameCode: string = "";
+
 function connectToGame() {
 	console.log(`connect to game:${gameCode}`);
 	websocketConn = getWebsocketConnection(
@@ -32,6 +37,7 @@ function connectToGame() {
 		websocketConn = undefined;
 	});
 }
+
 function sendMessage(message: string){
 	if (websocketConn) {
 		websocketConn.send(JSON.stringify({ guess: messageToSend }));
@@ -43,7 +49,7 @@ let messageToSend: string = "";
 
 <div id="test">hello from {message}</div>
 <div class="gameContainer">
-	<Game />
+	<Game assetLoadingRootDir={assetLoadingRootDir}/>
 	<div class="flexcol">
 	{#if websocketConn === undefined}
 		<div>
