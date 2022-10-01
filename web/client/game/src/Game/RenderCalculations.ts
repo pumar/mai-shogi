@@ -306,9 +306,10 @@ function mouseToWorld(
 ) {
 	const { width: canvasWidth, height: canvasHeight } = canvas;
 	const canvasBoundingBox = canvas.getBoundingClientRect();
-	const canvasBoundingBoxXOffset = canvasBoundingBox.x;
-	const canvasBoundingBoxYOffset = canvasBoundingBox.y;
+	const canvasBoundingBoxXOffset = canvasBoundingBox.left;
+	const canvasBoundingBoxYOffset = canvasBoundingBox.top;
 
+	//TODO make sure this accounts for scrolling too, https://developer.mozilla.org/en-US/docs/Web/API/Element/getBoundingClientRect
 	//when the game is inserted into a webpage, it is highly probable that the
 	//canvas's top left hand corner's coordinates are NOT (0, 0), so we need to
 	//pull back the mouse click coordinates based on the canvas's offset from
