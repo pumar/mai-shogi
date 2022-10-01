@@ -5,6 +5,7 @@ import { getWebsocketConnection, addEventHandler, WebsocketEvent } from "../Netw
 export let message: string = "svelte";
 
 export let assetLoadingRootDir: string = "";
+export let fontLoadingRootDir: string = "";
 
 let messagesFromServer = [];
 let websocketConn: WebSocket | undefined = undefined;
@@ -49,7 +50,10 @@ let messageToSend: string = "";
 
 <div id="test">hello from {message}</div>
 <div class="gameContainer">
-	<Game assetLoadingRootDir={assetLoadingRootDir}/>
+	<Game
+		assetLoadingRootDir={assetLoadingRootDir}
+		fontLoadingRootDir={fontLoadingRootDir}
+		/>
 	<div class="flexcol">
 	{#if websocketConn === undefined}
 		<div>

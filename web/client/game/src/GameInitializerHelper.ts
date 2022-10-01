@@ -1,5 +1,5 @@
 import { createGame } from "./Game/GameCreator";
-import { GameRunner, getDefaultSvgLoadConfig, SvgLoadConfig } from "./Game/GameRunner";
+import { GameRunner, getDefaultSvgLoadConfig, SvgLoadConfig, getDefaultFontLoadingDir } from "./Game/GameRunner";
 import { EventQueue } from "./Game/Input/EventQueue";
 import { GameInteractionController } from "./Game/Input/UserInteraction";
 import { defaultRenderSettings, setCanvasSizeToMatchLayout } from "./Game/Renderer/Renderer";
@@ -13,11 +13,17 @@ async function setupGameWithDefaults(
 	canvas: HTMLCanvasElement,
 	initialGameState: Game = createGame(),
 	svgLoadSettings: SvgLoadConfig = getDefaultSvgLoadConfig(),
+	fontLoadingDir: string = getDefaultFontLoadingDir(),
 ): Promise<{
 	game: GameRunner,
 	eventQueue: EventQueue,
 }> {
-	console.log("loading game with settings:", { canvas, initialGameState, svgLoadSettings });
+	console.log("loading game with settings:", {
+		canvas,
+		initialGameState,
+		svgLoadSettings,
+		fontLoadingDir
+	});
 	const game = new GameRunner();
 	game.setCanvas(canvas);
 	//normal render settings
@@ -28,7 +34,7 @@ async function setupGameWithDefaults(
 	game.setRenderSettings(renderSettings);
 	//const initialGameState = createGame();
 	game.addGameState(initialGameState);
-	await game.initGraphics(svgLoadSettings);
+	await game.initGraphics(svgLoadSettings, fontLoadingDir);
 	setCanvasSizeToMatchLayout(game.getCanvas());
 	game.setResizeHandlers();
 	game.setupScene();

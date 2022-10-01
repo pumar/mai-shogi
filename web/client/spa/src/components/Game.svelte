@@ -3,6 +3,7 @@ import { setupGameWithDefaults, getDefaultSvgLoadConfig } from "mai-shogi-game";
 import { onMount } from "svelte";
 
 export let assetLoadingRootDir = "";
+export let fontLoadingRootDir = "";
 
 let context = undefined;
 let canvas = undefined;
@@ -28,10 +29,20 @@ onMount(() => {
 			canvas,
 			undefined,
 			assetLoadingRootDir !== "" ? Object.assign({}, defaultLoadingConfig, { rootDir: assetLoadingRootDir }) : defaultLoadingConfig,
-		);
-		console.log("initialized game:", game);
-		game.drawStaticObjects(initState);
-		game.run(initState);
+			fontLoadingRootDir !== "" ? fontLoadingRootDir : defaultFontLoadingDir(),
+		).catch(e => {
+			console.error('game init failed', e);
+			return null;
+		});
+		if (game !== null) {
+			console.log("initialized game:", game);
+			//add the game's reference to the window object for debugging
+			window.game = game;
+			game.drawStaticObjects(initState);
+			game.run(initState);
+		} else {
+			console.error('game init failed');
+		}
 	})()
 });
 </script>

@@ -20,7 +20,7 @@ cd ..
 echo this script may ask for sudo, to make directories in the container
 
 shogiPieceGitRepo=https://github.com/Ka-hu/shogi-pieces
-targetDir=./server/assets/shogi-pieces
+targetDir=./server/static/shogi-pieces
 if [ ! -d $targetDir ]; then
 	echo shogi piece directory $targetDir did not exist, making it
 	sudo mkdir $targetDir
@@ -30,7 +30,6 @@ if [ ! -d $targetDir ]; then
 	#echo dry run\$:git clone $shogiPieceGitRepo $targetDir
 	bail
 fi
-
 
 targetPieceDir="$targetDir/kanji_red_wood"
 echo go to dir $targetPieceDir

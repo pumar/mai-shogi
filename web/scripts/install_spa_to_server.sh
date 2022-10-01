@@ -49,6 +49,11 @@ fi
 cp -r client/game/dist/* $gameClientDest
 bail
 
+fontSource=client/game/fonts
+fontDest=server/static/
+echo ==copy fonts from \($fontSource\) to django \($fontDest\)==
+cp -r $fontSource $fontDest
+
 CONTAINER_NAME=server-web-1
 echo ==update container static files==
 echo need sudo to login to $CONTAINER_NAME to run collectstatic
