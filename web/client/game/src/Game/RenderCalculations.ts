@@ -302,19 +302,25 @@ function mouseToWorld(
 	x: number,
 	y: number,
 	canvas: HTMLCanvasElement,
-	//renderer: WebGLRenderer,
 	scene: Scene,
 ) {
-	//const { boardWidth, boardHeight } = renderCoords;
 	const { width: canvasWidth, height: canvasHeight } = canvas;
-	//const viewport = new Vector4();
-	//renderer.getViewport(viewport);
+	const canvasBoundingBox = canvas.getBoundingClientRect();
+	const canvasBoundingBoxXOffset = canvasBoundingBox.x;
+	const canvasBoundingBoxYOffset = canvasBoundingBox.y;
+
+	//when the game is inserted into a webpage, it is highly probable that the
+	//canvas's top left hand corner's coordinates are NOT (0, 0), so we need to
+	//pull back the mouse click coordinates based on the canvas's offset from
+	//the windows top left hand corner
+	const canvasAdjustedMouseX = x - canvasBoundingBoxXOffset;
+	const canvasAdjustedMouseY = y - canvasBoundingBoxYOffset;
 
 	const scale = scene.scale;
 
 	const cartesianCoords = new Vector2(
-		x - canvasWidth / 2,
-		-1 * (y - canvasHeight / 2),
+		canvasAdjustedMouseX - canvasWidth / 2,
+		-1 * (canvasAdjustedMouseY - canvasHeight / 2),
 	);
 
 	const scaledCartesian = new Vector2(
