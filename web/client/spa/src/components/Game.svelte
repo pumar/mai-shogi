@@ -25,7 +25,7 @@ onMount(() => {
 	//window.canvas = canvas;
 	(async function(){
 		const defaultLoadingConfig = getDefaultSvgLoadConfig();
-		const { game } = await setupGameWithDefaults(
+		const { game, initialGameState: initState } = await setupGameWithDefaults(
 			canvas,
 			undefined,
 			assetLoadingRootDir !== "" ? Object.assign({}, defaultLoadingConfig, { rootDir: assetLoadingRootDir }) : defaultLoadingConfig,

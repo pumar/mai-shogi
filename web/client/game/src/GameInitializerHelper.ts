@@ -17,6 +17,7 @@ async function setupGameWithDefaults(
 ): Promise<{
 	game: GameRunner,
 	eventQueue: EventQueue,
+	initialGameState: Game,
 }> {
 	console.log("loading game with settings:", {
 		canvas,
@@ -52,5 +53,6 @@ async function setupGameWithDefaults(
 	return {
 		game,
 		eventQueue,
+		initialGameState,
 	}
 }

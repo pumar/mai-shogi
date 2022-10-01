@@ -809,7 +809,10 @@ export class GameRunner implements IEventQueueListener {
 		const boardGeometry = new PlaneGeometry(boardWidth, boardHeight);
 		const boardTexture = this.images["tile_texture"];
 		if (boardTexture === undefined) {
-			throw new Error(`draw board, no space texture`);
+			//until I figure out why the texture is not working,
+			//just print an error to the console instead of crashing
+			//throw new Error(`draw board, no space texture`);
+			console.error(`draw board, no space texture`);
 		}
 		//TODO 2020-09-28 still black despite debugging efforts...
 		//const boardMaterial = new MeshBasicMaterial({
