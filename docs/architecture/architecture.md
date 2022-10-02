@@ -36,3 +36,4 @@
 3. you need to run `scripts/install_game_svgs_to_server.sh` to clone the git repo that has the svgs for the shogi pieces
     - also runs the script to change the svg file names to the ones expected by the game application
     - this script does not move the files to where they need to be for django, that is done by `install_spa_to_server.sh`
+4. `scripts/install_game_engine_to_server.sh` will copy the game engine python code into the django project's `mai_shogi_site` app, so that it can be imported and used

@@ -156,7 +156,7 @@ class Banmen:
         pieces = []
         for i in range(0,9):
             for j in range(0,9):
-                pieces.append(self.grid.getMasu(i, j).getKoma())
+                pieces.append(self.getMasu(i, j).getKoma())
         return pieces
     
 class Hand:
@@ -543,7 +543,7 @@ class Match:
             self.current_turn = deepcopy(self.player_one)
         else: self.current_turn = deepcopy(self.player_two)
 
-    def getMoves(self):
+    def getMoves(self) -> List[Move]:
         def filtersOote(all_moves: List[Move], iswhite: bool):
             legal_moves: List[Move] = []
             
@@ -588,7 +588,7 @@ class Match:
                 koma = self.grid.getMasu(i,j).getKoma()
                 if koma != None and koma.isWhite() == iswhite:
                     moves.extend(koma.legalMoves(self.grid, self.grid.getMasu(i,j)))
-        moves = filtersOote(moves)
+        moves = filtersOote(moves, self.current_turn.isWhiteSide())
         return moves
     
 
