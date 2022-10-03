@@ -1,19 +1,18 @@
 import { PlayerColor } from "../Game/Consts";
 import { Game } from "../Game/types/Game";
-import { HeldPiece, PieceNames, PlacedPiece } from "../Game/types/Piece";
+import { HeldPiece, PieceNames, PlacedPiece, PlayerPlacedPiece } from "../Game/types/Piece";
 
 export {
 	sfenToGame,
 	getHands,
 	letterToPiece,
+	getPiecesFromRank,
 }
 
 enum Splits {
 	Meta = " ",
 	Rank = "/",
 }
-
-type PlayerPlacedPiece = PlacedPiece & { playerColor: PlayerColor };
 
 /**
 * turn the SFEN encoded game to a Game state object
@@ -138,7 +137,9 @@ function getPiecesFromRank(
 	placedPieces: PlayerPlacedPiece[]
 ): PlayerPlacedPiece[] {
 	if(rankContents === '') return placedPieces;
+
 	let isPromoted = false;
+
 	if(rankContents[0] === '+') {
 		isPromoted = true;
 	}
@@ -158,17 +159,18 @@ function getPiecesFromRank(
 		);
 	}
 
-	const [pieceName, playerColor] = letterToPiece(rankContents[1]);
+	const [pieceName, playerColor] = letterToPiece(rankContents[isPromoted ? 1 : 0]);
 
 	placedPieces.push({
 			name: pieceName,
+			isPromoted,
 			playerColor,
 			rank,
 			file
 	});
 
 	return getPiecesFromRank(
-		isPromoted ? rankContents.slice(2) : rankContents.slice(1),
+		rankContents.slice(isPromoted ? 2 : 1),
 		rank,
 		file + 1,
 		placedPieces,

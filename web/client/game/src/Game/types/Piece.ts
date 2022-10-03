@@ -1,3 +1,4 @@
+import { PlayerColor } from "../Consts";
 import { Turn } from "./Player";
 
 export {
@@ -5,6 +6,7 @@ export {
 	PlacedPiece,
 	HeldPiece,
 	PlayerHeldPiece,
+	PlayerPlacedPiece,
 	isPlaced,
 	isPromotable,
 	isHeldPiece,
@@ -19,6 +21,9 @@ export {
 	GamePiece,
 	PieceNames,
 	mkHeldPiece,
+	mkPlacedPiece,
+	mkPlayerPlacedPiece,
+	mkGamePiece,
 	arePiecesEqual,
 }
 
@@ -58,9 +63,33 @@ type Gold = { name: PieceNames.Gold };
 type King = { name: PieceNames.King };
 
 type GamePiece = Pawn | Lance | Knight | Silver | Gold | Bishop | Rook | King;
+function mkGamePiece(isPromoted: boolean, pieceName: PieceNames): GamePiece {
+	return {
+		isPromoted,
+		name: pieceName
+	}
+}
 
 /** piece on the board */
 type PlacedPiece = GamePiece & Placed;
+
+type PlayerPlacedPiece = PlacedPiece & { playerColor: PlayerColor };
+function mkPlayerPlacedPiece(
+	gamePiece: GamePiece,
+	location: Placed,
+	playerColor: PlayerColor
+): PlayerPlacedPiece {
+	return Object.assign(mkPlacedPiece(
+			gamePiece,
+			location,
+		),
+		{ playerColor },
+	) as PlayerPlacedPiece;
+}
+
+function mkPlacedPiece(piece: GamePiece, location: Placed): PlacedPiece {
+	return Object.assign({}, piece, location);
+}
 
 /** piece in the hand */
 type HeldPiece = GamePiece & {
