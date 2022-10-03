@@ -1,9 +1,11 @@
 import { PlayerColor } from "../Game/Consts";
-import { PieceNames, PlacedPiece } from "../Game/types/Piece";
-import { Player } from "../Game/types/Player";
+import { Game } from "../Game/types/Game";
+import { HeldPiece, PieceNames, PlacedPiece } from "../Game/types/Piece";
 
 export {
-	sfenToGame
+	sfenToGame,
+	getHands,
+	letterToPiece,
 }
 
 enum Splits {
@@ -13,14 +15,94 @@ enum Splits {
 
 type PlayerPlacedPiece = PlacedPiece & { playerColor: PlayerColor };
 
-function sfenToGame(sfen: string): Game {
+/**
+* turn the SFEN encoded game to a Game state object
+* does not do the moves available per player
+* does not know the viewpoint of the player of this client (white or black)
+**/
+function sfenToGame(sfen: string): Partial<Game> {
 	const [board, toPlay, hands] = sfen.split(Splits.Meta);
 
-	const nextMovePlayer: Partial<Player> = toPlay === 'b'
-		? { turn: PlayerColor.Black }
-		: { turn: PlayerColor.White };
+	const nextMovePlayer: PlayerColor = toPlay === 'b'
+		? PlayerColor.Black
+		: PlayerColor.White;
 
 	const placedPiecesPerPlayer = getPlacedPieces(board);
+
+	const heldPiecesPerPlayer = getHands(
+		hands,
+		[],
+		[]
+	);
+
+	return {
+		board: {
+			ranks: 9,
+			files: 9,
+		},
+		players: [
+			{
+				turn: PlayerColor.White,
+				placedPieces: placedPiecesPerPlayer.whitePieces,
+				heldPieces: heldPiecesPerPlayer.whiteHeld,
+				moves: []
+			},
+			{
+				turn: PlayerColor.Black,
+				placedPieces: placedPiecesPerPlayer.blackPieces,
+				heldPieces: heldPiecesPerPlayer.blackHeld,
+				moves: [],
+			}
+		],
+		nextMovePlayer,
+	}
+}
+
+function getHands(sfenHands: string, whiteHeld: HeldPiece[], blackHeld: HeldPiece[]): {
+	whiteHeld: HeldPiece[],
+	blackHeld: HeldPiece[],
+} {
+	if(sfenHands.length === 0) {
+		return {
+			whiteHeld,
+			blackHeld,
+		}
+	}
+	let tookTwoCharacters = false;
+
+	const firstChar = sfenHands[0];
+	const matchResult = firstChar.match(/[0-9]/);
+	let numberHeld = 1;
+	let pieceLetter;
+	if(matchResult !== null) {
+		numberHeld = Number.parseInt(matchResult[0]);
+		if(Number.isNaN(numberHeld)) throw new Error(`getHands had a NaN value for a held piece count:${numberHeld}`);
+		pieceLetter = sfenHands[1];
+		tookTwoCharacters = true;
+	} else {
+		pieceLetter = sfenHands[0]
+	}
+
+	if(pieceLetter === undefined){
+		throw new Error(`getHands couldn't find the piece indication letter for a held piece:${sfenHands}`);
+	}
+
+	const [pieceName, playerColor] = letterToPiece(pieceLetter);
+
+	const newHeldPiece = {
+		name: pieceName,
+		count: numberHeld
+	};
+
+	playerColor === PlayerColor.Black
+		? blackHeld.push(newHeldPiece)
+		: whiteHeld.push(newHeldPiece);
+
+	return getHands(
+		sfenHands.slice(tookTwoCharacters ? 2 : 1),
+		whiteHeld,
+		blackHeld,
+	);
 }
 
 function getPlacedPieces(board: string): {
@@ -33,7 +115,14 @@ function getPlacedPieces(board: string): {
 	const ranks = board.split(Splits.Rank);
 	
 	ranks.forEach((rank: string, rankIndex: number) => {
-		const pieces = getPiecesFromRank(rank, []);
+		const pieces = getPiecesFromRank(
+			rank,
+			rankIndex,
+			1,
+			[]
+		);
+		whitePieces.push(...pieces.filter(pce => pce.playerColor === PlayerColor.White));
+		blackPieces.push(...pieces.filter(pce => pce.playerColor === PlayerColor.Black));
 	});
 
 	return {
@@ -54,25 +143,53 @@ function getPiecesFromRank(
 		isPromoted = true;
 	}
 
+	const matchResult = rankContents[0].match(/[0-9]/);
+	const blankSpaceCount = matchResult !== null ? Number.parseInt(matchResult[0]) : null;
+	if (Number.isNaN(blankSpaceCount)) {
+		throw new Error(`Sfen::getPiecesFromRank had a bad argument in rank:${rank}, badArg:${rankContents[0]}`);
+	}
+
+	if(blankSpaceCount !== null){
+		return getPiecesFromRank(
+			rankContents.slice(1),
+			rank,
+			file + blankSpaceCount,
+			placedPieces
+		);
+	}
+
 	const [pieceName, playerColor] = letterToPiece(rankContents[1]);
+
+	placedPieces.push({
+			name: pieceName,
+			playerColor,
+			rank,
+			file
+	});
 
 	return getPiecesFromRank(
 		isPromoted ? rankContents.slice(2) : rankContents.slice(1),
 		rank,
 		file + 1,
-		placedPieces.push({
-			pieceName,
-			playerColor,
-			rank,
-			file
-		}),
+		placedPieces,
 	);
 }
 
 function letterToPiece(letter: string): [PieceNames, PlayerColor] {
 	let pieceName;
-	const player = letter > 'z' ? PlayerColor.Black : PlayerColor.White;
+	//you can't use inequality operators to check if a character's ascii/utf-8
+	//value is higher than another character, TIL
+	//stacked overflow said to compare the letter to it's uppercased self
+	const player = letter === letter.toUpperCase() ? PlayerColor.Black : PlayerColor.White;
 	switch(letter){
+		case 'p':
+		case 'P':
+			pieceName = PieceNames.Pawn;
+			break;
+		case 'b':
+		case 'B':
+			pieceName = PieceNames.Bishop;
+			break;
 		case 'l':
 		case 'L':
 			pieceName = PieceNames.Lance;
