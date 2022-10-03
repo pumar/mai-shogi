@@ -1,9 +1,8 @@
-import { createGame } from "./Game/GameCreator";
-import { /*drawGame,*/ defaultRenderSettings, /*clearCanvas*/ } from "./Game/Renderer/Renderer";
+import { getDefaultSvgLoadConfig } from "./Game/GameRunner";
+import { setupGameWithDefaults } from "./GameInitializerHelper";
 
 export {
-	/*drawGame,*/
-	defaultRenderSettings,
-	createGame,
-	/*clearCanvas,*/
+	setupGameWithDefaults,
+	getDefaultSvgLoadConfig,
 }
+

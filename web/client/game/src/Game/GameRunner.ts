@@ -40,9 +40,6 @@ enum SceneGroups {
 	Grid = "grid",
 }
 
-//TODO make this configurable - so that it can be loaded from the web server
-//this will only work with the local server for this directory
-const fontPath = 'fonts/helvetiker_regular.typeface.json';
 
 type DrawPiece = PlacedPiece & {
 	graphicsObject: Object3D;
@@ -67,6 +64,12 @@ export const getDefaultSvgLoadConfig: () => SvgLoadConfig = () => {
 	}
 }
 
+export const getDefaultFontLoadingDir: () => string = () => {
+	return 'fonts';
+}
+
+const defaultFontFileName = 'helvetiker_regular.typeface.json';
+
 export type SvgLoadConfig = {
 	rootDir: string;
 	board: {
@@ -81,6 +84,11 @@ export class GameRunner implements IEventQueueListener {
 	private className = "GameRunner";
 	private gameStates: Game[] = [];
 	private checkDefined = makeExistsGuard("GameRunner");
+
+	public fontLoadingPath?: string;
+	public getFontLoadingPath(): string {
+		return this.checkDefined(this.fontLoadingPath, "getFontLoadingPath");
+	}
 
 	private interactionController?: GameInteractionController;
 	public setInteractionController(controller: GameInteractionController): void {
@@ -150,10 +158,13 @@ export class GameRunner implements IEventQueueListener {
 
 	public async initGraphics(
 		boardAndPiecesSvgSetting: SvgLoadConfig = getDefaultSvgLoadConfig(),
+		fontLoadingPath: string = getDefaultFontLoadingDir(),
 	): Promise<void> {
 		this.initCamera();
 		this.setScene(new Scene());
 		this.initRenderer();
+
+		this.fontLoadingPath = fontLoadingPath;
 
 		const renderSettings = this.renderSettingsOrDefault();
 
@@ -193,32 +204,38 @@ export class GameRunner implements IEventQueueListener {
 		//TODO the texture is black. If the image is appended to the DOM, it looks fine
 		//can't tell if it's an asynchronous issue, or a problem with the way
 		//the texture is setup
-		const textureAssignPromises = fileReaderResults.map((result: [string, string | ArrayBuffer | null]) => {
-			console.log("fileReaderResult, base64 encoding", result);
-			if (typeof result[1] !== "string") {
-				throw new Error('could not convert png file to an image tag src');
-			}
-			const imageTag = document.createElement("img");
-			//for debugging
-			document.body.appendChild(imageTag);
-			const srcAssignPromise = new Promise<void>((resolve, _) => {
-				imageTag.onload = () => {
-					console.log("image src assignment is over");
-					resolve();
-				};
-			}).then(() => {
-				this.images[result[0]] = imageTag;
-			});
-			imageTag.src = result[1] as string;
-			return srcAssignPromise;
-		});
-		await Promise.all(textureAssignPromises);
-		console.log("done waiting for texture file reader results");
+		//const textureAssignPromises = fileReaderResults.map((result: [string, string | ArrayBuffer | null]) => {
+		//	console.log("fileReaderResult, base64 encoding", result);
+		//	if (typeof result[1] !== "string") {
+		//		throw new Error('could not convert png file to an image tag src');
+		//	}
+		//	const imageTag = document.createElement("img");
+		//	//for debugging
+		//	document.body.appendChild(imageTag);
+		//	const srcAssignPromise = new Promise<void>((resolve, reject) => {
+		//		imageTag.onload = () => {
+		//			console.log("image src assignment is over");
+		//			resolve();
+		//		};
+		//		imageTag.onerror = (e) => {
+		//			console.error(`error loading tile texture`, e);
+		//			reject();
+		//		}
+		//	}).then(() => {
+		//		this.images[result[0]] = imageTag;
+		//	});
+		//	imageTag.src = result[1] as string;
+		//	return srcAssignPromise;
+		//});
+		//await Promise.all(textureAssignPromises);
+		//console.log("done waiting for texture file reader results");
 
 		const fontLoader = new FontLoader();
+		const loadFontFullPath = [fontLoadingPath, defaultFontFileName].join('/');
+		console.log(`loading font from path:${loadFontFullPath}`);
 		const fontPromise: Promise<Font> = new Promise((resolve, reject) => {
 			fontLoader.load(
-				fontPath,
+				loadFontFullPath,
 				(font) => {
 					resolve(font);
 				},
@@ -230,7 +247,10 @@ export class GameRunner implements IEventQueueListener {
 			);
 		});
 
-		const svgRequestResults: [string, SVGResult][] = await Promise.all(this.loadSvgs(boardAndPiecesSvgSetting));
+		const svgRequestResults: [string, SVGResult][] = await Promise.all(this.loadSvgs(boardAndPiecesSvgSetting)).catch(e => {
+			console.error(`svg loading promise error:`, e);
+			return [];
+		});
 		const measurePieceSizeVector = new Vector3();
 		//TODO too slow -> can you serialize the threejs objects? that way this loop doesn't need to run every game
 		//I confirmed that this is really slow on both of my machines, something needs done
@@ -359,7 +379,7 @@ export class GameRunner implements IEventQueueListener {
 		});
 
 		const font = await fontPromise;
-		this.gameAssets.fonts[fontPath] = font;
+		this.gameAssets.fonts[fontLoadingPath] = font;
 	}
 	
 	public setResizeHandlers(): void {
@@ -428,9 +448,11 @@ export class GameRunner implements IEventQueueListener {
 				pieceTuple[1]
 			])
 		]);
+		console.log('pieces paths:', piecesPaths);
 
 		//I had to run the shogi-tool.sh p2x function to change the filenames
 		//into more a more readable standard (xboard)
+		//TODO this code looks pointless, just use piecesPaths?
 		const svgsToLoad: [string, string][] = [
 			...piecesPaths,
 			//the filename for the silver is 'advisor' for some reason
@@ -506,8 +528,11 @@ export class GameRunner implements IEventQueueListener {
 		requestAnimationFrame(this.renderStep.bind(this));
 	}
 
-	private getCurrentGameState(): Game {
-		return this.checkDefined(this.gameStates[this.gameStates.length - 1], this.className);
+	/**
+	* get a deep copy of the current game state
+	**/
+	public getCurrentGameState(): Game {
+		return structuredClone(this.checkDefined(this.gameStates[this.gameStates.length - 1], this.className));
 	}
 
 	private renderStep(): void {
@@ -581,7 +606,7 @@ export class GameRunner implements IEventQueueListener {
 	): void {
 		//console.log('draw counts', { counts, locations });
 		const meshes: Mesh[] = [];
-		const font = this.gameAssets.fonts[fontPath];
+		const font = this.gameAssets.fonts[this.getFontLoadingPath()];
 		//console.log('found font:', font);
 		locations.forEach((locationInfo: [PieceNames, Vector3]) => {
 			const key = locationInfo[0];
@@ -784,7 +809,10 @@ export class GameRunner implements IEventQueueListener {
 		const boardGeometry = new PlaneGeometry(boardWidth, boardHeight);
 		const boardTexture = this.images["tile_texture"];
 		if (boardTexture === undefined) {
-			throw new Error(`draw board, no space texture`);
+			//until I figure out why the texture is not working,
+			//just print an error to the console instead of crashing
+			//throw new Error(`draw board, no space texture`);
+			console.error(`draw board, no space texture`);
 		}
 		//TODO 2020-09-28 still black despite debugging efforts...
 		//const boardMaterial = new MeshBasicMaterial({
