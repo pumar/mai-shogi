@@ -10,7 +10,8 @@ export {
 	isPlaced,
 	isPromotable,
 	isHeldPiece,
-	Placed,
+	BoardLocation,
+	mkBoardLocation,
 	Pawn,
 	Lance,
 	Knight,
@@ -28,11 +29,19 @@ export {
 }
 
 function isPlaced(obj: Piece): obj is PlacedPiece {
-	return (obj as Placed).rank !== undefined && (obj as Placed).file !== undefined;
+	return (obj as BoardLocation).rank !== undefined && (obj as BoardLocation).file !== undefined;
 }
-type Placed = {
+
+type BoardLocation = {
 	rank: number;
 	file: number;
+}
+
+function mkBoardLocation(rank: number, file: number) {
+	return {
+		rank,
+		file
+	}
 }
 
 function isPromotable(obj: Record<string, any>): obj is Promotable {
@@ -71,12 +80,12 @@ function mkGamePiece(isPromoted: boolean, pieceName: PieceNames): GamePiece {
 }
 
 /** piece on the board */
-type PlacedPiece = GamePiece & Placed;
+type PlacedPiece = GamePiece & BoardLocation;
 
 type PlayerPlacedPiece = PlacedPiece & { playerColor: PlayerColor };
 function mkPlayerPlacedPiece(
 	gamePiece: GamePiece,
-	location: Placed,
+	location: BoardLocation,
 	playerColor: PlayerColor
 ): PlayerPlacedPiece {
 	return Object.assign(mkPlacedPiece(
@@ -87,7 +96,7 @@ function mkPlayerPlacedPiece(
 	) as PlayerPlacedPiece;
 }
 
-function mkPlacedPiece(piece: GamePiece, location: Placed): PlacedPiece {
+function mkPlacedPiece(piece: GamePiece, location: BoardLocation): PlacedPiece {
 	return Object.assign({}, piece, location);
 }
 

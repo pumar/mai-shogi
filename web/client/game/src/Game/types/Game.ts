@@ -47,3 +47,4 @@ function findPlacedPieceAndPlayer(gameState: Game, rank: number, file: number): 
 		player
 	} : undefined;
 }
+

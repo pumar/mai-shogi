@@ -1,7 +1,7 @@
 import { buildForRange } from "../utils/Range";
 import { PlayerColor } from "./Consts";
 import { Game } from "./types/Game";
-import { mkHeldPiece, PieceNames, Placed, PlacedPiece } from "./types/Piece";
+import { mkHeldPiece, PieceNames, BoardLocation, PlacedPiece } from "./types/Piece";
 import { Player, Turn } from "./types/Player";
 
 export {
@@ -25,6 +25,7 @@ function createGame(): Game {
 		board,
 		players,
 		viewPoint: PlayerColor.Black,
+		nextMovePlayer: PlayerColor.Black,
 	}
 }
 
@@ -61,7 +62,7 @@ function makePlayer(turn: Turn): Player {
 **/
 function makePawns(turn: Turn, files: number): PlacedPiece[] {
 	const rank = getPawnStartRank(turn);
-	const locations = buildForRange<Placed>(1, files, (rangeValue: number) => {
+	const locations = buildForRange<BoardLocation>(1, files, (rangeValue: number) => {
 		return {
 			rank,
 			file: rangeValue,
@@ -126,7 +127,7 @@ function makeGolds(turn: Turn): PlacedPiece[] {
 	return makePlacedPieces(name, locations, {});
 }
 
-function makePlacedPieces(name: string, locations: Placed[], attributes: Partial<PlacedPiece>): PlacedPiece[] {
+function makePlacedPieces(name: string, locations: BoardLocation[], attributes: Partial<PlacedPiece>): PlacedPiece[] {
 	return locations.map(location => Object.assign(
 		{
 			name,
