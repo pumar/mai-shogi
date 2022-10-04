@@ -1,4 +1,5 @@
 import { PlayerColor } from "../Consts";
+import { Move } from "./Move";
 import { HeldPiece, PlacedPiece } from "./Piece";
 export {
 	Player,
@@ -13,7 +14,7 @@ type Player = {
 	turn: Turn;
 	placedPieces: PlacedPiece[];
 	heldPieces: HeldPiece[];
-	moves: [];
+	moves: Move[];
 }
 
 function removePlacedPiece(player: Player, removePiece: PlacedPiece): void {

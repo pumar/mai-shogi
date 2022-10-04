@@ -19,6 +19,7 @@ import { EventType, EventWrapper, IEventQueueListener } from "./Input/EventQueue
 import { boxToString } from "../threeUtils/Printing";
 import { GameInteractionController } from "./Input/UserInteraction";
 import { PlayerColor } from "./Consts";
+import { Move } from "./types/Move";
 
 
 /**
@@ -1096,10 +1097,11 @@ export class GameRunner implements IEventQueueListener {
 		console.log("game notified of event:", event);
 		switch(event.type) {
 			case EventType.Mouse:
-				const newGameState = this.handleMouseEvent(event);
-				if(newGameState !== undefined) {
-					this.gameStates.push(newGameState);
-					this.renderStep();
+				const move = this.handleMouseEvent(event);
+				if(move !== undefined) {
+					//TODO send this move to the server
+					//this.gameStates.push(newGameState);
+					//this.renderStep();
 				}
 				break;
 			case EventType.Keyboard:
@@ -1115,7 +1117,7 @@ export class GameRunner implements IEventQueueListener {
 	* use both effectively for the piece drag & drop
 	* @returns if game state was changed, the new game state is returned, if not, undefined
 	**/
-	private handleMouseEvent(event: EventWrapper): Game | undefined {
+	private handleMouseEvent(event: EventWrapper): Move | undefined {
 		if (event.event.type !== "mouseup") {
 			return undefined;
 		}
@@ -1159,21 +1161,21 @@ export class GameRunner implements IEventQueueListener {
 
 			if(piecePlayer !== undefined) {
 				const { player, piece: clickedPiece } = piecePlayer;
-				const newGame = interactionController.handleClick({
+				const move = interactionController.handleClick({
 					clickedEntity: {
 						piece: clickedPiece,
 						pieceOwner: player,
 					}
 				}, currentGameState);
-				return newGame;
+				return move;
 			} else {
-				const newGame = interactionController.handleClick({
+				const move = interactionController.handleClick({
 					clickedEntity: {
 						rank: hitSpace.rank,
 						file: hitSpace.file,
 					},
 				}, currentGameState);
-				return newGame;
+				return move;
 			}
 		}
 
@@ -1220,13 +1222,13 @@ export class GameRunner implements IEventQueueListener {
 			if(heldPiece === undefined) {
 				throw new Error("TODO");
 			}
-			const newGame = interactionController.handleClick({
+			const move = interactionController.handleClick({
 				clickedEntity: {
 					piece: heldPiece,
 					pieceOwner: PlayerColor.White,
 				}
 			}, currentGameState);
-			return newGame;
+			return move;
 		}
 	}
 

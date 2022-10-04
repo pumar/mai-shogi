@@ -1,4 +1,4 @@
-import { BoardLocation, /*PlacedPiece*/ } from "./Piece"
+import { BoardLocation, PieceNames, /*PlacedPiece*/ } from "./Piece"
 
 export {
 	Move
@@ -7,4 +7,5 @@ export {
 type Move = {
 	start: BoardLocation,
 	end: BoardLocation,
+	heldPieceName?: PieceNames;
 }

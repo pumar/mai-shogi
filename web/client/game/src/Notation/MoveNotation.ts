@@ -9,6 +9,8 @@ enum Splits {
 	StartEndSplit = ' ',
 }
 
+//TODO how can I tell if the move is a held piece?
+//these function will need to determine whether it's a held piece or not
 function parseMove(moveInput: string): Move {
 	const [start, end] = moveInput.split(Splits.StartEndSplit);
 	console.log({ moveInput, start, end });
