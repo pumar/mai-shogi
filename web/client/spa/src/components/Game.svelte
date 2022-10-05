@@ -8,6 +8,8 @@ export let fontLoadingRootDir = "";
 let context = undefined;
 let canvas = undefined;
 
+export let game = undefined;
+
 //const redrawGame = () => {
 //	clearCanvas(canvas, context);
 //	drawGame(
@@ -25,7 +27,7 @@ onMount(() => {
 	//window.canvas = canvas;
 	(async function(){
 		const defaultLoadingConfig = getDefaultSvgLoadConfig();
-		const { game, initialGameState: initState } = await setupGameWithDefaults(
+		const { game: newGame, initialGameState: initState } = await setupGameWithDefaults(
 			canvas,
 			undefined,
 			assetLoadingRootDir !== "" ? Object.assign({}, defaultLoadingConfig, { rootDir: assetLoadingRootDir }) : defaultLoadingConfig,
@@ -34,12 +36,15 @@ onMount(() => {
 			console.error('game init failed', e);
 			return null;
 		});
-		if (game !== null) {
+		if (newGame !== null) {
 			console.log("initialized game:", game);
 			//add the game's reference to the window object for debugging
 			window.game = game;
 			game.drawStaticObjects(initState);
 			game.run(initState);
+			//assign game object to the exported game variable, so that
+			//the app component can feed it inputs from the server
+			game = newGame;
 		} else {
 			console.error('game init failed');
 		}

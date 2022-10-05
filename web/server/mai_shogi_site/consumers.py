@@ -1,11 +1,16 @@
 import json
 from channels.generic.websocket import WebsocketConsumer
 
+from enum import Enum
+
 from .game import Match
 from .game import ComputerPlayer
 from .game import HumanPlayer
 #from .PythonGameEngine import HumanPlayer
 #from .PythonGameEngine import ComputerPlayer
+
+class MessageTypes(Enum):
+    GAME_STATE_UPDATE = "gsu"
 
 #TODO this will need to be made asynchronous, taking care to not have race conditions
 #when accessing things like Django models
@@ -17,6 +22,7 @@ class GameConsumer(WebsocketConsumer):
         self.accept()
         self.match = self.createMatch()
         self.send(text_data=json.dumps({
+            'messageType': MessageTypes.GAME_STATE_UPDATE,
             'match': self.match.serializeBoardState(),
             'moves': list(map(lambda x: x.serialize(), self.match.getMoves()))
         }))
