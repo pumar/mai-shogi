@@ -3,7 +3,7 @@
 <html>
 <head>
 	<meta charset="utf-8">
-	<link rel="stylesheet" href="{% static 'main.css' %}"/>
+	<link rel="stylesheet" href="{% static 'spa_dist/main.css' %}"/>
 	<style>
 		@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&display=swap');
 		@font-face {
@@ -15,6 +15,9 @@
 </head>
 <body>
 	<div id="mai-shogi-spa-app"></div>
-	<script type="text/javascript" src="{% static 'main.js' %}"></script>
+	<!-- pass the path necessary to find the game piece svgs and such to the typescript applications -->
+	<input type="text" id="load_root_dir" hidden value="{% static 'shogi-pieces' %}"/>
+	<input type="text" id="font_dir" hidden value="{% static 'fonts' %}"/>
+	<script type="text/javascript" src="{% static 'spa_dist/main.js' %}"></script>
 </body>
 </html>

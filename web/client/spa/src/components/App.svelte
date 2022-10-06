@@ -1,23 +1,31 @@
 <script lang="ts">
 import Game from "./Game.svelte";
 import { getWebsocketConnection, addEventHandler, WebsocketEvent } from "../Network/WebsocketConnection";
+
 export let message: string = "svelte";
+
+export let assetLoadingRootDir: string = "";
+export let fontLoadingRootDir: string = "";
+
 let messagesFromServer = [];
 let websocketConn: WebSocket | undefined = undefined;
-let gameCode: string = "";
+//let gameCode: string = "";
+
 function connectToGame() {
-	console.log(`connect to game:${gameCode}`);
+	//console.log(`connect to game:${gameCode}`);
+	console.log(`connect to game`);
 	websocketConn = getWebsocketConnection(
-		['game', gameCode].join('/'),
+		[
+			'game',
+			//gameCode
+		].join('/'),
 		(e) => { throw new Error(`connect to game ws error:${e.message}`)},
 	);
-	gameCode = "";
+
+	//gameCode = "";
 	addEventHandler(websocketConn, WebsocketEvent.Open, () => {
 		console.log("connected to ws, trying to send a message");
 		messagesFromServer = [];
-		//websocketConn.send(JSON.stringify({
-		//	message: "hello from typescript",
-		//}));
 	});
 	addEventHandler(websocketConn, WebsocketEvent.Message, (message) => {
 		console.log('recieved message from server', message);
@@ -32,6 +40,7 @@ function connectToGame() {
 		websocketConn = undefined;
 	});
 }
+
 function sendMessage(message: string){
 	if (websocketConn) {
 		websocketConn.send(JSON.stringify({ guess: messageToSend }));
@@ -43,15 +52,17 @@ let messageToSend: string = "";
 
 <div id="test">hello from {message}</div>
 <div class="gameContainer">
-	<Game />
+	<Game
+		assetLoadingRootDir={assetLoadingRootDir}
+		fontLoadingRootDir={fontLoadingRootDir}
+		/>
 	<div class="flexcol">
 	{#if websocketConn === undefined}
 		<div>
 			<form on:submit|preventDefault={connectToGame}>
-				<label>Game code:<input type="text" bind:value={gameCode}/></label>
-				{#if gameCode !== ""}
+				<!--<label>Game code:<input type="text" bind:value={gameCode}/></label>-->
+				<!--{#if gameCode !== ""}-->
 				<button on:click={connectToGame}>Connect to game</button>
-				{/if}
 			</form>
 		</div>
 	{:else}

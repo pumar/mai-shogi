@@ -5,16 +5,13 @@
     - game 
         - client side game logic simply renders the game state, maybe the game UI
         - Typescript
-        - build by executing `$npm run build` in the folder `web/client/game`
+        - can be build separately by executing `$npm run build` in the folder `web/client/game`
     - spa - single page application that renders the site, asks to start websocket connections, and instantiates the game
         - Typescript + Svelte
         - depends on game
         - right now the game's directory is symlinked to the spa's node_modules folder
             - the package.json dependency uses the `file:./` local package feature
-        - build by executing `$npm run build` in the folder `web/client/spa`
-    - game and spa have their own package.json files, are build separately
-        - I want to make some scripts that can build both
-    - will need a script to print the compiled spa+game application to the backend folder structure
+        - can be built separately by executing `$npm run build` in the folder `web/client/spa`
 
 ## Backend
 - Server: Django + Python
@@ -30,9 +27,13 @@
 
 ## Installation
 1. you need to build and run the images with docker compose
-2. you need to run `scripts/install_spa_to_server.sh` to copy the spa and game code into the django static files folder
-3. you then need to log into the docker container with login_web_container.sh, and run `$python manage.py collectstatic`
-    1. collect static will pull the files from the /static directory into the /assets directory on the server, which will allow them to be the targets of web requests from the browser
-    2. if some css or javascript file is missing and there errors on the webpage, it may be because collectstatic needs ran again
-    3. also, you can log into the web docker container and look around in the filesystem to make sure that the files are there
-
+2. you need to run `scripts/install_spa_to_server.sh`
+    - builds the game client
+    - builds the single page application
+    - copies the necessary compiled javascript to the /static folder, which is later picked up by django
+    - copies the font file that the game needs to render the letters on the held pieces
+    - logs into the container to have django run collect static. collect static will pull the files from the /static directory into the /assets directory on the server, which will allow them to be the targets of web requests from the browser
+3. you need to run `scripts/install_game_svgs_to_server.sh` to clone the git repo that has the svgs for the shogi pieces
+    - also runs the script to change the svg file names to the ones expected by the game application
+    - this script does not move the files to where they need to be for django, that is done by `install_spa_to_server.sh`
+4. `scripts/install_game_engine_to_server.sh` will copy the game engine python code into the django project's `mai_shogi_site` app, so that it can be imported and used

@@ -1,9 +1,25 @@
+import { Turn } from "./Player";
+
 export {
+	Piece,
 	PlacedPiece,
 	HeldPiece,
+	PlayerHeldPiece,
 	isPlaced,
 	isPromotable,
+	isHeldPiece,
 	Placed,
+	Pawn,
+	Lance,
+	Knight,
+	Silver,
+	Gold,
+	Bishop,
+	Rook,
+	GamePiece,
+	PieceNames,
+	mkHeldPiece,
+	arePiecesEqual,
 }
 
 function isPlaced(obj: Piece): obj is PlacedPiece {
@@ -21,15 +37,25 @@ type Promotable = {
 	isPromoted?: boolean;
 }
 
-type Pawn = Promotable & { name: "pawn" };
-type Lance = Promotable & { name: "lance" };
-type Knight = Promotable & { name: "knight" };
-type Silver = Promotable & { name: "silver" };
-type Bishop = Promotable & { name: "bishop" };
-type Rook = Promotable & { name: "rook" };
+enum PieceNames {
+	Pawn = "pawn",
+	Lance = "lance",
+	Knight = "knight",
+	Silver = "silver",
+	Bishop = "bishop",
+	Rook = "rook",
+	Gold = "gold",
+	King = "king",
+};
+type Pawn = Promotable & { name: PieceNames.Pawn };
+type Lance = Promotable & { name: PieceNames.Lance };
+type Knight = Promotable & { name: PieceNames.Knight };
+type Silver = Promotable & { name: PieceNames.Silver };
+type Bishop = Promotable & { name: PieceNames.Bishop };
+type Rook = Promotable & { name: PieceNames.Rook };
 
-type Gold = { name: "gold" };
-type King = { name: "king" };
+type Gold = { name: PieceNames.Gold };
+type King = { name: PieceNames.King };
 
 type GamePiece = Pawn | Lance | Knight | Silver | Gold | Bishop | Rook | King;
 
@@ -40,6 +66,34 @@ type PlacedPiece = GamePiece & Placed;
 type HeldPiece = GamePiece & {
 	/** it's possible to hold multiples of the same piece */
 	count: number;
+}
+
+type PlayerHeldPiece = HeldPiece & {
+	player: Turn;
+}
+
+function isHeldPiece(obj: Record<string, any>): obj is HeldPiece {
+	return (obj as HeldPiece).count !== undefined;
+}
+function mkHeldPiece(pieceName: PieceNames, count: number): HeldPiece {
+	return {
+		name: pieceName,
+		count,
+	}
+}
+
+//TODO unit test
+function arePiecesEqual(piece1: PlayerHeldPiece | PlacedPiece, piece2: PlayerHeldPiece | PlacedPiece) {
+	if(isHeldPiece(piece1) && !isHeldPiece(piece2)) return false;
+	if(isPlaced(piece1) && !isPlaced(piece2)) return false;
+	if(isHeldPiece(piece1)){
+		//held pieces are equal if the piece names are the same,
+		//and both pieces are held by the same player
+		return piece1.name === piece2.name && piece1.player === (piece2 as PlayerHeldPiece).player;
+	} else {
+		//placed pieces are equal if they are on the same rank and file
+		return piece1.rank === (piece2 as PlacedPiece).rank && piece1.file === (piece2 as PlacedPiece).file;
+	}
 }
 
 type Piece = PlacedPiece | HeldPiece;

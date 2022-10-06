@@ -560,7 +560,8 @@ class Match:
 
         self.current_turn = not self.current_turn
 
-    def getMoves(self):
+    def getMoves(self) -> List[Move]:
+
         def filtersOote(all_moves: List[Move], iswhite: bool):
             legal_moves: List[Move] = []
             
@@ -605,8 +606,10 @@ class Match:
                 koma = self.grid.getMasu(i,j).getKoma()
                 if koma != None and koma.isWhite() == iswhite:
                     moves.extend(koma.legalMoves(self.grid, self.grid.getMasu(i,j)))
+
         moves = filtersOote(moves, iswhite)
         self.current_legal_moves = moves
+
         return moves
 
     def deserializeBoardState(self, sfen: str) -> Banmen:
