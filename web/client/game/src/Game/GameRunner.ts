@@ -22,6 +22,7 @@ import { PlayerColor } from "./Consts";
 import { Move } from "./types/Move";
 import { MessageKeys, MessageTypes } from "./CommunicationConsts";
 import { sfenToGame } from "../Notation/Sfen";
+import { serverMovesToClientMoves } from "../Notation/MoveNotation";
 
 
 /**
@@ -1264,6 +1265,18 @@ export class GameRunner implements IEventQueueListener {
 	private updateGameState(message: Record<string, any>): void {
 		const match = message[MessageKeys.MATCH];
 		const newGame = sfenToGame(match);
+
+		const moves = serverMovesToClientMoves(
+			message[MessageKeys.MOVES],
+		);
+
+		const nextMovePlayer = findPlayer(
+			newGame as Game,
+			(newGame as Game).nextMovePlayer,
+		);
+
+		nextMovePlayer.moves = moves;
+
 		const isFirstUpdate = this.gameStates.length === 0;
 		console.log({ newGame, message, isFirstUpdate });
 		//TODO the origin of this state must be on the server

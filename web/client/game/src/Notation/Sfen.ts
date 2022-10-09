@@ -38,6 +38,7 @@ function sfenToGame(sfen: string): Partial<Game> {
 		[],
 		[]
 	);
+
 	//the client side game object expects each player to have a map of
 	//piece names to the # of those pieces that they are holding
 	//even if there are none, there should be a mapping from

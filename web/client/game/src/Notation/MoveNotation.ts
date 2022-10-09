@@ -3,6 +3,7 @@ import { BoardLocation } from "../Game/types/Piece"
 
 export {
 	parseMove,
+	serverMovesToClientMoves,
 }
 
 enum Splits {
@@ -33,4 +34,12 @@ function digitsToRanksAndFiles(digits: string): BoardLocation {
 		rank: Number.parseInt(digits[0]) + 1,
 		file: Number.parseInt(digits[1]) + 1,
 	}
+}
+
+function serverMovesToClientMoves(moves: string[]): Move[] {
+	const processedMoves = moves.map(move => {
+		return parseMove(move);
+	});
+
+	return processedMoves;
 }
