@@ -9,8 +9,11 @@ from .game import HumanPlayer
 #from .PythonGameEngine import HumanPlayer
 #from .PythonGameEngine import ComputerPlayer
 
-class MessageTypes(Enum):
-    GAME_STATE_UPDATE = "gsu"
+#need to inherit from str to get JSON serialization to work:
+#https://stackoverflow.com/questions/24481852/serialising-an-enum-member-to-json
+class MessageTypes(str, Enum):
+    GAME_STATE_UPDATE = "gsu",
+    MAKE_MOVE = "mm"
 
 #TODO this will need to be made asynchronous, taking care to not have race conditions
 #when accessing things like Django models
@@ -38,3 +41,5 @@ class GameConsumer(WebsocketConsumer):
 
     def receive(self, text_data):
         text_data_json = json.loads(text_data)
+        messageType = text_data_json[MessageTypes.MAKE_MOVE]
+        print((messageType, text_data_json))
