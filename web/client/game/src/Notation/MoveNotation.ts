@@ -37,8 +37,29 @@ function digitsToRanksAndFiles(digits: string): BoardLocation {
 }
 
 function serverMovesToClientMoves(moves: string[]): Move[] {
-	const processedMoves = moves.map(move => {
+	const processedMoves: Move[] = moves.map(move => {
 		return parseMove(move);
+	});
+
+	//server and client coordinate spaces are the opposite, flip them for now
+	//9 is 1, 2 is 8... and so on
+	processedMoves.forEach((move: Move) => {
+		move.start.rank = 10 - move.start.rank;
+		move.start.file = 10 - move.start.file;
+		move.end.rank = 10 - move.end.rank;
+		move.end.file = 10 - move.end.file;
+	});
+
+	//I'm pretty sure the server is in (file, rank) order and the client
+	//is in (rank, file) order, so flip that too
+	processedMoves.forEach((move: Move) => {
+		const startRank = move.start.rank;
+		move.start.rank = move.start.file
+		move.start.file = startRank;
+
+		const endRank = move.end.rank;
+		move.end.rank = move.end.file;
+		move.end.file = endRank;
 	});
 
 	return processedMoves;
