@@ -212,6 +212,10 @@ function letterToPiece(letter: string): [PieceNames, PlayerColor] {
 		case 'K':
 			pieceName = PieceNames.King;
 			break;
+		case 'r':
+		case 'R':
+			pieceName = PieceNames.Rook;
+			break;
 		default:
 			throw new Error(`Sfen::letterToPiece could not determine piece name from letter:${letter}`);
 	}
