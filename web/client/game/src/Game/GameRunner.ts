@@ -1269,7 +1269,8 @@ export class GameRunner implements IEventQueueListener {
 		//TODO the origin of this state must be on the server
 		//not on the client, so that the server can randomly give people black
 		//or white
-		newGame.viewPoint = PlayerColor.Black;
+		//newGame.viewPoint = PlayerColor.Black;
+		newGame.viewPoint = PlayerColor.White;
 
 		this.gameStates.push(newGame as Game);
 

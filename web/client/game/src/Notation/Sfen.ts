@@ -23,7 +23,11 @@ enum Splits {
 function sfenToGame(sfen: string): Partial<Game> {
 	const [board, toPlay, hands] = sfen.split(Splits.Meta);
 
-	const nextMovePlayer: PlayerColor = toPlay === 'b'
+	//TODO the server has white as 'sente' and black as 'oote,
+	//and the client code has it coded as oote = white and sente = black
+	//just write terms within the context of sente=sente and oote=oote,
+	//and forget white and black altogether
+	const nextMovePlayer: PlayerColor = toPlay === 'w'
 		? PlayerColor.Black
 		: PlayerColor.White;
 
@@ -79,8 +83,8 @@ function getHands(sfenHands: string, whiteHeld: HeldPiece[], blackHeld: HeldPiec
 } {
 	if(sfenHands.length === 0) {
 		return {
-			whiteHeld,
-			blackHeld,
+			blackHeld: whiteHeld,
+			whiteHeld: blackHeld,
 		}
 	}
 	let tookTwoCharacters = false;
@@ -140,9 +144,13 @@ function getPlacedPieces(board: string): {
 		blackPieces.push(...pieces.filter(pce => pce.playerColor === PlayerColor.Black));
 	});
 
+	//TODO the server has white as 'sente' and black as 'oote,
+	//and the client code has it coded as oote = white and sente = black
+	//just write terms within the context of sente=sente and oote=oote,
+	//and forget white and black altogether
 	return {
-		whitePieces,
-		blackPieces
+		blackPieces: whitePieces,
+		whitePieces: blackPieces
 	}
 }
 
