@@ -9,7 +9,8 @@ export {
 	connectToGame,
 }
 
-function notifyGameFromServer(message: Record<string, any>, game: Game) {
+function notifyGameFromServer(message: Record<string, any>, game: GameRunner) {
+	game.receiveMessage(message);
 }
 
 function initializeGameFromMessage(
@@ -58,7 +59,8 @@ function connectToGame(): {
 
 		console.log('recieved message from server', message);
 		//messagesFromServer = [JSON.parse(message.data).message];
-		const parsedMessage = JSON.parse(message.data).message;
+		const parsedMessage = JSON.parse(message.data);
+		console.log('parsed message', parsedMessage);
 		notifyGameFromServer(parsedMessage, game);
 	});
 

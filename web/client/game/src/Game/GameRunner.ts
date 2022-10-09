@@ -20,6 +20,8 @@ import { boxToString } from "../threeUtils/Printing";
 import { GameInteractionController } from "./Input/UserInteraction";
 import { PlayerColor } from "./Consts";
 import { Move } from "./types/Move";
+import { MessageKeys, MessageTypes } from "./CommunicationConsts";
+import { sfenToGame } from "../Notation/Sfen";
 
 
 /**
@@ -1246,5 +1248,26 @@ export class GameRunner implements IEventQueueListener {
 
 	private handleKeyboardEvent(event: EventWrapper): void {
 		console.log({ keyboardEvent: event.event});
+	}
+
+	public receiveMessage(message: Record<string, any>): void {
+		const messageType = message[MessageKeys.MESSAGE_TYPE];
+		switch(messageType) {
+			case MessageTypes.GAME_STATE_UPDATE:
+				this.updateGameState(message);
+				break;
+			default:
+				throw new Error(`receiveMessage TODO:${messageType}`);
+		}
+	}
+
+	private updateGameState(message: Record<string, any>): void {
+		const match = message[MessageKeys.MATCH];
+		const newGame = sfenToGame(match);
+		console.log({ newGame, message });
+		//TODO the origin of this state must be on the server
+		//not on the client, so that the server can randomly give people black
+		//or white
+		newGame.viewPoint = this.getCurrentGameState().viewPoint;
 	}
 }
