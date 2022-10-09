@@ -1103,6 +1103,7 @@ export class GameRunner implements IEventQueueListener {
 				const move = this.handleMouseEvent(event);
 				if(move !== undefined) {
 					//TODO send this move to the server
+					console.log(`TODO send move to server`, move);
 					//this.gameStates.push(newGameState);
 					//this.renderStep();
 				}
