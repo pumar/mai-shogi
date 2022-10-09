@@ -1265,7 +1265,7 @@ export class GameRunner implements IEventQueueListener {
 		const match = message[MessageKeys.MATCH];
 		const newGame = sfenToGame(match);
 		const isFirstUpdate = this.gameStates.length === 0;
-		console.log({ newGame, message });
+		console.log({ newGame, message, isFirstUpdate });
 		//TODO the origin of this state must be on the server
 		//not on the client, so that the server can randomly give people black
 		//or white

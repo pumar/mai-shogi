@@ -33,12 +33,7 @@ const makeConn = async () => {
 	gameInstance = instanceInfo.game;
 	window.game = gameInstance;
 	gameInstance.setCanvas(canvas);
-	await gameInstance.initGraphics(
-		Object.assign(getDefaultSvgLoadConfig(), { rootDir: assetLoadingRootDir }),
-		fontLoadingRootDir,
-	);
 	setCanvasSizeToMatchLayout(gameInstance.getCanvas());
-	gameInstance.setupScene();
 
 	const eventQueue = new EventQueue();
 	eventQueue.registerCallbacks(window);
@@ -47,8 +42,15 @@ const makeConn = async () => {
 	const interactionController = new GameInteractionController();
 	gameInstance.setInteractionController(interactionController);
 
+	await gameInstance.initGraphics(
+		Object.assign(getDefaultSvgLoadConfig(), { rootDir: assetLoadingRootDir }),
+		fontLoadingRootDir,
+	);
 
-	websocketConnection = instanceInfo.websocketConn;
+	gameInstance.setupScene();
+	console.log('init graphics done');
+
+	websocketConnection = instanceInfo.getWebsocketConn();
 	addEventHandler(websocketConnection, WebsocketEvent.Close, (event: CloseEvent) => {
 		console.log('websocket closed', event);
 		websocketConnection = undefined;

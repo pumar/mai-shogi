@@ -132,7 +132,7 @@ function getPlacedPieces(board: string): {
 	ranks.forEach((rank: string, rankIndex: number) => {
 		const pieces = getPiecesFromRank(
 			rank,
-			rankIndex,
+			rankIndex + 1,
 			1,
 			[]
 		);

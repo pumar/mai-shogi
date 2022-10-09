@@ -36,36 +36,39 @@ function postMessageToGame(
 }
 
 function connectToGame(): {
-	websocketConn: WebSocket,
+	getWebsocketConn: () => WebSocket,
 	game: GameRunner,
 } {
 	//console.log(`connect to game:${gameCode}`);
 	console.log(`connect to game`);
-	const websocketConn = getWebsocketConnection(
+	const getWebsocketConn = () => {
+		const conn = getWebsocketConnection(
 		[
 			'game',
 			//gameCode
-		].join('/')
-	);
+		].join('/'));
+
+		addEventHandler(conn, WebsocketEvent.Message, (message) => {
+			if(message === undefined){
+				console.error('error in ws message handler, message undefined')
+				return;
+			}
+
+
+			console.log('recieved message from server', message);
+			//messagesFromServer = [JSON.parse(message.data).message];
+			const parsedMessage = JSON.parse(message.data);
+			console.log('parsed message', parsedMessage);
+			notifyGameFromServer(parsedMessage, game);
+		});
+
+		return conn;
+	}
 
 	const game = new GameRunner();
 
-	////gameCode = "";
-	addEventHandler(websocketConn, WebsocketEvent.Message, (message) => {
-		if(message === undefined){
-			console.error('error in ws message handler, message undefined')
-			return;
-		}
-
-		console.log('recieved message from server', message);
-		//messagesFromServer = [JSON.parse(message.data).message];
-		const parsedMessage = JSON.parse(message.data);
-		console.log('parsed message', parsedMessage);
-		notifyGameFromServer(parsedMessage, game);
-	});
-
 	return {
-		websocketConn,
+		getWebsocketConn,
 		game
 	}
 }
