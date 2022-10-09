@@ -26,7 +26,7 @@ function getWebsocketConnection(urlSuffix: string): WebSocket {
 function addEventHandler(
 	websocket: WebSocket, 
 	eventType: WebsocketEvent, 
-	callback: () => void
+	callback: (message?: any) => void
 ): void {
 	websocket.addEventListener(eventType, callback);
 }

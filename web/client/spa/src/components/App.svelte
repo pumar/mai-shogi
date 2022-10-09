@@ -1,84 +1,37 @@
 <script lang="ts">
 import Game from "./Game.svelte";
-import { getWebsocketConnection, addEventHandler, WebsocketEvent } from "../Network/WebsocketConnection";
-
-export let message: string = "svelte";
+import { notifyGameFromGameServer } from "../Glue/ServerClientCommunication";
 
 export let assetLoadingRootDir: string = "";
 export let fontLoadingRootDir: string = "";
 
-let messagesFromServer = [];
-let websocketConn: WebSocket | undefined = undefined;
-//let gameCode: string = "";
-
-function connectToGame() {
-	//console.log(`connect to game:${gameCode}`);
-	console.log(`connect to game`);
-	websocketConn = getWebsocketConnection(
-		[
-			'game',
-			//gameCode
-		].join('/'),
-		(e) => { throw new Error(`connect to game ws error:${e.message}`)},
-	);
-
-	//gameCode = "";
-	addEventHandler(websocketConn, WebsocketEvent.Open, () => {
-		console.log("connected to ws, trying to send a message");
-		messagesFromServer = [];
-	});
-	addEventHandler(websocketConn, WebsocketEvent.Message, (message) => {
-		console.log('recieved message from server', message);
-		messagesFromServer = [JSON.parse(message.data).message];
-	});
-	addEventHandler(websocketConn, WebsocketEvent.Close, (event: CloseEvent) => {
-		console.log('websocket closed', event);
-		websocketConn = undefined;
-	});
-	addEventHandler(websocketConn, WebsocketEvent.Error, (event: Event) => {
-		console.error(`websocket connection closed, do to an error`, event);
-		websocketConn = undefined;
-	});
-}
-
-function sendMessage(message: string){
-	if (websocketConn) {
-		websocketConn.send(JSON.stringify({ guess: messageToSend }));
-		messageToSend = "";
-	}
-}
-let messageToSend: string = "";
+//let messageToSend: string = "";
 </script>
 
-<div id="test">hello from {message}</div>
+<!--<div id="test">hello from {message}</div>-->
 <div class="gameContainer">
 	<Game
 		assetLoadingRootDir={assetLoadingRootDir}
 		fontLoadingRootDir={fontLoadingRootDir}
 		/>
-	<div class="flexcol">
-	{#if websocketConn === undefined}
+	<!--
+	{#if websocketConn === undefined}>
 		<div>
 			<form on:submit|preventDefault={connectToGame}>
-				<!--<label>Game code:<input type="text" bind:value={gameCode}/></label>-->
-				<!--{#if gameCode !== ""}-->
+				<label>Game code:<input type="text" bind:value={gameCode}/></label>
+				{#if gameCode !== ""}
 				<button on:click={connectToGame}>Connect to game</button>
 			</form>
 		</div>
-	{:else}
+	-->
+	<!--{:else}
 		<div>
 			<form on:submit|preventDefault={sendMessage}>
 				<label>Message Entry:<input type="text" bind:value={messageToSend} /></label>
 				<button disabled={messageToSend === ""}>Send Message</button>
 			</form>
-		</div>
-	{/if}
-	<div>
-	{#each messagesFromServer as message}
-	<div>{message}</div>
-	{/each}
-	</div>
-	</div>
+		</div>-->
+	<!--{/if}-->
 </div>
 
 <style>
