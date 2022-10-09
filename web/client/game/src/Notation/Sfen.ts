@@ -1,4 +1,5 @@
 import { PlayerColor } from "../Game/Consts";
+import { createHeldPieces } from "../Game/GameCreator";
 import { Game } from "../Game/types/Game";
 import { HeldPiece, PieceNames, PlacedPiece, PlayerPlacedPiece } from "../Game/types/Piece";
 
@@ -33,6 +34,21 @@ function sfenToGame(sfen: string): Partial<Game> {
 		[],
 		[]
 	);
+	//the client side game object expects each player to have a map of
+	//piece names to the # of those pieces that they are holding
+	//even if there are none, there should be a mapping from
+	//piece name to zero, so fill in the blanks
+	const whiteHeldPieces = createHeldPieces();
+	heldPiecesPerPlayer.whiteHeld.forEach(held => {
+		const updatePiece = whiteHeldPieces.find(whiteHeld => whiteHeld.name === held.name)
+		if (updatePiece) updatePiece.count += held.count;
+	});
+
+	const blackHeldPieces = createHeldPieces();
+	heldPiecesPerPlayer.blackHeld.forEach(held => {
+		const updatePiece = blackHeldPieces.find(blackHeld => blackHeld.name === held.name)
+		if (updatePiece) updatePiece.count += held.count;
+	});
 
 	return {
 		board: {
@@ -43,13 +59,13 @@ function sfenToGame(sfen: string): Partial<Game> {
 			{
 				turn: PlayerColor.White,
 				placedPieces: placedPiecesPerPlayer.whitePieces,
-				heldPieces: heldPiecesPerPlayer.whiteHeld,
+				heldPieces: whiteHeldPieces,
 				moves: []
 			},
 			{
 				turn: PlayerColor.Black,
 				placedPieces: placedPiecesPerPlayer.blackPieces,
-				heldPieces: heldPiecesPerPlayer.blackHeld,
+				heldPieces: blackHeldPieces,
 				moves: [],
 			}
 		],

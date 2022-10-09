@@ -1,5 +1,11 @@
 <script lang="ts">
-import { setupGameWithDefaults, getDefaultSvgLoadConfig } from "mai-shogi-game";
+import {
+	setupGameWithDefaults,
+	getDefaultSvgLoadConfig,
+	setCanvasSizeToMatchLayout,
+	EventQueue,
+	GameInteractionController,
+} from "mai-shogi-game";
 import { onMount } from "svelte";
 
 import {
@@ -21,17 +27,39 @@ export let gameInstance = undefined;
 
 let websocketConnection = undefined;
 
-const makeConn = () => {
+const makeConn = async () => {
 	const instanceInfo = connectToGame();
+
 	gameInstance = instanceInfo.game;
+	window.game = gameInstance;
+	gameInstance.setCanvas(canvas);
+	await gameInstance.initGraphics(
+		Object.assign(getDefaultSvgLoadConfig(), { rootDir: assetLoadingRootDir }),
+		fontLoadingRootDir,
+	);
+	setCanvasSizeToMatchLayout(gameInstance.getCanvas());
+	gameInstance.setupScene();
+
+	const eventQueue = new EventQueue();
+	eventQueue.registerCallbacks(window);
+	eventQueue.addListener(gameInstance);
+
+	const interactionController = new GameInteractionController();
+	gameInstance.setInteractionController(interactionController);
+
+
 	websocketConnection = instanceInfo.websocketConn;
 	addEventHandler(websocketConnection, WebsocketEvent.Close, (event: CloseEvent) => {
 		console.log('websocket closed', event);
 		websocketConnection = undefined;
+		gameInstance = undefined;
+		window.game = undefined;
 	});
 	addEventHandler(websocketConnection, WebsocketEvent.Error, (event: Event) => {
 		console.error(`websocket connection closed, do to an error`, event);
 		websocketConnection = undefined;
+		gameInstance = undefined;
+		window.game = undefined;
 	});
 	addEventHandler(websocketConnection, WebsocketEvent.Open, () => {
 		console.log("connected to websocket");

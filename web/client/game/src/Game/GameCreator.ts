@@ -1,7 +1,7 @@
 import { buildForRange } from "../utils/Range";
 import { PlayerColor } from "./Consts";
 import { Game } from "./types/Game";
-import { mkHeldPiece, PieceNames, BoardLocation, PlacedPiece } from "./types/Piece";
+import { mkHeldPiece, PieceNames, BoardLocation, PlacedPiece, HeldPiece } from "./types/Piece";
 import { Player, Turn } from "./types/Player";
 
 export {
@@ -9,6 +9,7 @@ export {
 	makePawns,
 	makeLances,
 	getPawnStartRank,
+	createHeldPieces,
 }
 
 /** make an initial game state */
@@ -55,6 +56,18 @@ function makePlayer(turn: Turn): Player {
 		turn,
 		moves: [],
 	}
+}
+
+function createHeldPieces(): HeldPiece[] {
+	return [
+		mkHeldPiece(PieceNames.Pawn, 0),
+		mkHeldPiece(PieceNames.Lance, 0),
+		mkHeldPiece(PieceNames.Knight, 0),
+		mkHeldPiece(PieceNames.Silver, 0),
+		mkHeldPiece(PieceNames.Bishop, 0),
+		mkHeldPiece(PieceNames.Rook, 0),
+		mkHeldPiece(PieceNames.Gold, 0),
+	];
 }
 
 /** TODO is there a way to specify that this returns 

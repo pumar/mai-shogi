@@ -7,7 +7,7 @@ import { makeExistsGuard } from "../utils/Guards";
 import { measureTime } from "../utils/Performance";
 import { debounce } from "../utils/Throttling";
 
-import { createGame, getPawnStartRank } from "./GameCreator";
+import { createGame, createHeldPieces, getPawnStartRank } from "./GameCreator";
 import { defaultRenderSettings, RenderSettings, setCanvasSizeToMatchLayout } from "./Renderer/Renderer";
 import { getAssetKeyForPiece } from "./types/AssetKeys";
 import { findPlacedPieceAndPlayer, findPlayer, Game } from "./types/Game";
@@ -521,12 +521,12 @@ export class GameRunner implements IEventQueueListener {
 		this.gameStates.push(game);
 	}
 
-	public run(initialGameState?: Game): void {
-		if (initialGameState) {
-			this.gameStates.push(initialGameState);
-		} else {
-			this.gameStates.push(createGame());
-		}
+	public run(): void {
+		//if (initialGameState) {
+		//	this.gameStates.push(initialGameState);
+		//} else {
+		//	this.gameStates.push(createGame());
+		//}
 
 		requestAnimationFrame(this.renderStep.bind(this));
 	}
@@ -1264,10 +1264,20 @@ export class GameRunner implements IEventQueueListener {
 	private updateGameState(message: Record<string, any>): void {
 		const match = message[MessageKeys.MATCH];
 		const newGame = sfenToGame(match);
+		const isFirstUpdate = this.gameStates.length === 0;
 		console.log({ newGame, message });
 		//TODO the origin of this state must be on the server
 		//not on the client, so that the server can randomly give people black
 		//or white
-		newGame.viewPoint = this.getCurrentGameState().viewPoint;
+		newGame.viewPoint = PlayerColor.Black;
+
+		this.gameStates.push(newGame as Game);
+
+		if (isFirstUpdate) {
+			this.drawStaticObjects(this.getCurrentGameState());
+		}
+
+		console.log('run');
+		this.run();
 	}
 }
