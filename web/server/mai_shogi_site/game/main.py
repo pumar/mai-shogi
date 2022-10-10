@@ -497,7 +497,6 @@ class Hisha(Koma):
                         if board.getMasu(i,j).getKoma() == None: moves.append(Move(src_square, Masu(i, j, piece)))
         return moves
 
-
 class Gyokushou(Koma):
     def __init__(self, white, onHand=False):
         super().__init__(white, onHand)
@@ -525,12 +524,17 @@ class Gyokushou(Koma):
                     moves.append(Move(src_square, Masu(tX, tY, piece)))
         return moves
 
+class MoveNotFound(Exception):
+    def __init__(self, message):
+        super().__init__(message)
+
 class Match:
     player_one: Player
     player_two: Player
     grid: Banmen
     hand: Hand
     current_turn: Player
+    current_legal_moves: List[Move]
 
     def __init__(self, p1: Player, p2: Player):
         self.player_one = p1
@@ -543,7 +547,48 @@ class Match:
             self.current_turn = deepcopy(self.player_one)
         else: self.current_turn = deepcopy(self.player_two)
 
+        self.current_legal_moves = []
+
+
+    def doTurn(self, string_move: str):
+        string_moves = [move.serialize() for move in self.current_legal_moves] 
+        print(f"doTurn, looking for move:({string_move}) in current legal moves:", string_moves)
+        #I think this is doing an object reference comparison, we need
+        #a value comparison
+        if string_move not in string_moves:
+            raise MoveNotFound("The move that was sent is not valid.")
+
+        move_index = string_moves.index(string_move)
+
+        current_move = self.current_legal_moves[move_index]
+        #foundMove = ''
+        #foundIndex = -1
+        #for index, x in enumerate(string_moves):
+        #    print(f'compare str1:({x}) and str2:({string_move})')
+        #    if x == string_move:
+        #        foundMove = x
+        #        foundIndex = index
+        #        break
+
+        #if foundMove == '':
+        #    raise Exception("The move that was sent is not valid.")
+        #else:
+        #    print(f'found move!:{foundMove}')
+
+        #current_move = self.current_legal_moves[foundIndex]
+
+        self.grid.getMasu(current_move.src_square.getX(), current_move.src_square.getY()).setKoma(None)
+        self.grid.getMasu(current_move.trgt_square.getX(), current_move.trgt_square.getY()).setKoma(current_move.trgt_square.getKoma())
+
+        #this doesn't work because current_turn is not a boolean
+        #self.current_turn = not self.current_turn
+        if self.current_turn == self.player_one:
+            self.current_turn = self.player_two
+        else:
+            self.current_turn = self.player_one
+
     def getMoves(self) -> List[Move]:
+
         def filtersOote(all_moves: List[Move], iswhite: bool):
             legal_moves: List[Move] = []
             
@@ -588,9 +633,11 @@ class Match:
                 koma = self.grid.getMasu(i,j).getKoma()
                 if koma != None and koma.isWhite() == iswhite:
                     moves.extend(koma.legalMoves(self.grid, self.grid.getMasu(i,j)))
-        moves = filtersOote(moves, self.current_turn.isWhiteSide())
+
+        moves = filtersOote(moves, iswhite)
+        self.current_legal_moves = moves
+
         return moves
-    
 
     def deserializeBoardState(self, sfen: str) -> Banmen:
         pass

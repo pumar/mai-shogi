@@ -15,3 +15,4 @@ from .main import Kakugyou
 from .main import Hisha
 from .main import Gyokushou
 from .main import Match
+from .main import MoveNotFound

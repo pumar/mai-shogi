@@ -6,6 +6,7 @@ from enum import Enum
 from .game import Match
 from .game import ComputerPlayer
 from .game import HumanPlayer
+from .game import MoveNotFound
 #from .PythonGameEngine import HumanPlayer
 #from .PythonGameEngine import ComputerPlayer
 
@@ -14,12 +15,14 @@ from .game import HumanPlayer
 class MessageTypes(str, Enum):
     GAME_STATE_UPDATE = "gsu"
     MAKE_MOVE = "mm"
+    ERROR = "err"
 
 class MessageKeys(str, Enum):
     MESSAGE_TYPE = "messageType"
     MATCH = "match"
     MOVES = "moves"
     MOVE = "move"
+    ERROR_MESSAGE = "err_msg"
 
 #TODO this will need to be made asynchronous, taking care to not have race conditions
 #when accessing things like Django models
@@ -52,5 +55,20 @@ class GameConsumer(WebsocketConsumer):
         if messageType == MessageTypes.MAKE_MOVE:
             moveToPost = text_data_json[MessageKeys.MOVE]
             print(f'need to post move to game:{moveToPost}')
+            try:
+                self.match.doTurn(moveToPost)
+                print(f'did move:{moveToPost}')
+                #TODO de-duplicate this, it's also in the connect handler of this class
+                messageDict = {}
+                messageDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.GAME_STATE_UPDATE
+                messageDict[MessageKeys.MATCH] = self.match.serializeBoardState()
+                messageDict[MessageKeys.MOVES] = list(map(lambda x: x.serialize(), self.match.getMoves()))
+                self.send(text_data=json.dumps(messageDict))
+            except MoveNotFound as e:
+                print("error on server receive handler for MAKE_MOVE", e)
+                errorDict = {}
+                errorDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.ERROR
+                errorDict[MessageKeys.ERROR_MESSAGE] = f'move:{moveToPost} is not valid'
+                self.send(text_data=json.dumps(errorDict))
         else:
             print(f'unknown message type:{messageType}')
