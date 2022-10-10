@@ -1,4 +1,8 @@
-import { setupGameWithDefaults } from "mai-shogi-game";
+import {
+	setupGameWithDefaults,
+	MessageTypes,
+	MessageKeys,
+} from "mai-shogi-game";
 import { GameRunner, SvgLoadConfig } from "mai-shogi-game/Game/GameRunner";
 
 import { addEventHandler, getWebsocketConnection, WebsocketEvent } from "../Network/WebsocketConnection";
@@ -60,6 +64,13 @@ function connectToGame(): {
 			const parsedMessage = JSON.parse(message.data);
 			console.log('parsed message', parsedMessage);
 			notifyGameFromServer(parsedMessage, game);
+		});
+
+		game.setPostMoveCallback((move: string) => {
+			conn.send(JSON.stringify({
+				messageType: MessageTypes.MAKE_MOVE,
+				[MessageKeys.MOVE]: move,
+			}));
 		});
 
 		return conn;

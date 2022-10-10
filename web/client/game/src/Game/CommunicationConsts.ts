@@ -12,4 +12,5 @@ enum MessageKeys {
 	MESSAGE_TYPE = "messageType",
 	MATCH = "match",
 	MOVES = "moves",
+	MOVE = "move",
 }

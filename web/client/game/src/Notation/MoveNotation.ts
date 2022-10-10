@@ -4,6 +4,7 @@ import { BoardLocation } from "../Game/types/Piece"
 export {
 	parseMove,
 	serverMovesToClientMoves,
+	clientMoveToServerMove,
 }
 
 enum Splits {
@@ -21,6 +22,7 @@ function parseMove(moveInput: string): Move {
 	return {
 		start: startLoc,
 		end: endLoc,
+		originalString: moveInput,
 		//promotesPiece: false,
 		//takesPiece: false,
 	}
@@ -63,4 +65,26 @@ function serverMovesToClientMoves(moves: string[]): Move[] {
 	});
 
 	return processedMoves;
+}
+
+function clientMoveToServerMove(move: Move): Move {
+	const newMove = structuredClone(move);
+	const startRank = newMove.start.rank;
+	newMove.start.rank = newMove.start.file;
+	newMove.start.file = startRank;
+
+	const endRank = newMove.end.rank;
+	newMove.end.rank = newMove.end.file;
+	newMove.end.file = endRank;
+
+	newMove.start.rank = 10 - newMove.start.rank;
+	newMove.end.rank = 10 - newMove.start.rank;
+	newMove.start.file = 10 - newMove.start.file;
+	newMove.end.file = 10 - newMove.end.file;
+
+	newMove.start.rank -= 1;
+	newMove.start.file -= 1;
+	newMove.end.rank -= 1;
+	newMove.end.file -= 1;
+	return newMove;
 }

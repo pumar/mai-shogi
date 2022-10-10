@@ -22,7 +22,7 @@ import { PlayerColor } from "./Consts";
 import { Move } from "./types/Move";
 import { MessageKeys, MessageTypes } from "./CommunicationConsts";
 import { sfenToGame } from "../Notation/Sfen";
-import { serverMovesToClientMoves } from "../Notation/MoveNotation";
+import { clientMoveToServerMove, serverMovesToClientMoves } from "../Notation/MoveNotation";
 
 
 /**
@@ -88,6 +88,14 @@ export class GameRunner implements IEventQueueListener {
 	private className = "GameRunner";
 	private gameStates: Game[] = [];
 	private checkDefined = makeExistsGuard("GameRunner");
+
+	private _postMoveCallback?: (move: string) => void;
+	public setPostMoveCallback(cback: (move: string) => void) {
+		this._postMoveCallback = cback;
+	}
+	private getPostMoveCallback() {
+		return this.checkDefined(this._postMoveCallback, "getPostMoveCallback");
+	}
 
 	public fontLoadingPath?: string;
 	public getFontLoadingPath(): string {
@@ -1104,6 +1112,27 @@ export class GameRunner implements IEventQueueListener {
 				if(move !== undefined) {
 					//TODO send this move to the server
 					console.log(`TODO send move to server`, move);
+					const currGameState = this.getCurrentGameState();
+					//const currentPlayer = findPlayer(
+					//	currGameState,
+					//	currGameState.nextMovePlayer === "white"
+					//		? PlayerColor.Black
+					//		: PlayerColor.White);
+					////console.log({ adjustedMove, currentPlayer });
+					//const moveFromGameState = currentPlayer.moves.find((inspectMove: Move) => {
+					//	inspectMove.start.rank = move.start.rank;
+					//	inspectMove.start.file = move.start.file;
+					//	inspectMove.end.rank = move.end.rank;
+					//	inspectMove.end.file = move.end.file;
+					//});
+					//if (moveFromGameState === undefined) {
+					//	throw new Error(`could not find the origin server move for:${JSON.stringify(move)}`);
+					//}
+					console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
+					this.getPostMoveCallback()(move.originalString || "BAD CLIENT SIDE MOVE STRING");
+
+
+					//const adjustedMove = clientMoveToServerMove(move);
 					//this.gameStates.push(newGameState);
 					//this.renderStep();
 				}

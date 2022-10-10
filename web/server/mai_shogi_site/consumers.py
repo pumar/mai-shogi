@@ -19,6 +19,7 @@ class MessageKeys(str, Enum):
     MESSAGE_TYPE = "messageType"
     MATCH = "match"
     MOVES = "moves"
+    MOVE = "move"
 
 #TODO this will need to be made asynchronous, taking care to not have race conditions
 #when accessing things like Django models
@@ -46,5 +47,10 @@ class GameConsumer(WebsocketConsumer):
 
     def receive(self, text_data):
         text_data_json = json.loads(text_data)
-        messageType = text_data_json[MessageTypes.MAKE_MOVE]
+        messageType = text_data_json[MessageKeys.MESSAGE_TYPE]
         print((messageType, text_data_json))
+        if messageType == MessageTypes.MAKE_MOVE:
+            moveToPost = text_data_json[MessageKeys.MOVE]
+            print(f'need to post move to game:{moveToPost}')
+        else:
+            print(f'unknown message type:{messageType}')

@@ -1,3 +1,4 @@
+import { MessageKeys, MessageTypes } from "./Game/CommunicationConsts";
 import { getDefaultSvgLoadConfig } from "./Game/GameRunner";
 import { EventQueue } from "./Game/Input/EventQueue";
 import { GameInteractionController } from "./Game/Input/UserInteraction";
@@ -10,5 +11,7 @@ export {
 	setCanvasSizeToMatchLayout,
 	EventQueue,
 	GameInteractionController,
+	MessageTypes,
+	MessageKeys,
 }
 
