@@ -7,7 +7,7 @@ import { makeExistsGuard } from "../utils/Guards";
 import { measureTime } from "../utils/Performance";
 import { debounce } from "../utils/Throttling";
 
-import { createGame, getPawnStartRank } from "./GameCreator";
+import { createGame, createHeldPieces, getPawnStartRank } from "./GameCreator";
 import { defaultRenderSettings, RenderSettings, setCanvasSizeToMatchLayout } from "./Renderer/Renderer";
 import { getAssetKeyForPiece } from "./types/AssetKeys";
 import { findPlacedPieceAndPlayer, findPlayer, Game } from "./types/Game";
@@ -19,6 +19,10 @@ import { EventType, EventWrapper, IEventQueueListener } from "./Input/EventQueue
 import { boxToString } from "../threeUtils/Printing";
 import { GameInteractionController } from "./Input/UserInteraction";
 import { PlayerColor } from "./Consts";
+import { Move } from "./types/Move";
+import { MessageKeys, MessageTypes } from "./CommunicationConsts";
+import { sfenToGame } from "../Notation/Sfen";
+import { clientMoveToServerMove, serverMovesToClientMoves } from "../Notation/MoveNotation";
 
 
 /**
@@ -84,6 +88,14 @@ export class GameRunner implements IEventQueueListener {
 	private className = "GameRunner";
 	private gameStates: Game[] = [];
 	private checkDefined = makeExistsGuard("GameRunner");
+
+	private _postMoveCallback?: (move: string) => void;
+	public setPostMoveCallback(cback: (move: string) => void) {
+		this._postMoveCallback = cback;
+	}
+	private getPostMoveCallback() {
+		return this.checkDefined(this._postMoveCallback, "getPostMoveCallback");
+	}
 
 	public fontLoadingPath?: string;
 	public getFontLoadingPath(): string {
@@ -518,12 +530,12 @@ export class GameRunner implements IEventQueueListener {
 		this.gameStates.push(game);
 	}
 
-	public run(initialGameState?: Game): void {
-		if (initialGameState) {
-			this.gameStates.push(initialGameState);
-		} else {
-			this.gameStates.push(createGame());
-		}
+	public run(): void {
+		//if (initialGameState) {
+		//	this.gameStates.push(initialGameState);
+		//} else {
+		//	this.gameStates.push(createGame());
+		//}
 
 		requestAnimationFrame(this.renderStep.bind(this));
 	}
@@ -1096,10 +1108,33 @@ export class GameRunner implements IEventQueueListener {
 		console.log("game notified of event:", event);
 		switch(event.type) {
 			case EventType.Mouse:
-				const newGameState = this.handleMouseEvent(event);
-				if(newGameState !== undefined) {
-					this.gameStates.push(newGameState);
-					this.renderStep();
+				const move = this.handleMouseEvent(event);
+				if(move !== undefined) {
+					//TODO send this move to the server
+					console.log(`TODO send move to server`, move);
+					const currGameState = this.getCurrentGameState();
+					//const currentPlayer = findPlayer(
+					//	currGameState,
+					//	currGameState.nextMovePlayer === "white"
+					//		? PlayerColor.Black
+					//		: PlayerColor.White);
+					////console.log({ adjustedMove, currentPlayer });
+					//const moveFromGameState = currentPlayer.moves.find((inspectMove: Move) => {
+					//	inspectMove.start.rank = move.start.rank;
+					//	inspectMove.start.file = move.start.file;
+					//	inspectMove.end.rank = move.end.rank;
+					//	inspectMove.end.file = move.end.file;
+					//});
+					//if (moveFromGameState === undefined) {
+					//	throw new Error(`could not find the origin server move for:${JSON.stringify(move)}`);
+					//}
+					console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
+					this.getPostMoveCallback()(move.originalString || "BAD CLIENT SIDE MOVE STRING");
+
+
+					//const adjustedMove = clientMoveToServerMove(move);
+					//this.gameStates.push(newGameState);
+					//this.renderStep();
 				}
 				break;
 			case EventType.Keyboard:
@@ -1115,7 +1150,7 @@ export class GameRunner implements IEventQueueListener {
 	* use both effectively for the piece drag & drop
 	* @returns if game state was changed, the new game state is returned, if not, undefined
 	**/
-	private handleMouseEvent(event: EventWrapper): Game | undefined {
+	private handleMouseEvent(event: EventWrapper): Move | undefined {
 		if (event.event.type !== "mouseup") {
 			return undefined;
 		}
@@ -1159,21 +1194,21 @@ export class GameRunner implements IEventQueueListener {
 
 			if(piecePlayer !== undefined) {
 				const { player, piece: clickedPiece } = piecePlayer;
-				const newGame = interactionController.handleClick({
+				const move = interactionController.handleClick({
 					clickedEntity: {
 						piece: clickedPiece,
 						pieceOwner: player,
 					}
 				}, currentGameState);
-				return newGame;
+				return move;
 			} else {
-				const newGame = interactionController.handleClick({
+				const move = interactionController.handleClick({
 					clickedEntity: {
 						rank: hitSpace.rank,
 						file: hitSpace.file,
 					},
 				}, currentGameState);
-				return newGame;
+				return move;
 			}
 		}
 
@@ -1220,13 +1255,13 @@ export class GameRunner implements IEventQueueListener {
 			if(heldPiece === undefined) {
 				throw new Error("TODO");
 			}
-			const newGame = interactionController.handleClick({
+			const move = interactionController.handleClick({
 				clickedEntity: {
 					piece: heldPiece,
 					pieceOwner: PlayerColor.White,
 				}
 			}, currentGameState);
-			return newGame;
+			return move;
 		}
 	}
 
@@ -1244,5 +1279,49 @@ export class GameRunner implements IEventQueueListener {
 
 	private handleKeyboardEvent(event: EventWrapper): void {
 		console.log({ keyboardEvent: event.event});
+	}
+
+	public receiveMessage(message: Record<string, any>): void {
+		const messageType = message[MessageKeys.MESSAGE_TYPE];
+		switch(messageType) {
+			case MessageTypes.GAME_STATE_UPDATE:
+				this.updateGameState(message);
+				break;
+			default:
+				throw new Error(`receiveMessage TODO:${messageType}`);
+		}
+	}
+
+	private updateGameState(message: Record<string, any>): void {
+		const match = message[MessageKeys.MATCH];
+		const newGame = sfenToGame(match);
+
+		const moves = serverMovesToClientMoves(
+			message[MessageKeys.MOVES],
+		);
+
+		const nextMovePlayer = findPlayer(
+			newGame as Game,
+			(newGame as Game).nextMovePlayer,
+		);
+
+		nextMovePlayer.moves = moves;
+
+		const isFirstUpdate = this.gameStates.length === 0;
+		console.log({ newGame, message, isFirstUpdate });
+		//TODO the origin of this state must be on the server
+		//not on the client, so that the server can randomly give people black
+		//or white
+		//newGame.viewPoint = PlayerColor.Black;
+		newGame.viewPoint = PlayerColor.White;
+
+		this.gameStates.push(newGame as Game);
+
+		if (isFirstUpdate) {
+			this.drawStaticObjects(this.getCurrentGameState());
+		}
+
+		console.log('run');
+		this.run();
 	}
 }

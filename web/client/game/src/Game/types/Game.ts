@@ -17,6 +17,7 @@ type Game = {
 	* if the user is playing the white pieces, this will be "white"
 	**/
 	viewPoint: Turn;
+	nextMovePlayer: Turn;
 }
 
 /**
@@ -46,3 +47,4 @@ function findPlacedPieceAndPlayer(gameState: Game, rank: number, file: number): 
 		player
 	} : undefined;
 }
+

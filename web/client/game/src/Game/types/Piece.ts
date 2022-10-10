@@ -1,3 +1,4 @@
+import { PlayerColor } from "../Consts";
 import { Turn } from "./Player";
 
 export {
@@ -5,10 +6,12 @@ export {
 	PlacedPiece,
 	HeldPiece,
 	PlayerHeldPiece,
+	PlayerPlacedPiece,
 	isPlaced,
 	isPromotable,
 	isHeldPiece,
-	Placed,
+	BoardLocation,
+	mkBoardLocation,
 	Pawn,
 	Lance,
 	Knight,
@@ -19,15 +22,26 @@ export {
 	GamePiece,
 	PieceNames,
 	mkHeldPiece,
+	mkPlacedPiece,
+	mkPlayerPlacedPiece,
+	mkGamePiece,
 	arePiecesEqual,
 }
 
 function isPlaced(obj: Piece): obj is PlacedPiece {
-	return (obj as Placed).rank !== undefined && (obj as Placed).file !== undefined;
+	return (obj as BoardLocation).rank !== undefined && (obj as BoardLocation).file !== undefined;
 }
-type Placed = {
+
+type BoardLocation = {
 	rank: number;
 	file: number;
+}
+
+function mkBoardLocation(rank: number, file: number) {
+	return {
+		rank,
+		file
+	}
 }
 
 function isPromotable(obj: Record<string, any>): obj is Promotable {
@@ -58,9 +72,33 @@ type Gold = { name: PieceNames.Gold };
 type King = { name: PieceNames.King };
 
 type GamePiece = Pawn | Lance | Knight | Silver | Gold | Bishop | Rook | King;
+function mkGamePiece(isPromoted: boolean, pieceName: PieceNames): GamePiece {
+	return {
+		isPromoted,
+		name: pieceName
+	}
+}
 
 /** piece on the board */
-type PlacedPiece = GamePiece & Placed;
+type PlacedPiece = GamePiece & BoardLocation;
+
+type PlayerPlacedPiece = PlacedPiece & { playerColor: PlayerColor };
+function mkPlayerPlacedPiece(
+	gamePiece: GamePiece,
+	location: BoardLocation,
+	playerColor: PlayerColor
+): PlayerPlacedPiece {
+	return Object.assign(mkPlacedPiece(
+			gamePiece,
+			location,
+		),
+		{ playerColor },
+	) as PlayerPlacedPiece;
+}
+
+function mkPlacedPiece(piece: GamePiece, location: BoardLocation): PlacedPiece {
+	return Object.assign({}, piece, location);
+}
 
 /** piece in the hand */
 type HeldPiece = GamePiece & {

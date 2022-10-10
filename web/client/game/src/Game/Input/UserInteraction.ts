@@ -1,7 +1,7 @@
 import { PlayerColor } from "../Consts";
-import { findPlacedPieceAndPlayer, findPlayer, Game } from "../types/Game";
+import { findPlayer, Game } from "../types/Game";
+import { Move } from "../types/Move";
 import { arePiecesEqual, HeldPiece, isHeldPiece, PlacedPiece, PlayerHeldPiece } from "../types/Piece";
-import { removePlacedPiece } from "../types/Player";
 
 type ClickedSpace = {
 	rank: number;
@@ -33,7 +33,7 @@ export class GameInteractionController {
 	private className = "GameInteractionController";
 	private selectedPiece?: PlayerHeldPiece | PlacedPiece;
 
-	public handleClick(event: InteractionEvent, currentGameState: Game): Game | undefined {
+	public handleClick(event: InteractionEvent, currentGameState: Game): Move | undefined {
 		if(isClickedSpace(event.clickedEntity)) {
 			if(this.selectedPiece !== undefined) {
 				return this.movePiece(event.clickedEntity, currentGameState);
@@ -66,7 +66,7 @@ export class GameInteractionController {
 			console.info(`${this.className} ignoring event:`, event);
 		}
 
-		return currentGameState;
+		return undefined;
 	}
 
 	private selectPiece(event: InteractionEvent, currentGameState: Game): void {
@@ -81,57 +81,103 @@ export class GameInteractionController {
 		}
 	}
 
-	private movePiece(clickedEntity: ClickedSpace, currentGameState: Game): Game {
+	private movePiece(clickedEntity: ClickedSpace, currentGameState: Game): Move | undefined {
 		if(this.selectedPiece === undefined) throw new Error(`${this.className}::movePiece selectedPiece was undefined`);
-		//TODO be careful not to accidentally modify the current game state,
-		//you should modify the new one. Ideally, I will refactor this to work
-		//in an immutable fashion
-		const newGameState = structuredClone(currentGameState);
-		const pieceName = this.selectedPiece.name;
 
-		if(isHeldPiece(this.selectedPiece)){
-			const playerColor = this.selectedPiece.player;
-			const player = findPlayer(newGameState, playerColor);
-			//the piece was placed on the board, so decrement the counter for that kind
-			//of held piece, for that player
-			const heldPiece = player.heldPieces.find(heldPiece => heldPiece.name === pieceName);
-			if(heldPiece === undefined) throw new Error(`${this.className}::movePiece , couldn't find held piece:${pieceName} for player:${playerColor} to decrement`);
-			heldPiece.count -= 1;
+		const { rank: destRank, file: destFile } = clickedEntity;
 
-			//create a placed piece for the player
-			player.placedPieces.push({
-				rank: clickedEntity.rank,
-				file: clickedEntity.file,
-				name: pieceName
-			});
-		} else {
-			const selectedPiecePlayer = findPlacedPieceAndPlayer(
-				newGameState,
-				this.selectedPiece.rank,
-				this.selectedPiece.file,
-			);
-			if(selectedPiecePlayer === undefined) throw new Error(`${this.className}::movePiece could not find the current selected piece in the game state`);
-			const targetPiecePlayer = findPlacedPieceAndPlayer(
-				newGameState,
-				clickedEntity.rank,
-				clickedEntity.file,
-			);
+		//const { rank: startRank, file: startFile } = this.selectedPiece;
 
-			//delete the piece in the target space
-			if(targetPiecePlayer !== undefined) {
-				removePlacedPiece(
-					findPlayer(newGameState, targetPiecePlayer.player),
-					targetPiecePlayer.piece
-				);
-			}
+		const humanPlayerMoves = findPlayer(currentGameState, currentGameState.nextMovePlayer).moves;
 
-			//move the placed piece to the target destination
-			selectedPiecePlayer.piece.rank = clickedEntity.rank;
-			selectedPiecePlayer.piece.file = clickedEntity.file;
+		const movesForSelectedPiece = isHeldPiece(this.selectedPiece)
+			? this.getMovesForHeldPiece(humanPlayerMoves, this.selectedPiece)
+			: this.getMovesForPlacedPiece(humanPlayerMoves, this.selectedPiece);
+
+		if(movesForSelectedPiece.length === 0){
+			//TODO don't allow selection of a piece with no legal moves
+			console.warn([
+				`movePiece, no legal move found for`,
+				isHeldPiece(this.selectedPiece) ? `held piece:${this.selectedPiece.name}` : `start space:(${this.selectedPiece.rank}, ${this.selectedPiece.file})`,
+			].join(' '));
+			return undefined;
 		}
 
-		//reset the piece selection state, action is finished
-		this.selectedPiece = undefined;
-		return newGameState;
+		const selectedMove = humanPlayerMoves.find(move => move.end.rank === destRank && move.end.file === destFile);
+		if (selectedMove === undefined){
+			console.warn(`movePiece, target space:(${destRank}, ${destFile}) is not legal, you should select from these moves:`, movesForSelectedPiece );
+			return undefined;
+		}
+
+		return selectedMove;
 	}
+
+	private getMovesForHeldPiece(playerMoves: Move[], heldPiece: HeldPiece): Move[] {
+		const pieceName = heldPiece.name;
+		return playerMoves.filter(move => move.heldPieceName === pieceName);
+	}
+
+	private getMovesForPlacedPiece(playerMoves: Move[], placedPiece: PlacedPiece): Move[] {
+		return playerMoves.filter(move =>
+			 move.start.rank === placedPiece.rank
+			 && move.start.file === placedPiece.file);
+	}
+
+	//TODO this code moved the pieces locally, just to verify the space selection logic
+	//and renderer. All that it actually needs to do is to communicate a move to the server
+	//but, It could be good to keep this around in case we start to allow a client local cpu/game engine
+
+	//private movePiece(clickedEntity: ClickedSpace, currentGameState: Game): Game {
+	//	if(this.selectedPiece === undefined) throw new Error(`${this.className}::movePiece selectedPiece was undefined`);
+	//	//TODO be careful not to accidentally modify the current game state,
+	//	//you should modify the new one. Ideally, I will refactor this to work
+	//	//in an immutable fashion
+	//	const newGameState = structuredClone(currentGameState);
+	//	const pieceName = this.selectedPiece.name;
+
+	//	if(isHeldPiece(this.selectedPiece)){
+	//		const playerColor = this.selectedPiece.player;
+	//		const player = findPlayer(newGameState, playerColor);
+	//		//the piece was placed on the board, so decrement the counter for that kind
+	//		//of held piece, for that player
+	//		const heldPiece = player.heldPieces.find(heldPiece => heldPiece.name === pieceName);
+	//		if(heldPiece === undefined) throw new Error(`${this.className}::movePiece , couldn't find held piece:${pieceName} for player:${playerColor} to decrement`);
+	//		heldPiece.count -= 1;
+
+	//		//create a placed piece for the player
+	//		player.placedPieces.push({
+	//			rank: clickedEntity.rank,
+	//			file: clickedEntity.file,
+	//			name: pieceName
+	//		});
+	//	} else {
+	//		const selectedPiecePlayer = findPlacedPieceAndPlayer(
+	//			newGameState,
+	//			this.selectedPiece.rank,
+	//			this.selectedPiece.file,
+	//		);
+	//		if(selectedPiecePlayer === undefined) throw new Error(`${this.className}::movePiece could not find the current selected piece in the game state`);
+	//		const targetPiecePlayer = findPlacedPieceAndPlayer(
+	//			newGameState,
+	//			clickedEntity.rank,
+	//			clickedEntity.file,
+	//		);
+
+	//		//delete the piece in the target space
+	//		if(targetPiecePlayer !== undefined) {
+	//			removePlacedPiece(
+	//				findPlayer(newGameState, targetPiecePlayer.player),
+	//				targetPiecePlayer.piece
+	//			);
+	//		}
+
+	//		//move the placed piece to the target destination
+	//		selectedPiecePlayer.piece.rank = clickedEntity.rank;
+	//		selectedPiecePlayer.piece.file = clickedEntity.file;
+	//	}
+
+	//	//reset the piece selection state, action is finished
+	//	this.selectedPiece = undefined;
+	//	return newGameState;
+	//}
 }

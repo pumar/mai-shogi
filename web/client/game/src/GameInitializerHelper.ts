@@ -11,17 +11,17 @@ export {
 
 async function setupGameWithDefaults(
 	canvas: HTMLCanvasElement,
-	initialGameState: Game = createGame(),
+	//initialGameState: Game = createGame(),
 	svgLoadSettings: SvgLoadConfig = getDefaultSvgLoadConfig(),
 	fontLoadingDir: string = getDefaultFontLoadingDir(),
 ): Promise<{
 	game: GameRunner,
 	eventQueue: EventQueue,
-	initialGameState: Game,
+	//initialGameState: Game,
 }> {
 	console.log("loading game with settings:", {
 		canvas,
-		initialGameState,
+		//initialGameState,
 		svgLoadSettings,
 		fontLoadingDir
 	});
@@ -34,7 +34,7 @@ async function setupGameWithDefaults(
 
 	game.setRenderSettings(renderSettings);
 	//const initialGameState = createGame();
-	game.addGameState(initialGameState);
+	//game.addGameState(initialGameState);
 	await game.initGraphics(svgLoadSettings, fontLoadingDir);
 	setCanvasSizeToMatchLayout(game.getCanvas());
 	game.setResizeHandlers();
@@ -53,6 +53,6 @@ async function setupGameWithDefaults(
 	return {
 		game,
 		eventQueue,
-		initialGameState,
+	//	initialGameState,
 	}
 }
