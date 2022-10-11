@@ -41,8 +41,8 @@ class GameConsumer(WebsocketConsumer):
 
     def createMatch(self) -> Match:
         return Match(
-            ComputerPlayer(True),#computer player with the white pieces
-            HumanPlayer(False),#human player with the black pieces
+            ComputerPlayer(False),#gote computer player
+            HumanPlayer(True),#sente human player
         )
 
     def disconnect(self, close_code):

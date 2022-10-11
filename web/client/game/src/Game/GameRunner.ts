@@ -323,6 +323,7 @@ export class GameRunner implements IEventQueueListener {
 				translateGroup.add(group);
 				//scale the y coordinates by -1 to go from SVG space to threejs world space
 				group.scale.setY(-1);
+				group.updateMatrix();
 
 				//center the contents of the svg about the center of the group object they are in
 				const svgArea = new Box3().setFromObject(group);
@@ -366,7 +367,6 @@ export class GameRunner implements IEventQueueListener {
 		}, (time) => console.log(`svg parsing time:${time}`));
 
 		Object.assign(this.gameAssets.pieces, Object.fromEntries(svgObjects));
-		//console.log({ gameAssets: this.gameAssets, pieceKeys: Object.keys(this.gameAssets.pieces) });
 
 		//resize the pieces
 		Object.values(this.gameAssets.pieces).forEach((piece: Group) => {
@@ -375,16 +375,6 @@ export class GameRunner implements IEventQueueListener {
 			pieceBox.getSize(pieceSize);
 			const sizeRatioX = pieceSize.x / renderSettings.boardSpaceWidth;
 			const sizeRatioY = pieceSize.y / renderSettings.boardSpaceHeight;
-
-			//debug svgscaling
-			//console.log({
-			//	px: pieceSize.x,
-			//	py: pieceSize.y,
-			//	bsw: renderSettings.boardSpaceWidth,
-			//	bsh: renderSettings.boardSpaceHeight,
-			//	sizeRatioX,
-			//	sizeRatioY,
-			//});
 
 			piece.scale.set(1 / sizeRatioX, 1 / sizeRatioY, 1);
 			piece.updateMatrixWorld();
@@ -870,13 +860,10 @@ export class GameRunner implements IEventQueueListener {
 			throw new Error(`no stand group`);
 		}
 
-		//const blackHeldPieces: DrawPiece[] = this.getPiecesGraphicsObjects(
-		//	blackPlayer.pieces.filter(piece => isHeldPiece(piece)),
-		//);
 		this.placeHeldPieces(
 			blackStandPiecesGroup as Group,
 			calcedRenderCoords.blackHeldPiecesLocations,
-			gameState.viewPoint === PlayerColor.Black,
+			gameState.viewPoint !== PlayerColor.Black,
 		);
 
 		//const whiteHeldPieces: DrawPiece[] = this.getPiecesGraphicsObjects(
@@ -888,15 +875,18 @@ export class GameRunner implements IEventQueueListener {
 		this.placeHeldPieces(
 			whiteStandPiecesGroup as Group,
 			calcedRenderCoords.whiteHeldPiecesLocations,
-			gameState.viewPoint === PlayerColor.White,
+			gameState.viewPoint !== PlayerColor.White,
 		);
 	}
 
-	/** set the locations for the held pieces for a player's side */
+	/**
+	* set the locations for the held pieces for a player's side
+	* @param isNeedsRotateColor if the held piece's are the current player's, then they need to be rotated upright
+	**/
 	private placeHeldPieces(
 		group: Group,
 		pieceLocations: [PieceNames, Vector3][],
-		isMainViewPoint: boolean,
+		isNeedsRotateColor: boolean,
 	): void {
 		const pieces = [
 			{ name: PieceNames.Pawn, isPromoted: false } as Pawn,
@@ -923,7 +913,7 @@ export class GameRunner implements IEventQueueListener {
 		});
 
 		//Rotate the pieces for the side of the player, so that they are facing upright
-		if(isMainViewPoint){
+		if(isNeedsRotateColor){
 			pieceGraphicsObjects.forEach((piece) => {
 				piece.graphicsObject.position.set(0, 0, 0);
 				piece.graphicsObject.rotateZ(Math.PI);
@@ -1023,44 +1013,37 @@ export class GameRunner implements IEventQueueListener {
 				)
 			}
 		});
-		//console.log({ placedPiecesPerPlayer });
 
 		const pieceGraphicsObjects = placedPiecesPerPlayer
 			.flatMap(player => player.pieces.map(drawPiece => drawPiece.graphicsObject))
 
-		//console.log({ pieceGraphicsObjects });
+		piecesGroup.remove(...piecesGroup.children);
+		piecesGroup.add(...pieceGraphicsObjects);
 
-		//const numPieces = piecesGroup.children.length;
 		//measureTime(() => {
-			piecesGroup.remove(...piecesGroup.children);
-			piecesGroup.add(...pieceGraphicsObjects);
-		//}, time => console.log(`drawPlacedPieces re-insert objects into the scene:${time}`));
-		//console.log({ piecesRemoved: numPieces, piecesAdded: pieceGraphicsObjects.length });
-		//measureTime(() => {
-			placedPiecesPerPlayer.forEach((player) => {
-				player.pieces.forEach((drawPiece: DrawPiece) => {
-					const graphicsObject = drawPiece.graphicsObject;
-					//console.error('draw piece', drawPiece);
-					//TODO consider actually loading in the white & the black pieces,
-					//instead of just loading in half of them and then rotating them
-					if (player.turn === gameState.viewPoint) {
-						graphicsObject.position.set(0, 0, 0);
-						graphicsObject.rotateZ(Math.PI);
-					}
-					//TODO how do I tell the type system that these are placed pieces?
-					//I filtered them using isPlaced
-					const worldCoordinates = spaceCenterPointLookup[drawPiece.rank - 1][drawPiece.file - 1].clone();
-					graphicsObject.position.copy(worldCoordinates);
-					//const toString = (vector) => `(${vector.x}, ${vector.y}, ${vector.z})`;
-					//console.log('drew piece at:', {
-					//	rank: drawPiece.rank,
-					//	file: drawPiece.file,
-					//	coords: toString(drawPiece.graphicsObject.position)
-					//});
+		placedPiecesPerPlayer.forEach((player) => {
+			player.pieces.forEach((drawPiece: DrawPiece) => {
+				const graphicsObject = drawPiece.graphicsObject;
 
-					drawPiece.graphicsObject.updateMatrixWorld();
-				});
+				//instead of just loading in half of them and then rotating them
+				const shouldRotate = player.turn === gameState.viewPoint;
+				//console.log({
+				//	playerTurn: player.turn,
+				//	viewpoint: gameState.viewPoint,
+				//	shouldRotate,
+				//});
+				if (shouldRotate) {
+					graphicsObject.position.set(0, 0, 0);
+					graphicsObject.rotateZ(Math.PI);
+				}
+				//TODO how do I tell the type system that these are placed pieces?
+				//I filtered them using isPlaced
+				const worldCoordinates = spaceCenterPointLookup[drawPiece.rank - 1][drawPiece.file - 1].clone();
+				graphicsObject.position.copy(worldCoordinates);
+
+				drawPiece.graphicsObject.updateMatrixWorld();
 			});
+		});
 		//}, time => console.log(`drawPlacedPieces update piece coordinates:${time}`));
 	}
 
@@ -1111,7 +1094,6 @@ export class GameRunner implements IEventQueueListener {
 				const move = this.handleMouseEvent(event);
 				if(move !== undefined) {
 					//TODO send this move to the server
-					console.log(`TODO send move to server`, move);
 					const currGameState = this.getCurrentGameState();
 					//const currentPlayer = findPlayer(
 					//	currGameState,
@@ -1316,8 +1298,8 @@ export class GameRunner implements IEventQueueListener {
 		//TODO the origin of this state must be on the server
 		//not on the client, so that the server can randomly give people black
 		//or white
-		//newGame.viewPoint = PlayerColor.Black;
-		newGame.viewPoint = PlayerColor.White;
+		newGame.viewPoint = PlayerColor.Black;
+		//newGame.viewPoint = PlayerColor.White;
 
 		this.gameStates.push(newGame as Game);
 

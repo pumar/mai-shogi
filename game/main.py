@@ -2,41 +2,43 @@ from copy import deepcopy
 from curses.ascii import isalpha, islower
 from typing import Dict, List, Tuple
 
+# previous logic had 'white' as meaning sente
+# and 'black' as meaning gote
 class Player:
-    whiteSide: bool
+    senteSide: bool
     humanPlayer: bool
 
-    def __init__(self, whiteSide) -> None:
-        self.whiteSide = whiteSide
+    def __init__(self, senteSide) -> None:
+        self.senteSide = senteSide
     
-    def isWhiteSide(self) -> bool:
-        return self.whiteSide
+    def isSente(self) -> bool:
+        return self.senteSide
     
     def isHumanPlayer(self) -> bool:
         return self.humanPlayer
 
 class HumanPlayer(Player):
-    def __init__(self, whiteSide) -> None:
-        super().__init__(whiteSide)
+    def __init__(self, senteSide) -> None:
+        super().__init__(senteSide)
         self.humanPlayer = True
 
 class ComputerPlayer(Player):
-    def __init__(self, whiteSide) -> None:
-        super().__init__(whiteSide)
+    def __init__(self, senteSide) -> None:
+        super().__init__(senteSide)
         self.humanPlayer = False
 
 
 class Koma:
     onHand = False
     promoted = False
-    white = False
+    sente = False
 
-    def __init__(self, white, onHand = False):
-        self.white = white
+    def __init__(self, sente, onHand = False):
+        self.sente = sente
         self.onHand = onHand
 
-    def isWhite(self) -> bool:
-        return self.white
+    def isSente(self) -> bool:
+        return self.sente
     
     def isPromoted(self) -> bool:
         return self.promoted
@@ -44,8 +46,8 @@ class Koma:
     def Promote(self):
         self.promoted = True
 
-    def setWhite(self, white):
-        self.white = white
+    def setSente(self, sente):
+        self.sente = sente
 
     def isOnHand(self):
         return self.onHand
@@ -70,7 +72,7 @@ class Koma:
                 serialized_piece = "b"
             if type(self) is Hisha:
                 serialized_piece = "r"
-            if not self.isWhite(): serialized_piece = serialized_piece.upper()
+            if not self.isSente(): serialized_piece = serialized_piece.upper()
             return serialized_piece
 
 class Masu:
@@ -120,36 +122,36 @@ class Banmen:
             for j in range(0,9):
                 board[i].append(Masu(i, j, None))
 
-        board[0][0].setKoma(Kyousha(True))
-        board[1][0].setKoma(Keima(True))
-        board[2][0].setKoma(Ginshou(True))
-        board[3][0].setKoma(Kinshou(True))
-        board[4][0].setKoma(Gyokushou(True))
-        board[5][0].setKoma(Kinshou(True))
-        board[6][0].setKoma(Ginshou(True))
-        board[7][0].setKoma(Keima(True))
-        board[8][0].setKoma(Kyousha(True))
+        board[0][0].setKoma(Kyousha(False))
+        board[1][0].setKoma(Keima(False))
+        board[2][0].setKoma(Ginshou(False))
+        board[3][0].setKoma(Kinshou(False))
+        board[4][0].setKoma(Gyokushou(False))
+        board[5][0].setKoma(Kinshou(False))
+        board[6][0].setKoma(Ginshou(False))
+        board[7][0].setKoma(Keima(False))
+        board[8][0].setKoma(Kyousha(False))
 
-        board[1][1].setKoma(Kakugyou(True))
-        board[7][1].setKoma(Hisha(True))
+        board[1][1].setKoma(Kakugyou(False))
+        board[7][1].setKoma(Hisha(False))
 
 
-        board[0][8].setKoma(Kyousha(False))
-        board[1][8].setKoma(Keima(False))
-        board[2][8].setKoma(Ginshou(False))
-        board[3][8].setKoma(Kinshou(False))
-        board[4][8].setKoma(Gyokushou(False))
-        board[5][8].setKoma(Kinshou(False))
-        board[6][8].setKoma(Ginshou(False))
-        board[7][8].setKoma(Keima(False))
-        board[8][8].setKoma(Kyousha(False))
+        board[0][8].setKoma(Kyousha(True))
+        board[1][8].setKoma(Keima(True))
+        board[2][8].setKoma(Ginshou(True))
+        board[3][8].setKoma(Kinshou(True))
+        board[4][8].setKoma(Gyokushou(True))
+        board[5][8].setKoma(Kinshou(True))
+        board[6][8].setKoma(Ginshou(True))
+        board[7][8].setKoma(Keima(True))
+        board[8][8].setKoma(Kyousha(True))
 
-        board[1][7].setKoma(Hisha(False))
-        board[7][7].setKoma(Kakugyou(False))
+        board[1][7].setKoma(Hisha(True))
+        board[7][7].setKoma(Kakugyou(True))
 
         for i in range(0,9):
-            board[i][2].setKoma(Fuhyou(True))
-            board[i][6].setKoma(Fuhyou(False))
+            board[i][2].setKoma(Fuhyou(False))
+            board[i][6].setKoma(Fuhyou(True))
         return board
 
     def getPieces(self) -> List[Koma]:
@@ -176,10 +178,10 @@ class Hand:
 
     def initialHand(self) -> Dict[Masu, int]:
         handKoma = {}
-        handKoma[Masu(koma=Fuhyou(white = True, onHand = True))] = 3
-        handKoma[Masu(koma=Fuhyou(white = False, onHand = True))] = 1
-        handKoma[Masu(koma=Kinshou(white = True, onHand = True))] = 1
-        handKoma[Masu(koma=Kinshou(white = False, onHand = True))] = 1
+        handKoma[Masu(koma=Fuhyou(sente = False, onHand = True))] = 3
+        handKoma[Masu(koma=Fuhyou(sente = True, onHand = True))] = 1
+        handKoma[Masu(koma=Kinshou(sente = False, onHand = True))] = 1
+        handKoma[Masu(koma=Kinshou(sente = True, onHand = True))] = 1
         return handKoma
 
 class Move:
@@ -209,32 +211,32 @@ class Move:
          
 
 class Fuhyou(Koma):
-    def __init__(self, white, onHand = False):
-        super().__init__(white, onHand)
+    def __init__(self, sente, onHand = False):
+        super().__init__(sente, onHand)
 
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
         moves: List[Move] = []
 
-        iswhite = src_square.getKoma().isWhite()
+        isSente = src_square.getKoma().isSente()
         piece = src_square.getKoma()
         x = src_square.getX()
         y = src_square.getY()
 
         if not self.isOnHand():
             if not self.isPromoted():
-                pd = [0,1] if iswhite else [0,-1]
+                pd = [0,1] if not isSente else [0,-1]
                 tX = x + pd[0]
                 tY = y + pd[1]
                 if(-1 < tX < 9 and -1 < tY < 9):
-                    if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
-                        if (iswhite and y > 6) or (not iswhite and y < 2):
+                    if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isSente):
+                        if (isSente and y > 6) or (not isSente and y < 2):
                             promoted_piece = deepcopy(piece)
                             promoted_piece.Promote()
                             moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
                         if not ((tY + pd[1]) > 8 or (tY + pd[1]) < 0):
                             moves.append(Move(src_square, Masu(tX, tY, piece)))
             else:
-                virtual_kin = Kinshou(iswhite)
+                virtual_kin = Kinshou(isSente)
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
         # Rewrite handkoma as a simpler data structure to simplify this part
         else:
@@ -246,38 +248,38 @@ class Fuhyou(Koma):
                 for column in board.grid:
                     hasFuhyou = False
                     for masu in column:
-                        if isinstance(masu.getKoma(), Fuhyou) and not masu.getKoma().isPromoted() and (masu.getKoma().isWhite() == iswhite):
+                        if isinstance(masu.getKoma(), Fuhyou) and not masu.getKoma().isPromoted() and (masu.getKoma().isSente() == isSente):
                             hasFuhyou = True
                     if not hasFuhyou:
                         for masu in column:
-                            if masu.getKoma() == None and ((iswhite and masu.getY() != 8) or (not iswhite and masu.getY() != 0)):
+                            if masu.getKoma() == None and ((isSente and masu.getY() != 8) or (not isSente and masu.getY() != 0)):
                                 moves.append(Move(src_square, Masu(masu.getX(),masu.getY(), piece)))
         
         return moves                              
 
 class Kyousha(Koma):
-    def __init__(self, white, onHand=False):
-        super().__init__(white, onHand)
+    def __init__(self, sente, onHand=False):
+        super().__init__(sente, onHand)
 
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
         moves: List[Move] = []
 
-        iswhite = src_square.getKoma().isWhite()
+        isSente = src_square.getKoma().isSente()
         piece = src_square.getKoma()
         x = src_square.getX()
         y = src_square.getY()
         
         if not self.isOnHand():
             if not self.isPromoted():
-                pd = [0,1] if iswhite else [0,-1]
+                pd = [0,1] if isSente else [0,-1]
                 tX = x
                 tY = y
                 while(True):
                     tX += pd[0]
                     tY += + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
-                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
-                            if (iswhite and tY > 5) or (not iswhite and tY < 3):
+                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
+                            if (isSente and tY > 5) or (not isSente and tY < 3):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
                                 moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
@@ -286,7 +288,7 @@ class Kyousha(Koma):
                         if board.getMasu(tX, tY).getKoma() != None: break
                     else: break
             else:
-                virtual_kin = Kinshou(iswhite)
+                virtual_kin = Kinshou(isGote)
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
         else:
             if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
@@ -297,34 +299,34 @@ class Kyousha(Koma):
         return moves
 
 class Keima(Koma):
-    def __init__(self, white, onHand=False):
-        super().__init__(white, onHand)
+    def __init__(self, sente, onHand=False):
+        super().__init__(sente, onHand)
     
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
         moves: List[Move] = []
 
-        iswhite = src_square.getKoma().isWhite()
+        isGote = not src_square.getKoma().isSente()
         piece = src_square.getKoma()
         x = src_square.getX()
         y = src_square.getY()
 
         if not self.isOnHand():
             if not self.isPromoted():
-                possible_deltas = [[1, 2],[-1, 2]]
-                if not iswhite: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
+                possible_deltas = [[1, -2], [-1, -2]] if isGote else [[1, 2],[-1, 2]]
+                #if not isGote: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
                 for pd in possible_deltas:
                     tX = x + pd[0]
                     tY = y + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
-                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
-                            if (iswhite and y > 3) or (not iswhite and y < 5):
+                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
+                            if (not isGote and y > 3) or (isGote and y < 5):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
                                 moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
                             if not ((tY + pd[1]) > 8 or (tY + pd[1]) < 0):
                                 moves.append(Move(src_square, Masu(tX, tY, piece)))        
             else:
-                virtual_kin = Kinshou(iswhite)
+                virtual_kin = Kinshou(isGote)
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
         else:
             if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
@@ -335,33 +337,35 @@ class Keima(Koma):
         return moves
 
 class Ginshou(Koma):
-    def __init__(self, white, onHand=False):
-        super().__init__(white, onHand)
+    def __init__(self, sente, onHand=False):
+        super().__init__(sente, onHand)
 
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
         moves: List[Move] = []
 
-        iswhite = src_square.getKoma().isWhite()
+        isGote = not src_square.getKoma().isSente()
         piece = src_square.getKoma()
         x = src_square.getX()
         y = src_square.getY()
 
         if not self.isOnHand():
             if not self.isPromoted():
+                #these deltas are for sente
                 possible_deltas = [[0,1],[1,1],[-1,1],[-1,-1],[1,-1]]
-                if not iswhite: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
+                #flip them if gote
+                if isGote: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
                 for pd in possible_deltas:
                     tX = x + pd[0]
                     tY = y + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
-                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
-                            if (iswhite and (y > 5 or tY > 5)) or (not iswhite and (y < 3 or tY < 3)):
+                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
+                            if (not isGote and (y > 5 or tY > 5)) or (isGote and (y < 3 or tY < 3)):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
                                 moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
                             moves.append(Move(src_square, Masu(tX, tY, piece))) 
             else:
-                virtual_kin = Kinshou(iswhite)
+                virtual_kin = Kinshou(isGote)
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
         # Rewrite handkoma as a simpler data structure to simplify this part
         else:
@@ -373,8 +377,8 @@ class Ginshou(Koma):
         return moves
 
 class Kinshou(Koma):
-    def __init__(self, white, onHand=False):
-        super().__init__(white, onHand)
+    def __init__(self, sente, onHand=False):
+        super().__init__(sente, onHand)
     
     def Promote(self):
         raise Exception("The Golden General cannot be promoted.")
@@ -382,20 +386,22 @@ class Kinshou(Koma):
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None, virtualized_piece: Koma = None) -> List[Move]:
         moves: List[Move] = []
 
-        iswhite = src_square.getKoma().isWhite()
+        isGote = not src_square.getKoma().isSente()
         if virtualized_piece != None: piece = deepcopy(virtualized_piece)
         else: piece = src_square.getKoma()
         x = src_square.getX()
         y = src_square.getY()
 
         if not self.isOnHand():
+            #these are the deltas for sente
             possible_deltas = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[-1,1]]
-            if not iswhite: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
+            #if we are gote, we gotta flip 'em
+            if isGote: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
             for pd in possible_deltas:
                 tX = x + pd[0]
                 tY = y + pd[1]
                 if(-1 < tX < 9 and -1 < tY < 9):
-                    if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
+                    if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
                         moves.append(Move(src_square, Masu(tX, tY, piece)))
         elif virtualized_piece == None:
             if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
@@ -406,13 +412,13 @@ class Kinshou(Koma):
         return moves                      
 
 class Kakugyou(Koma):
-    def __init__(self, white, onHand=False):
-        super().__init__(white, onHand)
+    def __init__(self, sente, onHand=False):
+        super().__init__(sente, onHand)
 
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
         moves: List[Move] = []
 
-        iswhite = src_square.getKoma().isWhite()
+        isGote = not src_square.getKoma().isSente()
         piece = src_square.getKoma()
         x = src_square.getX()
         y = src_square.getY()
@@ -426,8 +432,8 @@ class Kakugyou(Koma):
                     tX += pd[0]
                     tY += + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
-                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
-                            if (iswhite and tY > 5) or (not iswhite and tY < 3):
+                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
+                            if (isGote and tY > 5) or (not isGote and tY < 3):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
                                 moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
@@ -441,7 +447,7 @@ class Kakugyou(Koma):
                     tX = x + pd[0]
                     tY = y + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
-                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
+                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
                             moves.append(Move(src_square, Masu(tX, tY, piece)))
         else:
             if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
@@ -452,13 +458,13 @@ class Kakugyou(Koma):
         return moves
 
 class Hisha(Koma):
-    def __init__(self, white, onHand=False):
-        super().__init__(white, onHand)
+    def __init__(self, sente, onHand=False):
+        super().__init__(sente, onHand)
 
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
         moves: List[Move] = []
 
-        iswhite = src_square.getKoma().isWhite()
+        isGote = not src_square.getKoma().isSente()
         piece = src_square.getKoma()
         x = src_square.getX()
         y = src_square.getY()
@@ -472,8 +478,8 @@ class Hisha(Koma):
                     tX += pd[0]
                     tY += + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
-                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
-                            if (iswhite and tY > 5) or (not iswhite and tY < 3):
+                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
+                            if (isGote and tY > 5) or (not isGote and tY < 3):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
                                 moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
@@ -487,7 +493,7 @@ class Hisha(Koma):
                     tX = x + pd[0]
                     tY = y + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
-                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
+                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
                             moves.append(Move(src_square, Masu(tX, tY, piece)))
         else:
             if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
@@ -498,8 +504,8 @@ class Hisha(Koma):
         return moves
 
 class Gyokushou(Koma):
-    def __init__(self, white, onHand=False):
-        super().__init__(white, onHand)
+    def __init__(self, sente, onHand=False):
+        super().__init__(sente, onHand)
         if onHand: raise Exception("The King cannot be captured and sent to hand.")
         self.onHand = False
 
@@ -510,7 +516,7 @@ class Gyokushou(Koma):
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
         moves: List[Move] = []
 
-        iswhite = src_square.getKoma().isWhite()
+        isGote = not src_square.getKoma().isSente()
         piece = src_square.getKoma()
         x = src_square.getX()
         y = src_square.getY()
@@ -520,7 +526,7 @@ class Gyokushou(Koma):
             tX = x + pd[0]
             tY = y + pd[1]
             if(-1 < tX < 9 and -1 < tY < 9):
-                if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isWhite() != iswhite):
+                if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
                     moves.append(Move(src_square, Masu(tX, tY, piece)))
         return moves
 
@@ -543,7 +549,7 @@ class Match:
         self.grid = Banmen()
         self.hand = Hand()
         
-        if self.player_one.isWhiteSide():
+        if self.player_one.isSente():
             self.current_turn = deepcopy(self.player_one)
         else: self.current_turn = deepcopy(self.player_two)
 
@@ -572,7 +578,7 @@ class Match:
 
     def getMoves(self) -> List[Move]:
 
-        def filtersOote(all_moves: List[Move], iswhite: bool):
+        def filtersOote(all_moves: List[Move], isSente: bool):
             legal_moves: List[Move] = []
             
             for move in all_moves:
@@ -585,9 +591,9 @@ class Match:
                     king_coordinates: Tuple[int, int]
                     for i in range(0,9):
                         for j in range(0,9):
-                            if type(self.grid.getMasu(i,j).getKoma()) is Gyokushou and self.grid.getMasu(i,j).getKoma().isWhite() == iswhite: 
+                            if type(self.grid.getMasu(i,j).getKoma()) is Gyokushou and self.grid.getMasu(i,j).getKoma().isSente() == isSente: 
                                 king_coordinates = (i,j)
-                    attacking_pieces = filter(lambda x: x != None and x.isWhite() != iswhite and \
+                    attacking_pieces = filter(lambda x: x != None and x.isSente() != isSente and \
                         (type(x) is Kakugyou or type(x) is Hisha or type(x) is Kyousha), virtual_board.getPieces())
                     for attacking_piece in attacking_pieces:
                         attacking_moves = attacking_piece.legalMoves(virtual_board, virtual_board.getMasu(i,j))
@@ -596,7 +602,7 @@ class Match:
                                 valid_move = False
                 else:
                     attacked_squares:List[Tuple[int, int]] = []
-                    attacking_pieces = filter(lambda x: x != None and x.isWhite() != iswhite, virtual_board.getPieces())
+                    attacking_pieces = filter(lambda x: x != None and x.isSente() != isSente, virtual_board.getPieces())
                     for attacking_piece in attacking_pieces:
                         attacking_moves = attacking_piece.legalMoves(virtual_board, virtual_board.getMasu(i,j))
                         for attacking_move in attacking_moves:
@@ -609,15 +615,15 @@ class Match:
 
             return legal_moves
 
-        iswhite = self.current_turn.isWhiteSide()
+        isSente = self.current_turn.isSente()
         moves: List[Move] = []
         for i in range(0,9):
             for j in range(0,9):
                 koma = self.grid.getMasu(i,j).getKoma()
-                if koma != None and koma.isWhite() == iswhite:
+                if koma != None and koma.isSente() == isSente:
                     moves.extend(koma.legalMoves(self.grid, self.grid.getMasu(i,j)))
 
-        moves = filtersOote(moves, iswhite)
+        moves = filtersOote(moves, isSente)
         self.current_legal_moves = moves
 
         return moves
@@ -643,7 +649,7 @@ class Match:
                 sfen += str(empty_masu)
             sfen+= "/"
         sfen = sfen[:-1]
-        sfen += " w " if self.current_turn.isWhiteSide() else " b "
+        sfen += " b " if self.current_turn.isSente() else " w "
         for masu, number in self.hand.handKoma.items():
             if number > 0:
                 koma = masu.getKoma()
@@ -651,12 +657,4 @@ class Match:
                 else:
                     sfen += str(number) + koma.encode()
         return sfen
-        
-
-
-
-        
-
-
-
 
