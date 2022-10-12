@@ -584,6 +584,12 @@ class Match:
         else:
             self.current_turn = self.player_one
 
+    def getPlayerWhoMustMakeTheNextMove(self):
+        if self.current_turn == self.player_one:
+            return self.player_one
+        elif self.current_turn == self.player_two:
+            return self.player_two
+
     def getMoves(self) -> List[Move]:
 
         def filtersOote(all_moves: List[Move], isSente: bool):
@@ -642,9 +648,14 @@ class Match:
     def serializeBoardState(self) -> str:
         # The sfen notation is defined here: http://hgm.nubati.net/usi.html
         sfen: str = ""
-        for j in range(0,9):
+        print(self.grid)
+        #the SFEN board descriptor goes right to left along the files, and top to bottom
+        #along the ranks, so we'll use a negative range to loop over the files
+        #and a positive range to loop over the ranks
+        #to create the match state string
+        for j in range(0, 9):
             empty_masu: int = 0
-            for i in range(0,9):
+            for i in range(8, -1, -1):
                 current_masu: Masu = self.grid.getMasu(i,j)
                 if current_masu.getKoma() == None: empty_masu += 1
                 else:
