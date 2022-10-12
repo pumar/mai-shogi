@@ -1093,8 +1093,7 @@ export class GameRunner implements IEventQueueListener {
 			case EventType.Mouse:
 				const move = this.handleMouseEvent(event);
 				if(move !== undefined) {
-					//TODO send this move to the server
-					const currGameState = this.getCurrentGameState();
+					//const currGameState = this.getCurrentGameState();
 					//const currentPlayer = findPlayer(
 					//	currGameState,
 					//	currGameState.nextMovePlayer === "white"

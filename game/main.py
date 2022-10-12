@@ -72,7 +72,7 @@ class Koma:
                 serialized_piece = "b"
             if type(self) is Hisha:
                 serialized_piece = "r"
-            if not self.isSente(): serialized_piece = serialized_piece.upper()
+            if self.isSente(): serialized_piece = serialized_piece.upper()
             return serialized_piece
 
 class Masu:
@@ -424,6 +424,8 @@ class Kakugyou(Koma):
         y = src_square.getY()
         
         if not self.isOnHand():
+            #the bishops moves are the same even if you 'flip' them, so we only need sente's deltas
+            #diagonal moves
             possible_deltas = [[1,-1],[1,1],[-1,-1],[-1,1]]
             for pd in possible_deltas:
                 tX = x
@@ -433,7 +435,7 @@ class Kakugyou(Koma):
                     tY += + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
                         if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
-                            if (isGote and tY > 5) or (not isGote and tY < 3):
+                            if (not isGote and tY > 5) or (isGote and tY < 3):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
                                 moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
@@ -441,6 +443,7 @@ class Kakugyou(Koma):
                                 moves.append(Move(src_square, Masu(tX, tY, piece)))
                         if board.getMasu(tX, tY).getKoma() != None: break
                     else: break
+            #if the bishop is promoted, it gains some king moves as well
             if self.isPromoted:
                 possible_deltas = [[0,1],[0,-1],[1,0],[-1,0]]
                 for pd in possible_deltas:
@@ -470,6 +473,8 @@ class Hisha(Koma):
         y = src_square.getY()
         
         if not self.isOnHand():
+            #hisha/rook can only move horizontally and vertically
+            #no need to invert the deltas for gote
             possible_deltas = [[0,1],[0,-1],[1,0],[-1,0]]
             for pd in possible_deltas:
                 tX = x
@@ -479,7 +484,7 @@ class Hisha(Koma):
                     tY += + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
                         if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
-                            if (isGote and tY > 5) or (not isGote and tY < 3):
+                            if (not isGote and tY > 5) or (isGote and tY < 3):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
                                 moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
@@ -487,6 +492,7 @@ class Hisha(Koma):
                                 moves.append(Move(src_square, Masu(tX, tY, piece)))
                         if board.getMasu(tX, tY).getKoma() != None: break
                     else: break
+            #if the hisha/rook is promoted, it gains the king's diagonal moves
             if self.isPromoted:
                 possible_deltas = [[1,-1],[1,1],[-1,-1],[-1,1]]
                 for pd in possible_deltas:
@@ -521,6 +527,7 @@ class Gyokushou(Koma):
         x = src_square.getX()
         y = src_square.getY()
 
+        #the king's moves do not need to be inverted when gote
         possible_deltas = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[1,-1],[-1,1],[-1,-1]]
         for pd in possible_deltas:
             tX = x + pd[0]
@@ -645,6 +652,7 @@ class Match:
                         empty_masu = 0
                     koma = current_masu.getKoma()
                     sfen += koma.encode()
+                    print(f'file:{j} rank:{i} isSente:{koma.isSente()} encoded:{koma.encode()}')
             if empty_masu > 0:
                 sfen += str(empty_masu)
             sfen+= "/"
