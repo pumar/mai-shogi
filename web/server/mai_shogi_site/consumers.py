@@ -1,3 +1,4 @@
+import random
 import json
 from channels.generic.websocket import WebsocketConsumer
 
@@ -58,6 +59,10 @@ class GameConsumer(WebsocketConsumer):
             try:
                 self.match.doTurn(moveToPost)
                 print(f'did move:{moveToPost}')
+                nextMoveIsComputer = not self.match.getPlayerWhoMustMakeTheNextMove().humanPlayer
+                print(f'is next player the computer{nextMoveIsComputer}')
+                if nextMoveIsComputer:
+                    self.makeAiMove()
                 #TODO de-duplicate this, it's also in the connect handler of this class
                 messageDict = {}
                 messageDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.GAME_STATE_UPDATE
@@ -72,3 +77,13 @@ class GameConsumer(WebsocketConsumer):
                 self.send(text_data=json.dumps(errorDict))
         else:
             print(f'unknown message type:{messageType}')
+
+    def serializeMoves(self, match: Match):
+        return list(map(lambda x: x.serialize(), match.getMoves()))
+
+    def makeAiMove(self):
+        stringMoves = self.serializeMoves(self.match)
+        randomMoveIndex = random.randrange(0, len(stringMoves) - 1, 1)
+        moveToPost = stringMoves[randomMoveIndex]
+        self.match.doTurn(moveToPost)
+

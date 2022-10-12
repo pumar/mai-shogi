@@ -1114,7 +1114,6 @@ export class GameRunner implements IEventQueueListener {
 					console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
 					this.getPostMoveCallback()(move.originalString || "BAD CLIENT SIDE MOVE STRING");
 
-
 					//const adjustedMove = clientMoveToServerMove(move);
 					//this.gameStates.push(newGameState);
 					//this.renderStep();

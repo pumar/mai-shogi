@@ -59,7 +59,7 @@ export class GameInteractionController {
 						selected: this.selectedPiece,
 						clickedPiece: comparePiece
 					});
-					this.selectedPiece = undefined;
+					this.resetSelectedPiece();
 				}
 			}
 		} else {
@@ -109,7 +109,13 @@ export class GameInteractionController {
 			return undefined;
 		}
 
+		this.resetSelectedPiece();
+
 		return selectedMove;
+	}
+
+	public resetSelectedPiece(): void {
+		this.selectedPiece = undefined;
 	}
 
 	private getMovesForHeldPiece(playerMoves: Move[], heldPiece: HeldPiece): Move[] {
@@ -123,13 +129,13 @@ export class GameInteractionController {
 			 && move.start.file === placedPiece.file);
 	}
 
-	//TODO this code moved the pieces locally, just to verify the space selection logic
+	//this code moved the pieces locally, just to verify the space selection logic
 	//and renderer. All that it actually needs to do is to communicate a move to the server
 	//but, It could be good to keep this around in case we start to allow a client local cpu/game engine
 
 	//private movePiece(clickedEntity: ClickedSpace, currentGameState: Game): Game {
 	//	if(this.selectedPiece === undefined) throw new Error(`${this.className}::movePiece selectedPiece was undefined`);
-	//	//TODO be careful not to accidentally modify the current game state,
+	//	//be careful not to accidentally modify the current game state,
 	//	//you should modify the new one. Ideally, I will refactor this to work
 	//	//in an immutable fashion
 	//	const newGameState = structuredClone(currentGameState);

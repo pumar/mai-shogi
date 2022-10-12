@@ -77,10 +77,10 @@ function clientMoveToServerMove(move: Move): Move {
 	newMove.end.rank = newMove.end.file;
 	newMove.end.file = endRank;
 
-	newMove.start.rank = 10 - newMove.start.rank;
-	newMove.end.rank = 10 - newMove.start.rank;
-	newMove.start.file = 10 - newMove.start.file;
-	newMove.end.file = 10 - newMove.end.file;
+	//newMove.start.rank = 10 - newMove.start.rank;
+	//newMove.end.rank = 10 - newMove.start.rank;
+	//newMove.start.file = 10 - newMove.start.file;
+	//newMove.end.file = 10 - newMove.end.file;
 
 	newMove.start.rank -= 1;
 	newMove.start.file -= 1;

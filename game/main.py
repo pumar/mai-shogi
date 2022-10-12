@@ -123,6 +123,7 @@ class Banmen:
             for j in range(0,9):
                 board[i].append(Masu(i, j, None))
 
+        #file, rank order
         board[0][0].setKoma(Kyousha(False))
         board[1][0].setKoma(Keima(False))
         board[2][0].setKoma(Ginshou(False))
@@ -566,16 +567,21 @@ class Match:
 
     def doTurn(self, string_move: str):
         string_moves = [move.serialize() for move in self.current_legal_moves] 
-        print(f"doTurn, looking for move:({string_move}) in current legal moves:", string_moves)
+        #print(f"doTurn, looking for move:({string_move}) in current legal moves:", string_moves)
         if string_move not in string_moves:
             raise MoveNotFound("The move that was sent is not valid.")
 
         move_index = string_moves.index(string_move)
 
         current_move = self.current_legal_moves[move_index]
+        src_square = current_move.src_square;
+        trgt_square = current_move.trgt_square;
 
-        self.grid.getMasu(current_move.src_square.getX(), current_move.src_square.getY()).setKoma(None)
-        self.grid.getMasu(current_move.trgt_square.getX(), current_move.trgt_square.getY()).setKoma(current_move.trgt_square.getKoma())
+        #print(f'doTurn src_square:({src_square.getX()}, {src_square.getY()}) trgt_square:({trgt_square.getX()}, {trgt_square.getY()})', dir(current_move))
+
+        src_koma = self.grid.getMasu(src_square.getX(), src_square.getY()).getKoma()
+        self.grid.getMasu(src_square.getX(), src_square.getY()).setKoma(None)
+        self.grid.getMasu(trgt_square.getX(), trgt_square.getY()).setKoma(src_koma)
 
         #this doesn't work because current_turn is not a boolean
         #self.current_turn = not self.current_turn
@@ -631,8 +637,9 @@ class Match:
 
         isSente = self.current_turn.isSente()
         moves: List[Move] = []
-        for i in range(0,9):
-            for j in range(0,9):
+        for i in range(0, 9):
+            for j in range(0, 9):
+            #for j in range(8, -1, -1):
                 koma = self.grid.getMasu(i,j).getKoma()
                 if koma != None and koma.isSente() == isSente:
                     moves.extend(koma.legalMoves(self.grid, self.grid.getMasu(i,j)))
@@ -648,14 +655,14 @@ class Match:
     def serializeBoardState(self) -> str:
         # The sfen notation is defined here: http://hgm.nubati.net/usi.html
         sfen: str = ""
-        print(self.grid)
+
         #the SFEN board descriptor goes right to left along the files, and top to bottom
         #along the ranks, so we'll use a negative range to loop over the files
         #and a positive range to loop over the ranks
         #to create the match state string
         for j in range(0, 9):
             empty_masu: int = 0
-            for i in range(8, -1, -1):
+            for i in range(0, 9):
                 current_masu: Masu = self.grid.getMasu(i,j)
                 if current_masu.getKoma() == None: empty_masu += 1
                 else:
