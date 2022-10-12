@@ -388,9 +388,6 @@ export class GameRunner implements IEventQueueListener {
 		const gameThis = this;
 		const canvasResizeObserver = new ResizeObserver(debounce((entries: ResizeObserverEntry[], _: ResizeObserver) => {
 			entries.forEach((entry: ResizeObserverEntry) => {
-				//TODO it would be cool to keep a map of elements and what callback
-				//should be called when that element is resized, and then loop over the entries
-				//calling the appropriate callback
 				const canvas = this.getCanvas();
 				if (entry.target === canvas) {
 					setCanvasSizeToMatchLayout(gameThis.getCanvas());
@@ -1095,28 +1092,8 @@ export class GameRunner implements IEventQueueListener {
 			case EventType.Mouse:
 				const move = this.handleMouseEvent(event);
 				if(move !== undefined) {
-					//const currGameState = this.getCurrentGameState();
-					//const currentPlayer = findPlayer(
-					//	currGameState,
-					//	currGameState.nextMovePlayer === "white"
-					//		? PlayerColor.Black
-					//		: PlayerColor.White);
-					////console.log({ adjustedMove, currentPlayer });
-					//const moveFromGameState = currentPlayer.moves.find((inspectMove: Move) => {
-					//	inspectMove.start.rank = move.start.rank;
-					//	inspectMove.start.file = move.start.file;
-					//	inspectMove.end.rank = move.end.rank;
-					//	inspectMove.end.file = move.end.file;
-					//});
-					//if (moveFromGameState === undefined) {
-					//	throw new Error(`could not find the origin server move for:${JSON.stringify(move)}`);
-					//}
 					console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
 					this.getPostMoveCallback()(move.originalString || "BAD CLIENT SIDE MOVE STRING");
-
-					//const adjustedMove = clientMoveToServerMove(move);
-					//this.gameStates.push(newGameState);
-					//this.renderStep();
 				}
 				break;
 			case EventType.Keyboard:
@@ -1212,7 +1189,7 @@ export class GameRunner implements IEventQueueListener {
 			const heldPiece = blackPlayer.heldPieces
 				.find(heldPiece => heldPiece.name === clickedBlackPiece[0]);
 
-			if(heldPiece === undefined) throw new Error("TODO");
+			if(heldPiece === undefined) throw new Error("held piece was undefined, it should always atleast be defined with a count of 0");
 			const newGame = interactionController.handleClick({
 				clickedEntity: {
 					piece: heldPiece,
@@ -1235,7 +1212,7 @@ export class GameRunner implements IEventQueueListener {
 			const heldPiece = whitePlayer.heldPieces
 				.find(heldPiece => heldPiece.name === clickedWhitePiece[0]);
 			if(heldPiece === undefined) {
-				throw new Error("TODO");
+				throw new Error("held piece was undefined, it should always atleast be defined with a count of 0");
 			}
 			const move = interactionController.handleClick({
 				clickedEntity: {
@@ -1274,7 +1251,7 @@ export class GameRunner implements IEventQueueListener {
 				console.error(`error message from server:${errorMessage}`);
 				break;
 			default:
-				throw new Error(`receiveMessage TODO:${messageType}`);
+				throw new Error(`receiveMessage unhandled messageType:${messageType}`);
 		}
 	}
 
