@@ -72,7 +72,8 @@ class Koma:
                 serialized_piece = "b"
             if type(self) is Hisha:
                 serialized_piece = "r"
-            if self.isSente(): serialized_piece = serialized_piece.upper()
+            if self.isSente():
+                serialized_piece = serialized_piece.upper()
             return serialized_piece
 
 class Masu:
@@ -652,7 +653,7 @@ class Match:
                         empty_masu = 0
                     koma = current_masu.getKoma()
                     sfen += koma.encode()
-                    print(f'file:{j} rank:{i} isSente:{koma.isSente()} encoded:{koma.encode()}')
+                    #print(f'file:{j} rank:{i} isSente:{koma.isSente()} encoded:{koma.encode()}')
             if empty_masu > 0:
                 sfen += str(empty_masu)
             sfen+= "/"
@@ -661,8 +662,12 @@ class Match:
         for masu, number in self.hand.handKoma.items():
             if number > 0:
                 koma = masu.getKoma()
-                if number == 1: sfen += koma.encode()
+                if number == 1:
+                    serializedKoma = koma.encode()
                 else:
-                    sfen += str(number) + koma.encode()
+                    serializedKoma = str(number) + koma.encode()
+
+                #print(f'serialize hand koma, koma is sente:{koma.isSente()} add to Sfen:${serializedKoma}')
+                sfen += serializedKoma
         return sfen
 

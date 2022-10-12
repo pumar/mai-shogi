@@ -81,8 +81,8 @@ function getHands(sfenHands: string, whiteHeld: HeldPiece[], blackHeld: HeldPiec
 } {
 	if(sfenHands.length === 0) {
 		return {
-			blackHeld: whiteHeld,
-			whiteHeld: blackHeld,
+			blackHeld,
+			whiteHeld,
 		}
 	}
 	let tookTwoCharacters = false;
