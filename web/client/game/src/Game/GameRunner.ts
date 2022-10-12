@@ -839,8 +839,10 @@ export class GameRunner implements IEventQueueListener {
 
 
 
-	/** TODO you only need to draw this once: just draw the pieces, and then put a number next to it that
-	* tells you how many of that piece you are holding */
+	/**
+	* draws the icons for the held pieces
+	* the icons do not change, so this is only ran once
+	**/
 	private drawHeldPiecesIcons(
 		gameState: Game,
 		standsGroup: Group,
@@ -863,7 +865,7 @@ export class GameRunner implements IEventQueueListener {
 		this.placeHeldPieces(
 			blackStandPiecesGroup as Group,
 			calcedRenderCoords.blackHeldPiecesLocations,
-			gameState.viewPoint !== PlayerColor.Black,
+			gameState.viewPoint === PlayerColor.Black,
 		);
 
 		//const whiteHeldPieces: DrawPiece[] = this.getPiecesGraphicsObjects(
@@ -875,7 +877,7 @@ export class GameRunner implements IEventQueueListener {
 		this.placeHeldPieces(
 			whiteStandPiecesGroup as Group,
 			calcedRenderCoords.whiteHeldPiecesLocations,
-			gameState.viewPoint !== PlayerColor.White,
+			gameState.viewPoint === PlayerColor.White,
 		);
 	}
 
