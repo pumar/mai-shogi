@@ -34,7 +34,7 @@ echo ==copy spa to django==
 spaDest=server/static/spa_dist
 if [ ! -d $spaDest ]; then
 	echo spa destination directory \($spaDest\) does not exist, making it
-	 mkdir $spaDest
+	mkdir -p $spaDest
 fi
 cp client/spa/dist/* $spaDest
 bail
