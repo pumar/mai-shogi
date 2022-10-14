@@ -348,7 +348,7 @@ class Ginshou(Koma):
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
         moves: List[Move] = []
 
-        isGote = not src_square.getKoma().isSente()
+        isSente = src_square.getKoma().isSente()
         piece = src_square.getKoma()
         x = src_square.getX()
         y = src_square.getY()
@@ -358,13 +358,14 @@ class Ginshou(Koma):
                 #these deltas are for sente
                 possible_deltas = [[0,1],[1,1],[-1,1],[-1,-1],[1,-1]]
                 #flip them if gote
-                if isGote: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
+                if not isSente: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
                 for pd in possible_deltas:
                     tX = x + pd[0]
                     tY = y + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
-                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
-                            if (not isGote and (y > 5 or tY > 5)) or (isGote and (y < 3 or tY < 3)):
+                        targetMasu = board.getMasu(tX, tY);
+                        if (targetMasu.getKoma() == None or targetMasu.getKoma().isSente() != isSente):
+                            if (isSente and (y > 5 or tY > 5)) or (not isSente and (y < 3 or tY < 3)):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
                                 moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
@@ -391,22 +392,29 @@ class Kinshou(Koma):
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None, virtualized_piece: Koma = None) -> List[Move]:
         moves: List[Move] = []
 
-        isGote = not src_square.getKoma().isSente()
         if virtualized_piece != None: piece = deepcopy(virtualized_piece)
         else: piece = src_square.getKoma()
+
+        isSente = piece.isSente()
+
         x = src_square.getX()
         y = src_square.getY()
 
         if not self.isOnHand():
             #these are the deltas for sente
-            possible_deltas = [[0,1],[0,-1],[1,0],[-1,0],[1,1],[-1,1]]
+            possible_deltas = [
+                [1, -1], [0, -1], [-1, -1],
+                [1, 0], [-1, 0],
+                [0, 1],
+            ]
             #if we are gote, we gotta flip 'em
-            if isGote: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
+            if not isSente: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
             for pd in possible_deltas:
                 tX = x + pd[0]
                 tY = y + pd[1]
                 if(-1 < tX < 9 and -1 < tY < 9):
-                    if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
+                    targetMasu = board.getMasu(tX, tY)
+                    if (targetMasu.getKoma() == None or targetMasu.getKoma().isSente() != isSente):
                         moves.append(Move(src_square, Masu(tX, tY, piece)))
         elif virtualized_piece == None:
             if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
