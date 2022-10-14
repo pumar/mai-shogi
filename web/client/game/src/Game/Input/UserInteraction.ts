@@ -60,6 +60,15 @@ export class GameInteractionController {
 						clickedPiece: comparePiece
 					});
 					this.resetSelectedPiece();
+					return undefined;
+				}
+
+				if (!isHeldPiece(event.clickedEntity.piece)) {
+					return this.movePiece({
+						rank: event.clickedEntity.piece.rank,
+						file: event.clickedEntity.piece.file,
+					},
+					currentGameState);
 				}
 			}
 		} else {
@@ -85,8 +94,6 @@ export class GameInteractionController {
 		if(this.selectedPiece === undefined) throw new Error(`${this.className}::movePiece selectedPiece was undefined`);
 
 		const { rank: destRank, file: destFile } = clickedEntity;
-
-		//const { rank: startRank, file: startFile } = this.selectedPiece;
 
 		const humanPlayerMoves = findPlayer(currentGameState, currentGameState.nextMovePlayer).moves;
 
