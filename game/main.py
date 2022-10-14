@@ -280,7 +280,7 @@ class Kyousha(Koma):
                     tX += pd[0]
                     tY += + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
-                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
+                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isSente):
                             if (isSente and tY > 5) or (not isSente and tY < 3):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
@@ -290,7 +290,7 @@ class Kyousha(Koma):
                         if board.getMasu(tX, tY).getKoma() != None: break
                     else: break
             else:
-                virtual_kin = Kinshou(isGote)
+                virtual_kin = Kinshou(isSente)
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
         else:
             if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
@@ -365,13 +365,13 @@ class Ginshou(Koma):
                     if(-1 < tX < 9 and -1 < tY < 9):
                         targetMasu = board.getMasu(tX, tY);
                         if (targetMasu.getKoma() == None or targetMasu.getKoma().isSente() != isSente):
-                            if (isSente and (y > 5 or tY > 5)) or (not isSente and (y < 3 or tY < 3)):
+                            if (not isSente and (y > 5 or tY > 5)) or (isSente and (y < 3 or tY < 3)):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
                                 moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
                             moves.append(Move(src_square, Masu(tX, tY, piece))) 
             else:
-                virtual_kin = Kinshou(isGote)
+                virtual_kin = Kinshou(isSente)
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
         # Rewrite handkoma as a simpler data structure to simplify this part
         else:
@@ -431,14 +431,14 @@ class Kakugyou(Koma):
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
         moves: List[Move] = []
 
-        isGote = not src_square.getKoma().isSente()
+        isSente = src_square.getKoma().isSente()
         piece = src_square.getKoma()
         x = src_square.getX()
         y = src_square.getY()
         
         if not self.isOnHand():
-            #the bishops moves are the same even if you 'flip' them, so we only need sente's deltas
-            #diagonal moves
+            #the bishops moves are the same even if you 'flip' them,
+            #so we only need sente's deltas diagonal moves
             possible_deltas = [[1,-1],[1,1],[-1,-1],[-1,1]]
             for pd in possible_deltas:
                 tX = x
@@ -447,15 +447,16 @@ class Kakugyou(Koma):
                     tX += pd[0]
                     tY += + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
-                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
-                            if (not isGote and tY > 5) or (isGote and tY < 3):
+                        targetKoma = board.getMasu(tX, tY).getKoma()
+                        if (targetKoma == None or targetKoma.isSente() != isSente):
+                            if (not isSente and tY > 5) or (isSente and tY < 3):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
                                 moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
-                            if not ((tY + pd[1]) > 8 or (tY + pd[1]) < 0):
-                                moves.append(Move(src_square, Masu(tX, tY, piece)))
+                            moves.append(Move(src_square, Masu(tX, tY, piece)))
                         if board.getMasu(tX, tY).getKoma() != None: break
-                    else: break
+                    else:
+                        break
             #if the bishop is promoted, it gains some king moves as well
             if self.isPromoted:
                 possible_deltas = [[0,1],[0,-1],[1,0],[-1,0]]
@@ -463,7 +464,7 @@ class Kakugyou(Koma):
                     tX = x + pd[0]
                     tY = y + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
-                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
+                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isSente):
                             moves.append(Move(src_square, Masu(tX, tY, piece)))
         else:
             if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
@@ -480,8 +481,8 @@ class Hisha(Koma):
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
         moves: List[Move] = []
 
-        isGote = not src_square.getKoma().isSente()
         piece = src_square.getKoma()
+        isSente = piece.isSente()
         x = src_square.getX()
         y = src_square.getY()
         
@@ -496,15 +497,16 @@ class Hisha(Koma):
                     tX += pd[0]
                     tY += + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
-                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
-                            if (not isGote and tY > 5) or (isGote and tY < 3):
+                        targetKoma = board.getMasu(tX, tY).getKoma()
+                        if (targetKoma == None or targetKoma.isSente() != isSente):
+                            if (not isSente and tY > 5) or (isSente and tY < 3):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
                                 moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
-                            if not ((tY + pd[1]) > 8 or (tY + pd[1]) < 0):
-                                moves.append(Move(src_square, Masu(tX, tY, piece)))
+                            moves.append(Move(src_square, Masu(tX, tY, piece)))
                         if board.getMasu(tX, tY).getKoma() != None: break
-                    else: break
+                    else:
+                        break
             #if the hisha/rook is promoted, it gains the king's diagonal moves
             if self.isPromoted:
                 possible_deltas = [[1,-1],[1,1],[-1,-1],[-1,1]]
@@ -512,7 +514,7 @@ class Hisha(Koma):
                     tX = x + pd[0]
                     tY = y + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
-                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
+                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isSente):
                             moves.append(Move(src_square, Masu(tX, tY, piece)))
         else:
             if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
@@ -535,8 +537,9 @@ class Gyokushou(Koma):
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
         moves: List[Move] = []
 
-        isGote = not src_square.getKoma().isSente()
         piece = src_square.getKoma()
+        isSente = piece.isSente()
+
         x = src_square.getX()
         y = src_square.getY()
 
@@ -546,7 +549,8 @@ class Gyokushou(Koma):
             tX = x + pd[0]
             tY = y + pd[1]
             if(-1 < tX < 9 and -1 < tY < 9):
-                if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
+                targetKoma = board.getMasu(tX, tY).getKoma()
+                if (targetKoma == None or targetKoma.isSente() != isSente):
                     moves.append(Move(src_square, Masu(tX, tY, piece)))
         return moves
 
