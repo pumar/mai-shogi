@@ -307,28 +307,31 @@ class Keima(Koma):
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
         moves: List[Move] = []
 
-        isGote = not src_square.getKoma().isSente()
         piece = src_square.getKoma()
+        isSente = piece.isSente()
         x = src_square.getX()
         y = src_square.getY()
 
         if not self.isOnHand():
             if not self.isPromoted():
-                possible_deltas = [[1, -2], [-1, -2]] if isGote else [[1, 2],[-1, 2]]
+                possible_deltas = [[1, -2],[-1, -2]] if isSente else [[1, 2], [-1, 2]]
                 #if not isGote: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
                 for pd in possible_deltas:
                     tX = x + pd[0]
                     tY = y + pd[1]
                     if(-1 < tX < 9 and -1 < tY < 9):
-                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isGote):
-                            if (not isGote and y > 3) or (isGote and y < 5):
+                        targetMasu = board.getMasu(tX, tY)
+                        targetKoma = targetMasu.getKoma()
+                        if (targetKoma == None or targetKoma.isSente() != piece.isSente()):
+                            if (isSente and y < 2) or (not isSente and y > 6):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
                                 moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
-                            if not ((tY + pd[1]) > 8 or (tY + pd[1]) < 0):
+                            else:
+                                #if not ((tY + pd[1]) > 8 or (tY + pd[1]) < 0):
                                 moves.append(Move(src_square, Masu(tX, tY, piece)))        
             else:
-                virtual_kin = Kinshou(isGote)
+                virtual_kin = Kinshou(piece.isSente())
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
         else:
             if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
