@@ -103,7 +103,18 @@ export class GameInteractionController {
 			return undefined;
 		}
 
-		const selectedMove = humanPlayerMoves.find(move => move.end.rank === destRank && move.end.file === destFile);
+		let selectedMove;
+		if (isHeldPiece(this.selectedPiece)) {
+			console.warn(`TODO disambiguate held piece placement move selection`);
+			selectedMove = humanPlayerMoves.find(move => move.end.rank === destRank && move.end.file === destFile);
+		} else {
+			const { file: startFile, rank: startRank } = this.selectedPiece;
+			selectedMove = humanPlayerMoves.find(move =>
+				move.end.rank === destRank && move.end.file === destFile
+				&& move.start.rank === startRank && move.start.file === startFile
+			);
+		}
+
 		if (selectedMove === undefined){
 			console.warn(`movePiece, target space:(${destRank}, ${destFile}) is not legal, you should select from these moves:`, movesForSelectedPiece );
 			return undefined;
