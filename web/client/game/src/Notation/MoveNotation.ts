@@ -45,12 +45,12 @@ function serverMovesToClientMoves(moves: string[]): Move[] {
 
 	//server and client coordinate spaces are the opposite, flip them for now
 	//9 is 1, 2 is 8... and so on
-	processedMoves.forEach((move: Move) => {
-		move.start.rank = 10 - move.start.rank;
-		move.start.file = 10 - move.start.file;
-		move.end.rank = 10 - move.end.rank;
-		move.end.file = 10 - move.end.file;
-	});
+	//processedMoves.forEach((move: Move) => {
+	//	move.start.rank = 10 - move.start.rank;
+	//	move.start.file = 10 - move.start.file;
+	//	move.end.rank = 10 - move.end.rank;
+	//	move.end.file = 10 - move.end.file;
+	//});
 
 	//I'm pretty sure the server is in (file, rank) order and the client
 	//is in (rank, file) order, so flip that too
@@ -77,10 +77,10 @@ function clientMoveToServerMove(move: Move): Move {
 	newMove.end.rank = newMove.end.file;
 	newMove.end.file = endRank;
 
-	newMove.start.rank = 10 - newMove.start.rank;
-	newMove.end.rank = 10 - newMove.start.rank;
-	newMove.start.file = 10 - newMove.start.file;
-	newMove.end.file = 10 - newMove.end.file;
+	//newMove.start.rank = 10 - newMove.start.rank;
+	//newMove.end.rank = 10 - newMove.start.rank;
+	//newMove.start.file = 10 - newMove.start.file;
+	//newMove.end.file = 10 - newMove.end.file;
 
 	newMove.start.rank -= 1;
 	newMove.start.file -= 1;

@@ -323,6 +323,7 @@ export class GameRunner implements IEventQueueListener {
 				translateGroup.add(group);
 				//scale the y coordinates by -1 to go from SVG space to threejs world space
 				group.scale.setY(-1);
+				group.updateMatrix();
 
 				//center the contents of the svg about the center of the group object they are in
 				const svgArea = new Box3().setFromObject(group);
@@ -366,7 +367,6 @@ export class GameRunner implements IEventQueueListener {
 		}, (time) => console.log(`svg parsing time:${time}`));
 
 		Object.assign(this.gameAssets.pieces, Object.fromEntries(svgObjects));
-		//console.log({ gameAssets: this.gameAssets, pieceKeys: Object.keys(this.gameAssets.pieces) });
 
 		//resize the pieces
 		Object.values(this.gameAssets.pieces).forEach((piece: Group) => {
@@ -375,16 +375,6 @@ export class GameRunner implements IEventQueueListener {
 			pieceBox.getSize(pieceSize);
 			const sizeRatioX = pieceSize.x / renderSettings.boardSpaceWidth;
 			const sizeRatioY = pieceSize.y / renderSettings.boardSpaceHeight;
-
-			//debug svgscaling
-			//console.log({
-			//	px: pieceSize.x,
-			//	py: pieceSize.y,
-			//	bsw: renderSettings.boardSpaceWidth,
-			//	bsh: renderSettings.boardSpaceHeight,
-			//	sizeRatioX,
-			//	sizeRatioY,
-			//});
 
 			piece.scale.set(1 / sizeRatioX, 1 / sizeRatioY, 1);
 			piece.updateMatrixWorld();
@@ -398,9 +388,6 @@ export class GameRunner implements IEventQueueListener {
 		const gameThis = this;
 		const canvasResizeObserver = new ResizeObserver(debounce((entries: ResizeObserverEntry[], _: ResizeObserver) => {
 			entries.forEach((entry: ResizeObserverEntry) => {
-				//TODO it would be cool to keep a map of elements and what callback
-				//should be called when that element is resized, and then loop over the entries
-				//calling the appropriate callback
 				const canvas = this.getCanvas();
 				if (entry.target === canvas) {
 					setCanvasSizeToMatchLayout(gameThis.getCanvas());
@@ -849,8 +836,10 @@ export class GameRunner implements IEventQueueListener {
 
 
 
-	/** TODO you only need to draw this once: just draw the pieces, and then put a number next to it that
-	* tells you how many of that piece you are holding */
+	/**
+	* draws the icons for the held pieces
+	* the icons do not change, so this is only ran once
+	**/
 	private drawHeldPiecesIcons(
 		gameState: Game,
 		standsGroup: Group,
@@ -870,9 +859,6 @@ export class GameRunner implements IEventQueueListener {
 			throw new Error(`no stand group`);
 		}
 
-		//const blackHeldPieces: DrawPiece[] = this.getPiecesGraphicsObjects(
-		//	blackPlayer.pieces.filter(piece => isHeldPiece(piece)),
-		//);
 		this.placeHeldPieces(
 			blackStandPiecesGroup as Group,
 			calcedRenderCoords.blackHeldPiecesLocations,
@@ -892,11 +878,14 @@ export class GameRunner implements IEventQueueListener {
 		);
 	}
 
-	/** set the locations for the held pieces for a player's side */
+	/**
+	* set the locations for the held pieces for a player's side
+	* @param isNeedsRotateColor if the held piece's are the current player's, then they need to be rotated upright
+	**/
 	private placeHeldPieces(
 		group: Group,
 		pieceLocations: [PieceNames, Vector3][],
-		isMainViewPoint: boolean,
+		isNeedsRotateColor: boolean,
 	): void {
 		const pieces = [
 			{ name: PieceNames.Pawn, isPromoted: false } as Pawn,
@@ -923,7 +912,7 @@ export class GameRunner implements IEventQueueListener {
 		});
 
 		//Rotate the pieces for the side of the player, so that they are facing upright
-		if(isMainViewPoint){
+		if(isNeedsRotateColor){
 			pieceGraphicsObjects.forEach((piece) => {
 				piece.graphicsObject.position.set(0, 0, 0);
 				piece.graphicsObject.rotateZ(Math.PI);
@@ -1023,44 +1012,37 @@ export class GameRunner implements IEventQueueListener {
 				)
 			}
 		});
-		//console.log({ placedPiecesPerPlayer });
 
 		const pieceGraphicsObjects = placedPiecesPerPlayer
 			.flatMap(player => player.pieces.map(drawPiece => drawPiece.graphicsObject))
 
-		//console.log({ pieceGraphicsObjects });
+		piecesGroup.remove(...piecesGroup.children);
+		piecesGroup.add(...pieceGraphicsObjects);
 
-		//const numPieces = piecesGroup.children.length;
 		//measureTime(() => {
-			piecesGroup.remove(...piecesGroup.children);
-			piecesGroup.add(...pieceGraphicsObjects);
-		//}, time => console.log(`drawPlacedPieces re-insert objects into the scene:${time}`));
-		//console.log({ piecesRemoved: numPieces, piecesAdded: pieceGraphicsObjects.length });
-		//measureTime(() => {
-			placedPiecesPerPlayer.forEach((player) => {
-				player.pieces.forEach((drawPiece: DrawPiece) => {
-					const graphicsObject = drawPiece.graphicsObject;
-					//console.error('draw piece', drawPiece);
-					//TODO consider actually loading in the white & the black pieces,
-					//instead of just loading in half of them and then rotating them
-					if (player.turn === gameState.viewPoint) {
-						graphicsObject.position.set(0, 0, 0);
-						graphicsObject.rotateZ(Math.PI);
-					}
-					//TODO how do I tell the type system that these are placed pieces?
-					//I filtered them using isPlaced
-					const worldCoordinates = spaceCenterPointLookup[drawPiece.rank - 1][drawPiece.file - 1].clone();
-					graphicsObject.position.copy(worldCoordinates);
-					//const toString = (vector) => `(${vector.x}, ${vector.y}, ${vector.z})`;
-					//console.log('drew piece at:', {
-					//	rank: drawPiece.rank,
-					//	file: drawPiece.file,
-					//	coords: toString(drawPiece.graphicsObject.position)
-					//});
+		placedPiecesPerPlayer.forEach((player) => {
+			player.pieces.forEach((drawPiece: DrawPiece) => {
+				const graphicsObject = drawPiece.graphicsObject;
 
-					drawPiece.graphicsObject.updateMatrixWorld();
-				});
+				//instead of just loading in half of them and then rotating them
+				const shouldRotate = player.turn === gameState.viewPoint;
+				//console.log({
+				//	playerTurn: player.turn,
+				//	viewpoint: gameState.viewPoint,
+				//	shouldRotate,
+				//});
+				if (shouldRotate) {
+					graphicsObject.position.set(0, 0, 0);
+					graphicsObject.rotateZ(Math.PI);
+				}
+				//TODO how do I tell the type system that these are placed pieces?
+				//I filtered them using isPlaced
+				const worldCoordinates = spaceCenterPointLookup[drawPiece.rank - 1][drawPiece.file - 1].clone();
+				graphicsObject.position.copy(worldCoordinates);
+
+				drawPiece.graphicsObject.updateMatrixWorld();
 			});
+		});
 		//}, time => console.log(`drawPlacedPieces update piece coordinates:${time}`));
 	}
 
@@ -1110,31 +1092,8 @@ export class GameRunner implements IEventQueueListener {
 			case EventType.Mouse:
 				const move = this.handleMouseEvent(event);
 				if(move !== undefined) {
-					//TODO send this move to the server
-					console.log(`TODO send move to server`, move);
-					const currGameState = this.getCurrentGameState();
-					//const currentPlayer = findPlayer(
-					//	currGameState,
-					//	currGameState.nextMovePlayer === "white"
-					//		? PlayerColor.Black
-					//		: PlayerColor.White);
-					////console.log({ adjustedMove, currentPlayer });
-					//const moveFromGameState = currentPlayer.moves.find((inspectMove: Move) => {
-					//	inspectMove.start.rank = move.start.rank;
-					//	inspectMove.start.file = move.start.file;
-					//	inspectMove.end.rank = move.end.rank;
-					//	inspectMove.end.file = move.end.file;
-					//});
-					//if (moveFromGameState === undefined) {
-					//	throw new Error(`could not find the origin server move for:${JSON.stringify(move)}`);
-					//}
 					console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
 					this.getPostMoveCallback()(move.originalString || "BAD CLIENT SIDE MOVE STRING");
-
-
-					//const adjustedMove = clientMoveToServerMove(move);
-					//this.gameStates.push(newGameState);
-					//this.renderStep();
 				}
 				break;
 			case EventType.Keyboard:
@@ -1230,7 +1189,7 @@ export class GameRunner implements IEventQueueListener {
 			const heldPiece = blackPlayer.heldPieces
 				.find(heldPiece => heldPiece.name === clickedBlackPiece[0]);
 
-			if(heldPiece === undefined) throw new Error("TODO");
+			if(heldPiece === undefined) throw new Error("held piece was undefined, it should always atleast be defined with a count of 0");
 			const newGame = interactionController.handleClick({
 				clickedEntity: {
 					piece: heldPiece,
@@ -1253,7 +1212,7 @@ export class GameRunner implements IEventQueueListener {
 			const heldPiece = whitePlayer.heldPieces
 				.find(heldPiece => heldPiece.name === clickedWhitePiece[0]);
 			if(heldPiece === undefined) {
-				throw new Error("TODO");
+				throw new Error("held piece was undefined, it should always atleast be defined with a count of 0");
 			}
 			const move = interactionController.handleClick({
 				clickedEntity: {
@@ -1287,8 +1246,12 @@ export class GameRunner implements IEventQueueListener {
 			case MessageTypes.GAME_STATE_UPDATE:
 				this.updateGameState(message);
 				break;
+			case MessageTypes.ERROR:
+				const errorMessage = message[MessageKeys.ERROR_MESSAGE];
+				console.error(`error message from server:${errorMessage}`);
+				break;
 			default:
-				throw new Error(`receiveMessage TODO:${messageType}`);
+				throw new Error(`receiveMessage unhandled messageType:${messageType}`);
 		}
 	}
 
@@ -1312,8 +1275,8 @@ export class GameRunner implements IEventQueueListener {
 		//TODO the origin of this state must be on the server
 		//not on the client, so that the server can randomly give people black
 		//or white
-		//newGame.viewPoint = PlayerColor.Black;
-		newGame.viewPoint = PlayerColor.White;
+		newGame.viewPoint = PlayerColor.Black;
+		//newGame.viewPoint = PlayerColor.White;
 
 		this.gameStates.push(newGame as Game);
 

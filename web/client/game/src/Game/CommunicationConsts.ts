@@ -6,6 +6,7 @@ export {
 enum MessageTypes {
 	GAME_STATE_UPDATE = "gsu",
 	MAKE_MOVE = "mm",
+	ERROR = "err",
 }
 
 enum MessageKeys {
@@ -13,4 +14,5 @@ enum MessageKeys {
 	MATCH = "match",
 	MOVES = "moves",
 	MOVE = "move",
+	ERROR_MESSAGE = "err_msg",
 }

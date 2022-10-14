@@ -59,7 +59,16 @@ export class GameInteractionController {
 						selected: this.selectedPiece,
 						clickedPiece: comparePiece
 					});
-					this.selectedPiece = undefined;
+					this.resetSelectedPiece();
+					return undefined;
+				}
+
+				if (!isHeldPiece(event.clickedEntity.piece)) {
+					return this.movePiece({
+						rank: event.clickedEntity.piece.rank,
+						file: event.clickedEntity.piece.file,
+					},
+					currentGameState);
 				}
 			}
 		} else {
@@ -86,8 +95,6 @@ export class GameInteractionController {
 
 		const { rank: destRank, file: destFile } = clickedEntity;
 
-		//const { rank: startRank, file: startFile } = this.selectedPiece;
-
 		const humanPlayerMoves = findPlayer(currentGameState, currentGameState.nextMovePlayer).moves;
 
 		const movesForSelectedPiece = isHeldPiece(this.selectedPiece)
@@ -103,13 +110,30 @@ export class GameInteractionController {
 			return undefined;
 		}
 
-		const selectedMove = humanPlayerMoves.find(move => move.end.rank === destRank && move.end.file === destFile);
+		let selectedMove;
+		if (isHeldPiece(this.selectedPiece)) {
+			console.warn(`TODO disambiguate held piece placement move selection`);
+			selectedMove = humanPlayerMoves.find(move => move.end.rank === destRank && move.end.file === destFile);
+		} else {
+			const { file: startFile, rank: startRank } = this.selectedPiece;
+			selectedMove = humanPlayerMoves.find(move =>
+				move.end.rank === destRank && move.end.file === destFile
+				&& move.start.rank === startRank && move.start.file === startFile
+			);
+		}
+
 		if (selectedMove === undefined){
 			console.warn(`movePiece, target space:(${destRank}, ${destFile}) is not legal, you should select from these moves:`, movesForSelectedPiece );
 			return undefined;
 		}
 
+		this.resetSelectedPiece();
+
 		return selectedMove;
+	}
+
+	public resetSelectedPiece(): void {
+		this.selectedPiece = undefined;
 	}
 
 	private getMovesForHeldPiece(playerMoves: Move[], heldPiece: HeldPiece): Move[] {
@@ -123,13 +147,13 @@ export class GameInteractionController {
 			 && move.start.file === placedPiece.file);
 	}
 
-	//TODO this code moved the pieces locally, just to verify the space selection logic
+	//this code moved the pieces locally, just to verify the space selection logic
 	//and renderer. All that it actually needs to do is to communicate a move to the server
 	//but, It could be good to keep this around in case we start to allow a client local cpu/game engine
 
 	//private movePiece(clickedEntity: ClickedSpace, currentGameState: Game): Game {
 	//	if(this.selectedPiece === undefined) throw new Error(`${this.className}::movePiece selectedPiece was undefined`);
-	//	//TODO be careful not to accidentally modify the current game state,
+	//	//be careful not to accidentally modify the current game state,
 	//	//you should modify the new one. Ideally, I will refactor this to work
 	//	//in an immutable fashion
 	//	const newGameState = structuredClone(currentGameState);
