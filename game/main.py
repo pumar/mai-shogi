@@ -55,25 +55,26 @@ class Koma:
     def encode(self) -> str:
             serialized_piece = ""
             if self.isPromoted(): serialized_piece += "+"
-            
+
             if type(self) is Fuhyou:
-                serialized_piece = "p"
+                serialized_piece += "p"
             if type(self) is Kyousha:
-                serialized_piece = "l"
+                serialized_piece += "l"
             if type(self) is Keima:
-                serialized_piece = "n"
+                serialized_piece += "n"
             if type(self) is Kinshou:
-                serialized_piece = "g"
+                serialized_piece += "g"
             if type(self) is Gyokushou:
-                serialized_piece = "k"
+                serialized_piece += "k"
             if type(self) is Ginshou:
-                serialized_piece = "s"
+                serialized_piece += "s"
             if type(self) is Kakugyou:
-                serialized_piece = "b"
+                serialized_piece += "b"
             if type(self) is Hisha:
-                serialized_piece = "r"
+                serialized_piece += "r"
             if self.isSente():
                 serialized_piece = serialized_piece.upper()
+
             return serialized_piece
 
 class Masu:

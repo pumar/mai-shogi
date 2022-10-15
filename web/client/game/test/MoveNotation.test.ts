@@ -8,7 +8,8 @@ describe("MoveNotation.ts - move parsing", () => {
 				answer:{
 					start: { rank: 4, file: 2 },
 					end: { rank: 5, file: 2 },
-					originalString: "31p 41p"
+					originalString: "31p 41p",
+					promotesPiece: false,
 				}
 			},
 			{
@@ -16,7 +17,8 @@ describe("MoveNotation.ts - move parsing", () => {
 				answer:{
 					start: { rank: 6, file: 6 },
 					end: { rank: 7, file: 7 },
-					originalString: "55K 66K"
+					originalString: "55K 66K",
+					promotesPiece: false,
 				}
 			},
 			{
@@ -24,7 +26,26 @@ describe("MoveNotation.ts - move parsing", () => {
 				answer:{
 					start: { rank: 1, file: 1 },
 					end: { rank: 1, file: 2 },
-					originalString:  "00g 01g",
+					originalString: "00g 01g",
+					promotesPiece: false,
+				}
+			},
+			{
+				input: "22B 11B",
+				answer: {
+					start: { rank: 3, file: 3 },
+					end: { rank: 2, file: 2 },
+					originalString: "22B 11B",
+					promotesPiece: false,
+				}
+			},
+			{
+				input: "22B 11+B",
+				answer: {
+					start: { rank: 3, file: 3 },
+					end: { rank: 2, file: 2 },
+					originalString: "22B 11+B",
+					promotesPiece: true,
 				}
 			},
 		];

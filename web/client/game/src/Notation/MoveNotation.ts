@@ -12,20 +12,32 @@ enum Splits {
 }
 
 //TODO how can I tell if the move is a held piece?
-//these function will need to determine whether it's a held piece or not
+//this function will need to determine whether it's a held piece or not
 function parseMove(moveInput: string): Move {
 	const [start, end] = moveInput.split(Splits.StartEndSplit);
 	console.log({ moveInput, start, end });
 	const startLoc = digitsToRanksAndFiles(start.slice(0, 2));
+
 	const endLoc = digitsToRanksAndFiles(end.slice(0, 2));
+	const [pieceWillBePromoted, remainingInput] = isPromotes(end.slice(2, 4));
+	console.log(`parseMove, moveInput:${moveInput}`, { pieceWillBePromoted, remainingInput});
 
 	return {
 		start: startLoc,
 		end: endLoc,
 		originalString: moveInput,
-		//promotesPiece: false,
+		promotesPiece: pieceWillBePromoted,
 		//takesPiece: false,
 	}
+}
+
+function isPromotes(moveInput: string): [boolean, string] {
+	if (moveInput.length === 0) return [false, ""];
+	if (moveInput[0] === '+') {
+		return [true, moveInput.slice(1)];
+	}
+
+	return [false, moveInput];
 }
 
 function digitsToRanksAndFiles(digits: string): BoardLocation {

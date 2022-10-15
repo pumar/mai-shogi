@@ -1,5 +1,6 @@
 import random
 import json
+from typing import List
 from channels.generic.websocket import WebsocketConsumer
 
 from enum import Enum
@@ -63,11 +64,16 @@ class GameConsumer(WebsocketConsumer):
                 print(f'is next player the computer{nextMoveIsComputer}')
                 if nextMoveIsComputer:
                     self.makeAiMove()
+
+                playerMoves = self.serializeMoves(self.match)
+
+                print(f'playerMoves:{playerMoves}');
+
                 #TODO de-duplicate this, it's also in the connect handler of this class
                 messageDict = {}
                 messageDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.GAME_STATE_UPDATE
                 messageDict[MessageKeys.MATCH] = self.match.serializeBoardState()
-                messageDict[MessageKeys.MOVES] = list(map(lambda x: x.serialize(), self.match.getMoves()))
+                messageDict[MessageKeys.MOVES] = playerMoves
                 self.send(text_data=json.dumps(messageDict))
             except MoveNotFound as e:
                 print("error on server receive handler for MAKE_MOVE", e)
@@ -78,7 +84,7 @@ class GameConsumer(WebsocketConsumer):
         else:
             print(f'unknown message type:{messageType}')
 
-    def serializeMoves(self, match: Match):
+    def serializeMoves(self, match: Match) -> List[str]:
         return list(map(lambda x: x.serialize(), match.getMoves()))
 
     def makeAiMove(self):
