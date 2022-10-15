@@ -590,17 +590,20 @@ class Match:
         move_index = string_moves.index(string_move)
 
         current_move = self.current_legal_moves[move_index]
+        print(f'current_move:{current_move}');
         src_square = current_move.src_square;
         trgt_square = current_move.trgt_square;
+
+        trgt_square_koma = trgt_square.koma
 
         #print(f'doTurn src_square:({src_square.getX()}, {src_square.getY()}) trgt_square:({trgt_square.getX()}, {trgt_square.getY()})', dir(current_move))
 
         src_koma = self.grid.getMasu(src_square.getX(), src_square.getY()).getKoma()
         self.grid.getMasu(src_square.getX(), src_square.getY()).setKoma(None)
-        self.grid.getMasu(trgt_square.getX(), trgt_square.getY()).setKoma(src_koma)
+        #the masu stored in trgt_square may have been promoted, so it is not
+        #sufficient to just set the koma at trgt to the src koma
+        self.grid.getMasu(trgt_square.getX(), trgt_square.getY()).setKoma(trgt_square_koma)
 
-        #this doesn't work because current_turn is not a boolean
-        #self.current_turn = not self.current_turn
         if self.current_turn == self.player_one:
             self.current_turn = self.player_two
         else:
