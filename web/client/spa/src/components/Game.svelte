@@ -1,15 +1,19 @@
 <script lang="ts">
 import {
-	setupGameWithDefaults,
+	//setupGameWithDefaults,
 	getDefaultSvgLoadConfig,
 	setCanvasSizeToMatchLayout,
 	EventQueue,
 	GameInteractionController,
+	CommunicationStack,
+CommunicationEventTypes,
+CommunicationEvent,
 } from "mai-shogi-game";
-import { onMount } from "svelte";
 
 import {
 	connectToGame,
+	promptSelectMove,
+	sendMove,
 } from "../Glue/ServerClientCommunication";
 
 import {
@@ -20,12 +24,15 @@ import {
 export let assetLoadingRootDir = "";
 export let fontLoadingRootDir = "";
 
-let context = undefined;
+//let context = undefined;
 let canvas = undefined;
 
 export let gameInstance = undefined;
 
+let gameCommunicationStack: CommunicationStack | undefined = undefined;
+
 let websocketConnection = undefined;
+
 
 const makeConn = async () => {
 	const instanceInfo = connectToGame();
@@ -51,16 +58,34 @@ const makeConn = async () => {
 	console.log('init graphics done');
 
 	websocketConnection = instanceInfo.getWebsocketConn();
+
+	gameCommunicationStack = instanceInfo.communicationStack;
+	gameCommunicationStack.pushNotifyCallback((commEvent: CommunicationEvent) => {
+		switch(commEvent.eventType) {
+			case CommunicationEventTypes.PROMPT_SELECT_MOVE:
+				promptSelectMove(websocketConnection, commEvent);
+				break;
+			case CommunicationEventTypes.MAKE_MOVE:
+				sendMove(websocketConnection, commEvent);
+				break;
+			default:
+				console.debug(`communication event callback, unhandled event type:${commEvent.eventType}`);
+		};
+
+	});
+
 	addEventHandler(websocketConnection, WebsocketEvent.Close, (event: CloseEvent) => {
 		console.log('websocket closed', event);
 		websocketConnection = undefined;
 		gameInstance = undefined;
 		window.game = undefined;
+		gameCommunicationStack = undefined;
 	});
 	addEventHandler(websocketConnection, WebsocketEvent.Error, (event: Event) => {
 		console.error(`websocket connection closed, do to an error`, event);
 		websocketConnection = undefined;
 		gameInstance = undefined;
+		gameCommunicationStack = undefined;
 		window.game = undefined;
 	});
 	addEventHandler(websocketConnection, WebsocketEvent.Open, () => {

@@ -3,6 +3,10 @@ import {
 	MessageTypes,
 	MessageKeys,
     CommunicationStack,
+    CommunicationEvent,
+	MakeMove,
+	PromptSelectMove,
+	GameRunner
 } from "mai-shogi-game";
 import { GameRunner } from "mai-shogi-game/Game/GameRunner";
 
@@ -11,6 +15,8 @@ import { addEventHandler, getWebsocketConnection, WebsocketEvent } from "../Netw
 export {
 	notifyGameFromServer,
 	connectToGame,
+	sendMove,
+	promptSelectMove,
 }
 
 function notifyGameFromServer(message: Record<string, any>, game: GameRunner) {
@@ -63,4 +69,17 @@ function connectToGame(): {
 		game,
 		communicationStack,
 	}
+}
+
+function sendMove(wsConnection: WebSocket, commEvent: CommunicationEvent): void {
+	const moveText = (commEvent.eventInfo as MakeMove).moveString;
+	wsConnection.send(JSON.stringify({
+		messageType: MessageTypes.MAKE_MOVE,
+		[MessageKeys.MOVE]: moveText,
+	}));
+}
+
+function promptSelectMove(websocketConnection, commEvent): void {
+	const moves = (commEvent.eventInfo as PromptSelectMove).moveOptions;
+	console.debug(`TODO promptSelectMove, moves:${moves}`);
 }

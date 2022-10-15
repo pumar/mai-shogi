@@ -6,8 +6,9 @@ export {
 	NotifyCallback,
 	SelectMove,
 	EventInfo,
-	PromptSelectMove,
 	Promote,
+	MakeMove,
+	PromptSelectMove,
 }
 
 type NotifyCallback = (notifyEvent: CommunicationEvent) => void;
