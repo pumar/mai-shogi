@@ -23,7 +23,7 @@ import { Move } from "./types/Move";
 import { MessageKeys, MessageTypes } from "./CommunicationConsts";
 import { sfenToGame } from "../Notation/Sfen";
 import { clientMoveToServerMove, serverMovesToClientMoves } from "../Notation/MoveNotation";
-import { CommunicationEvent, CommunicationEventTypes, CommunicationStack, EventInfo, mkCommunicationStack, Promote, PromptSelectMove } from "./Input/UserInputEvents";
+import { AnswerPrompt, CommunicationEvent, CommunicationEventTypes, CommunicationStack, EventInfo, MakeMove, mkCommunicationStack, Promote, PromptSelectMove } from "./Input/UserInputEvents";
 
 
 /**
@@ -1116,6 +1116,7 @@ export class GameRunner implements IEventQueueListener {
 						//this.getPostMoveCallback()(move.originalString || "BAD CLIENT SIDE MOVE STRING");
 					//prompt the user to choos from amongst many moves
 					} else {
+						//TODO de-dupe this with the promotion selection case
 						this.getCommunicationStack().pushEvent({
 							eventType: CommunicationEventTypes.PROMPT_SELECT_MOVE,
 							eventInfo: {
@@ -1123,9 +1124,28 @@ export class GameRunner implements IEventQueueListener {
 									return {
 										id,
 										promote: move.promotesPiece ? Promote.Do : Promote.No,
+										displayMessage: move.promotesPiece ? "Promote" : "No Promote",
 									}
 								}),
+
 							} as PromptSelectMove
+						});
+						this.getCommunicationStack().pushNotifyCallback((event: CommunicationEvent, callbackId: number) => {
+							if (event.eventType !== CommunicationEventTypes.ANSWER_PROMPT) {
+								return;
+							}
+
+							const userSelectedMoveId = (event.eventInfo as AnswerPrompt).selectedChoiceId;
+
+							const selectedMove = moves[userSelectedMoveId];
+							this.getCommunicationStack().pushEvent({
+								eventType: CommunicationEventTypes.MAKE_MOVE,
+								eventInfo: {
+									moveString: selectedMove.originalString !== undefined ? selectedMove.originalString : "BAD SELECTED STRING AFTER PROMPT",
+								} as MakeMove,
+							});
+							//callback unregisters itself when it is finished
+							this.getCommunicationStack().removeNotifyCallback(callbackId);
 						});
 					}
 				}
@@ -1215,9 +1235,12 @@ export class GameRunner implements IEventQueueListener {
 
 		//TODO de-dupe the white and black held piece cases
 		const clickedBlackPiece = blackPieceNameToSpaceArea
-			.find((entry: [PieceNames, Box2]) => { console.log(entry); return entry[1].containsPoint(mouseCoords);});
+			.find((entry: [PieceNames, Box2]) => {
+				//console.log(entry);
+				return entry[1].containsPoint(mouseCoords);
+			});
 		if (clickedBlackPiece) {
-			console.log(`clicked black held piece:${clickedBlackPiece[0]} ${boxToString(clickedBlackPiece[1])}`);
+			//console.log(`clicked black held piece:${clickedBlackPiece[0]} ${boxToString(clickedBlackPiece[1])}`);
 			const blackPlayer = findPlayer(currentGameState, PlayerColor.Black)
 
 			const heldPiece = blackPlayer.heldPieces
@@ -1241,7 +1264,7 @@ export class GameRunner implements IEventQueueListener {
 		const clickedWhitePiece = whitePieceNameToSpaceArea
 			.find((entry: [PieceNames, Box2]) => entry[1].containsPoint(mouseCoords));
 		if (clickedWhitePiece) {
-			console.log(`clicked white held piece:${clickedWhitePiece[0]} ${boxToString(clickedWhitePiece[1])}`);
+			//console.log(`clicked white held piece:${clickedWhitePiece[0]} ${boxToString(clickedWhitePiece[1])}`);
 			const whitePlayer = findPlayer(currentGameState, PlayerColor.White);
 			const heldPiece = whitePlayer.heldPieces
 				.find(heldPiece => heldPiece.name === clickedWhitePiece[0]);

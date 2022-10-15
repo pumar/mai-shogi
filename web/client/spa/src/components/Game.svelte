@@ -6,15 +6,19 @@ import {
 	EventQueue,
 	GameInteractionController,
 	CommunicationStack,
-CommunicationEventTypes,
-CommunicationEvent,
+	CommunicationEventTypes,
+	CommunicationEvent,
+	AnswerPrompt,
 } from "mai-shogi-game";
 
 import {
 	connectToGame,
-	promptSelectMove,
 	sendMove,
 } from "../Glue/ServerClientCommunication";
+
+import {
+	promptSelectMove,
+} from "../Glue/GameClientCommunication";
 
 import {
 	addEventHandler,
@@ -33,6 +37,16 @@ let gameCommunicationStack: CommunicationStack | undefined = undefined;
 
 let websocketConnection = undefined;
 
+let choices = [];
+
+const pickChoice = (commStack: CommunicationStack, choiceId: number) => {
+	commStack.pushEvent({
+		eventType: CommunicationEventTypes.ANSWER_PROMPT,
+		eventInfo: {
+			selectedChoiceId: choiceId,
+		} as AnswerPrompt
+	});
+}
 
 const makeConn = async () => {
 	const instanceInfo = connectToGame();
@@ -60,18 +74,19 @@ const makeConn = async () => {
 	websocketConnection = instanceInfo.getWebsocketConn();
 
 	gameCommunicationStack = instanceInfo.communicationStack;
-	gameCommunicationStack.pushNotifyCallback((commEvent: CommunicationEvent) => {
+	gameCommunicationStack.pushNotifyCallback((commEvent: CommunicationEvent, _: number) => {
 		switch(commEvent.eventType) {
 			case CommunicationEventTypes.PROMPT_SELECT_MOVE:
-				promptSelectMove(websocketConnection, commEvent);
+				choices = promptSelectMove(commEvent);
 				break;
 			case CommunicationEventTypes.MAKE_MOVE:
 				sendMove(websocketConnection, commEvent);
+				//clear out the on-screen UI items related to making choices
+				choices = [];
 				break;
 			default:
 				console.debug(`communication event callback, unhandled event type:${commEvent.eventType}`);
 		};
-
 	});
 
 	addEventHandler(websocketConnection, WebsocketEvent.Close, (event: CloseEvent) => {
@@ -134,7 +149,15 @@ const makeConn = async () => {
 	<!--<form on:submit|preventDefault={makeConn}>-->
 		<!--<label>Game code:<input type="text" bind:value={gameCode}/></label>-->
 		<!--{#if gameCode !== ""}-->
-		<button on:click={makeConn}>Connect to game</button>
+		{#if websocketConnection === undefined}
+			<button on:click={makeConn}>Connect to game</button>
+		{/if}
+		{#if choices.length > 0}
+			<span>Choices:</span>
+			{#each choices as choice}
+				<button on:click={() => { pickChoice(gameCommunicationStack, choice.id)}}>{choice.displayMessage}</button>
+			{/each}
+		{/if}
 	<!--</form>-->
 </div>
 

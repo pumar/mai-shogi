@@ -1,7 +1,7 @@
 import { MessageKeys, MessageTypes } from "./Game/CommunicationConsts";
 import { GameRunner, getDefaultSvgLoadConfig } from "./Game/GameRunner";
 import { EventQueue } from "./Game/Input/EventQueue";
-import { CommunicationEvent, CommunicationEventTypes, CommunicationStack, MakeMove, PromptSelectMove } from "./Game/Input/UserInputEvents";
+import { AnswerPrompt, CommunicationEvent, CommunicationEventTypes, CommunicationStack, MakeMove, PromptSelectMove } from "./Game/Input/UserInputEvents";
 import { GameInteractionController } from "./Game/Input/UserInteraction";
 import { setCanvasSizeToMatchLayout } from "./Game/Renderer/Renderer";
 import { setupGameWithDefaults } from "./GameInitializerHelper";
@@ -19,6 +19,7 @@ export {
 	CommunicationEvent,
 	MakeMove,
 	PromptSelectMove,
-	GameRunner
+	GameRunner,
+	AnswerPrompt,
 }
 

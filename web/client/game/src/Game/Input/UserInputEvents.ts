@@ -9,9 +9,10 @@ export {
 	Promote,
 	MakeMove,
 	PromptSelectMove,
+	AnswerPrompt,
 }
 
-type NotifyCallback = (notifyEvent: CommunicationEvent) => void;
+type NotifyCallback = (notifyEvent: CommunicationEvent, callbackId: number) => void;
 
 function mkCommunicationStack(): CommunicationStack {
 	let callbackId = 0;
@@ -22,7 +23,8 @@ function mkCommunicationStack(): CommunicationStack {
 	return {
 		pushEvent: (event: CommunicationEvent) => {
 			eventStack.push(event);
-			(notifyCallbacks.filter(cb => cb !== undefined) as NotifyCallback[]).forEach(cb => cb(event));
+			console.debug(`mkCommunicationStack, event was pushed`, { event });
+			(notifyCallbacks.filter(cb => cb !== undefined) as NotifyCallback[]).forEach((cb, id: number) => cb(event, id));
 		},
 		pushNotifyCallback: (newCb: NotifyCallback) => {
 			notifyCallbacks.push(newCb);
@@ -57,22 +59,35 @@ enum Promote {
 	No
 };
 
-type MoveId = number;
 type SelectMove = {
-	moveId: MoveId;
+	moveId: number;
 }
 
 type MakeMove = {
 	moveString: string;
 }
 
-type EventInfo = MakeMove | SelectMove | PromptSelectMove;
+type EventInfo = MakeMove | SelectMove | PromptSelectMove | AnswerPrompt;
 
-type PromptSelectMove = {
-	moveOptions: {id: MoveId; promote: Promote;}[];
+type Option = {
+	id: number;
+	displayMessage: string;
+}
+
+type MoveOption = Option & {
+	promote: Promote;
+}
+
+type AnswerPrompt = {
+	selectedChoiceId: number;
+}
+
+type PromptSelectMove = Option & {
+	moveOptions: MoveOption[];
 }
 
 enum CommunicationEventTypes {
-	MAKE_MOVE,
-	PROMPT_SELECT_MOVE
+	MAKE_MOVE = "MAKE_MOVE",
+	PROMPT_SELECT_MOVE = "PROMPT_SELECT_MOVE",
+	ANSWER_PROMPT = "ANSWER_PROMPT",
 }
