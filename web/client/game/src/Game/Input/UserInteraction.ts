@@ -33,7 +33,7 @@ export class GameInteractionController {
 	private className = "GameInteractionController";
 	private selectedPiece?: PlayerHeldPiece | PlacedPiece;
 
-	public handleClick(event: InteractionEvent, currentGameState: Game): Move | undefined {
+	public handleClick(event: InteractionEvent, currentGameState: Game): Move[] | undefined {
 		if(isClickedSpace(event.clickedEntity)) {
 			if(this.selectedPiece !== undefined) {
 				return this.movePiece(event.clickedEntity, currentGameState);
@@ -90,7 +90,7 @@ export class GameInteractionController {
 		}
 	}
 
-	private movePiece(clickedEntity: ClickedSpace, currentGameState: Game): Move | undefined {
+	private movePiece(clickedEntity: ClickedSpace, currentGameState: Game): Move[] {
 		if(this.selectedPiece === undefined) throw new Error(`${this.className}::movePiece selectedPiece was undefined`);
 
 		const { rank: destRank, file: destFile } = clickedEntity;
@@ -107,29 +107,31 @@ export class GameInteractionController {
 				`movePiece, no legal move found for`,
 				isHeldPiece(this.selectedPiece) ? `held piece:${this.selectedPiece.name}` : `start space:(${this.selectedPiece.rank}, ${this.selectedPiece.file})`,
 			].join(' '));
-			return undefined;
+			return [];
 		}
 
-		let selectedMove;
+		let selectedPossibleMoves: Move[];
 		if (isHeldPiece(this.selectedPiece)) {
 			console.warn(`TODO disambiguate held piece placement move selection`);
-			selectedMove = humanPlayerMoves.find(move => move.end.rank === destRank && move.end.file === destFile);
+			const heldPieceMove = humanPlayerMoves.find(move => move.end.rank === destRank && move.end.file === destFile);
+			if (heldPieceMove === undefined) throw new Error(`couldn't find held piece move for dest:(${destRank}, ${destFile})`);
+			selectedPossibleMoves = [heldPieceMove];
 		} else {
 			const { file: startFile, rank: startRank } = this.selectedPiece;
-			selectedMove = humanPlayerMoves.find(move =>
+			selectedPossibleMoves = humanPlayerMoves.filter(move =>
 				move.end.rank === destRank && move.end.file === destFile
 				&& move.start.rank === startRank && move.start.file === startFile
 			);
 		}
 
-		if (selectedMove === undefined){
+		if (selectedPossibleMoves.length === 0){
 			console.warn(`movePiece, target space:(${destRank}, ${destFile}) is not legal, you should select from these moves:`, movesForSelectedPiece );
-			return undefined;
+			return [];
 		}
 
 		this.resetSelectedPiece();
 
-		return selectedMove;
+		return selectedPossibleMoves;
 	}
 
 	public resetSelectedPiece(): void {

@@ -23,6 +23,7 @@ import { Move } from "./types/Move";
 import { MessageKeys, MessageTypes } from "./CommunicationConsts";
 import { sfenToGame } from "../Notation/Sfen";
 import { clientMoveToServerMove, serverMovesToClientMoves } from "../Notation/MoveNotation";
+import { CommunicationEvent, CommunicationEventTypes, CommunicationStack, EventInfo, mkCommunicationStack, Promote, PromptSelectMove } from "./Input/UserInputEvents";
 
 
 /**
@@ -88,6 +89,16 @@ export class GameRunner implements IEventQueueListener {
 	private className = "GameRunner";
 	private gameStates: Game[] = [];
 	private checkDefined = makeExistsGuard("GameRunner");
+
+	private communicationStack?: CommunicationStack;
+	private getCommunicationStack(): CommunicationStack {
+		return this.checkDefined(this.communicationStack, "getCommunicationStack undefined");
+	}
+
+	public prepareCommunicationStack(): CommunicationStack {
+		this.communicationStack = mkCommunicationStack();
+		return this.communicationStack;
+	}
 
 	private _postMoveCallback?: (move: string) => void;
 	public setPostMoveCallback(cback: (move: string) => void) {
@@ -1090,10 +1101,33 @@ export class GameRunner implements IEventQueueListener {
 		console.log("game notified of event:", event);
 		switch(event.type) {
 			case EventType.Mouse:
-				const move = this.handleMouseEvent(event);
-				if(move !== undefined) {
-					console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
-					this.getPostMoveCallback()(move.originalString || "BAD CLIENT SIDE MOVE STRING");
+				const moves = this.handleMouseEvent(event);
+				if(moves !== undefined && moves.length > 0) {
+					//send the only possible move
+					if (moves.length === 1) {
+						const move = moves[0];
+						console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
+						this.getCommunicationStack().pushEvent({
+							eventType: CommunicationEventTypes.MAKE_MOVE,
+							eventInfo: {
+								moveString: move.originalString !== undefined ? move.originalString : "BAD CLIENT SIDE MOVE STRING",
+							},
+						} as CommunicationEvent);
+						//this.getPostMoveCallback()(move.originalString || "BAD CLIENT SIDE MOVE STRING");
+					//prompt the user to choos from amongst many moves
+					} else {
+						this.getCommunicationStack().pushEvent({
+							eventType: CommunicationEventTypes.PROMPT_SELECT_MOVE,
+							eventInfo: {
+								moveOptions: moves.map((move: Move, id: number) => {
+									return {
+										id,
+										promote: move.promotesPiece ? Promote.Do : Promote.No,
+									}
+								}),
+							} as PromptSelectMove
+						});
+					}
 				}
 				break;
 			case EventType.Keyboard:
@@ -1109,7 +1143,7 @@ export class GameRunner implements IEventQueueListener {
 	* use both effectively for the piece drag & drop
 	* @returns if game state was changed, the new game state is returned, if not, undefined
 	**/
-	private handleMouseEvent(event: EventWrapper): Move | undefined {
+	private handleMouseEvent(event: EventWrapper): Move[] | undefined {
 		if (event.event.type !== "mouseup") {
 			return undefined;
 		}

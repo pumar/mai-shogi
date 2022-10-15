@@ -2,14 +2,14 @@ import {
 	setupGameWithDefaults,
 	MessageTypes,
 	MessageKeys,
+    CommunicationStack,
 } from "mai-shogi-game";
-import { GameRunner, SvgLoadConfig } from "mai-shogi-game/Game/GameRunner";
+import { GameRunner } from "mai-shogi-game/Game/GameRunner";
 
 import { addEventHandler, getWebsocketConnection, WebsocketEvent } from "../Network/WebsocketConnection";
 
 export {
 	notifyGameFromServer,
-	postMessageToGame,
 	connectToGame,
 }
 
@@ -17,31 +17,10 @@ function notifyGameFromServer(message: Record<string, any>, game: GameRunner) {
 	game.receiveMessage(message);
 }
 
-function initializeGameFromMessage(
-	canvas: HTMLCanvasElement,
-	svgLoadSettings?: SvgLoadConfig,
-	fontLoadingDir?: string,
-): GameRunner {
-	const { game, eventQueue } = setupGameWithDefaults(
-		canvas,
-		svgLoadSettings,
-		fontLoadingDir,
-	);
-
-	return {
-		game
-	}
-}
-
-function postMessageToGame(
-	message: Record<string, any>,
-	game: GameRunner,
-): void {
-}
-
 function connectToGame(): {
 	getWebsocketConn: () => WebSocket,
 	game: GameRunner,
+	communicationStack: CommunicationStack,
 } {
 	//console.log(`connect to game:${gameCode}`);
 	console.log(`connect to game`);
@@ -77,9 +56,11 @@ function connectToGame(): {
 	}
 
 	const game = new GameRunner();
+	const communicationStack: CommunicationStack = game.prepareCommunicationStack();
 
 	return {
 		getWebsocketConn,
-		game
+		game,
+		communicationStack,
 	}
 }
