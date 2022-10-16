@@ -40,6 +40,7 @@ enum SceneGroups {
 	BlackStand = "black_stand",
 	BlackStandPieces = "black_stand_pieces",
 	BlackStandPiecesCounts = "black_stand_pieces_counts",
+	PieceCenters = "piece_centers",
 	Debug = "Debug",
 	Grid = "grid",
 }
@@ -496,6 +497,7 @@ export class GameRunner implements IEventQueueListener {
 		const piecesStand = this.makeNamedGroup(SceneGroups.Stands);
 		const debugPieces = this.makeNamedGroup(SceneGroups.Debug);
 		const gridGroup = this.makeNamedGroup(SceneGroups.Grid);
+		const pieceCentersGroup = this.makeNamedGroup(SceneGroups.PieceCenters);
 
 		[
 			boardGroup,
@@ -504,6 +506,7 @@ export class GameRunner implements IEventQueueListener {
 			piecesStand,
 			debugPieces,
 			gridGroup,
+			pieceCentersGroup,
 		].forEach(grp => scene.add(grp));
 		//piecesGroup.position.setZ(zIndexes.pieces);
 		piecesGroup.position.setZ(zIndexes.pieces);
@@ -769,7 +772,6 @@ export class GameRunner implements IEventQueueListener {
 		const renderCoords = calcRenderCoordinates(gameState, renderSettings);
 		this.drawBoard(
 			this.getSceneGroup(SceneGroups.Board),
-			renderCoords.spaceCenterPoints,
 			renderCoords.boardWidth,
 			renderCoords.boardHeight
 		);
@@ -789,19 +791,19 @@ export class GameRunner implements IEventQueueListener {
 			gameState.players,
 			renderCoords,
 		);
-		if(renderSettings.debug.boardLocations){
-			this.renderCentersForSpaces(
-				buildForRange(1, 9, idxRank => buildForRange(1, 9, idxFile =>{
-						return {
-							rank: idxRank,
-							file: idxFile,
-						}
-					})
-				).flat(),
-				this.getCurrentGameState(),
-				renderSettings,
-			);
-		}
+
+		this.buildCenterIndicatorsForSpaces(
+			buildForRange(1, 9, idxRank => buildForRange(1, 9, idxFile =>{
+					return {
+						rank: idxRank,
+						file: idxFile,
+					}
+				})
+			).flat(),
+			this.getSceneGroup(SceneGroups.PieceCenters),
+			gameState,
+			renderSettings,
+		);
 
 		if(renderSettings.debug.boardCenter) {
 			const centerSquare = new Mesh(
@@ -816,7 +818,6 @@ export class GameRunner implements IEventQueueListener {
 
 	private drawBoard(
 		boardGroup: Group,
-		spaceCenterPoints: Vector3[][],
 		boardWidth: number,
 		boardHeight: number
 	): void {
@@ -1063,8 +1064,14 @@ export class GameRunner implements IEventQueueListener {
 		//}, time => console.log(`drawPlacedPieces update piece coordinates:${time}`));
 	}
 
-	public renderCentersForSpaces(
+	/**
+	* draw small shapes on top of the center of each space on the board
+	* that can be shown or hidden to convey to the user which spaces are possible moves
+	* for their currently selected piece
+	**/
+	public buildCenterIndicatorsForSpaces(
 		targetSpaces: BoardLocation[],
+		targetGroup: Group,
 		gameState: Game | undefined,
 		renderSettings: RenderSettings = defaultRenderSettings()
 	): void {
@@ -1092,19 +1099,37 @@ export class GameRunner implements IEventQueueListener {
 
 		//console.log({ renderCoords });
 
-		const debugSceneGroup = this.getSceneGroup(SceneGroups.Debug);
-		debugSceneGroup.remove(...debugSceneGroup.children);
+		targetGroup.remove(...targetGroup.children);
 		const square = makeLocationDebugSquare();
 		const placeDebugObjects = targetSpaces.map(space => {
 			const insertCube = square.clone();
 			insertCube.position.copy(renderCoords[space.rank - 1][space.file - 1]);
 			insertCube.position.setZ(zIndexes.floating);
 			insertCube.matrixWorldNeedsUpdate = true;
+			//these start off hidden
+			insertCube.visible = false;
+			insertCube.userData["rank"] = space.rank;
+			insertCube.userData["file"] = space.file;
 			return insertCube;
 		});
 
-		debugSceneGroup.add(...placeDebugObjects);
-		requestAnimationFrame(this.renderStep.bind(this));
+		targetGroup.add(...placeDebugObjects);
+	}
+
+	private showSpaceCenters(spaces: BoardLocation[]): void {
+		const spaceCenterIndicators = this.getSceneGroup(SceneGroups.PieceCenters).children;
+		//hide all of them
+		spaceCenterIndicators.forEach(indicator => {
+			indicator.visible = false;
+		});
+
+		//show the selected spaces
+		spaces.forEach(space => {
+			const spaceObject = spaceCenterIndicators.find(indicator => {
+				return indicator.userData["rank"] === space.rank && indicator.userData["file"] === space.file;
+			});
+			if (spaceObject !== undefined) spaceObject.visible = true;
+		});
 	}
 
 	private createMakeMoveEvent(move: Move): void {
@@ -1119,17 +1144,17 @@ export class GameRunner implements IEventQueueListener {
 
 	private handleUserInputResult(
 		userInputResult: Move[] | PlayerHeldPiece | PlacedPiece | undefined | null
-	): void {
+	): boolean {
 		//TODO instead of using 'undefined' to mean "a piece needs deselected/no piece found"
 		//and 'null' to mean "event was ignored for a non-game logic reason",
 		//actually make a type that represents that information
 		if (userInputResult === null) {
-			return;
+			return false;
 		}
 		if (userInputResult === undefined) {
 			//deselect piece
 			this.getInteractionController().resetSelectedPiece();
-			return;
+			return false;
 		}
 
 		if (Array.isArray(userInputResult)) {
@@ -1138,7 +1163,7 @@ export class GameRunner implements IEventQueueListener {
 			//select it
 			//no moves for selected piece
 			if (moves.length === 0) {
-				return;
+				return false;
 			}
 
 			//send the only possible move
@@ -1146,6 +1171,7 @@ export class GameRunner implements IEventQueueListener {
 				const move = moves[0];
 				console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
 				this.createMakeMoveEvent(move);
+				return false;
 			//prompt the user to choos from amongst many moves
 			} else {
 				//multiple moves are possible, so the UI needs to prompt the user to
@@ -1179,7 +1205,7 @@ export class GameRunner implements IEventQueueListener {
 				});
 			}
 
-			return;
+			return false;
 		}
 
 		//need to select a piece
@@ -1214,14 +1240,13 @@ export class GameRunner implements IEventQueueListener {
 					rank: mv.end.rank,
 					file: mv.end.file,
 				} as BoardLocation;
-			});;
+			});
 
-			this.renderCentersForSpaces(
-				squaresToShow,
-				this.getCurrentGameState(),
-				this.renderSettingsOrDefault(),
-			);
+			this.showSpaceCenters(squaresToShow);
+			return true;
 		}
+
+		return false;
 	}
 
 	public newEventNotification(event: EventWrapper) {
@@ -1229,7 +1254,8 @@ export class GameRunner implements IEventQueueListener {
 		switch(event.type) {
 			case EventType.Mouse:
 				const userInputResult = this.handleMouseEvent(event);
-				this.handleUserInputResult(userInputResult);
+				const shouldRerender = this.handleUserInputResult(userInputResult);
+				if (shouldRerender) this.renderStep();
 				break;
 			case EventType.Keyboard:
 				this.handleKeyboardEvent(event);
