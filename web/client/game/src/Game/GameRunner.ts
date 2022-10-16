@@ -7,23 +7,22 @@ import { makeExistsGuard } from "../utils/Guards";
 import { measureTime } from "../utils/Performance";
 import { debounce } from "../utils/Throttling";
 
-import { createGame, createHeldPieces, getPawnStartRank } from "./GameCreator";
 import { defaultRenderSettings, RenderSettings, setCanvasSizeToMatchLayout } from "./Renderer/Renderer";
 import { getAssetKeyForPiece } from "./types/AssetKeys";
 import { findPlacedPieceAndPlayer, findPlayer, Game } from "./types/Game";
-import { Bishop, Gold, HeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, PlacedPiece, Rook, Silver } from "./types/Piece";
+import { Bishop, BoardLocation, Gold, HeldPiece, isHeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, PlacedPiece, PlayerHeldPiece, Rook, Silver } from "./types/Piece";
 import { Player } from "./types/Player";
-import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, mouseToWorld, SpaceBox, spaceCenterPointsToBoxes, spaceCenterToBox, zIndexes } from "./RenderCalculations";
+import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, mouseToWorld, spaceCenterPointsToBoxes, spaceCenterToBox, zIndexes } from "./RenderCalculations";
 import { makeLocationDebugSquare, makeSvgDebugMesh } from "./Entities";
 import { EventType, EventWrapper, IEventQueueListener } from "./Input/EventQueue";
-import { boxToString } from "../threeUtils/Printing";
 import { GameInteractionController } from "./Input/UserInteraction";
 import { PlayerColor } from "./Consts";
 import { Move } from "./types/Move";
 import { MessageKeys, MessageTypes } from "./CommunicationConsts";
 import { sfenToGame } from "../Notation/Sfen";
-import { clientMoveToServerMove, serverMovesToClientMoves } from "../Notation/MoveNotation";
-import { AnswerPrompt, CommunicationEvent, CommunicationEventTypes, CommunicationStack, EventInfo, MakeMove, mkCommunicationStack, Promote, PromptSelectMove } from "./Input/UserInputEvents";
+import { serverMovesToClientMoves } from "../Notation/MoveNotation";
+import { AnswerPrompt, CommunicationEvent, CommunicationEventTypes, CommunicationStack, MakeMove, mkCommunicationStack, Promote, PromptSelectMove } from "./Input/UserInputEvents";
+import { buildForRange } from "../utils/Range";
 
 
 /**
@@ -41,6 +40,7 @@ enum SceneGroups {
 	BlackStand = "black_stand",
 	BlackStandPieces = "black_stand_pieces",
 	BlackStandPiecesCounts = "black_stand_pieces_counts",
+	PieceCenters = "piece_centers",
 	Debug = "Debug",
 	Grid = "grid",
 }
@@ -497,6 +497,7 @@ export class GameRunner implements IEventQueueListener {
 		const piecesStand = this.makeNamedGroup(SceneGroups.Stands);
 		const debugPieces = this.makeNamedGroup(SceneGroups.Debug);
 		const gridGroup = this.makeNamedGroup(SceneGroups.Grid);
+		const pieceCentersGroup = this.makeNamedGroup(SceneGroups.PieceCenters);
 
 		[
 			boardGroup,
@@ -505,6 +506,7 @@ export class GameRunner implements IEventQueueListener {
 			piecesStand,
 			debugPieces,
 			gridGroup,
+			pieceCentersGroup,
 		].forEach(grp => scene.add(grp));
 		//piecesGroup.position.setZ(zIndexes.pieces);
 		piecesGroup.position.setZ(zIndexes.pieces);
@@ -770,7 +772,6 @@ export class GameRunner implements IEventQueueListener {
 		const renderCoords = calcRenderCoordinates(gameState, renderSettings);
 		this.drawBoard(
 			this.getSceneGroup(SceneGroups.Board),
-			renderCoords.spaceCenterPoints,
 			renderCoords.boardWidth,
 			renderCoords.boardHeight
 		);
@@ -790,12 +791,19 @@ export class GameRunner implements IEventQueueListener {
 			gameState.players,
 			renderCoords,
 		);
-		if(renderSettings.debug.boardLocations){
-			this.debugSpaceCoords(
-				this.getCurrentGameState(),
-				renderSettings,
-			);
-		}
+
+		this.buildCenterIndicatorsForSpaces(
+			buildForRange(1, 9, idxRank => buildForRange(1, 9, idxFile =>{
+					return {
+						rank: idxRank,
+						file: idxFile,
+					}
+				})
+			).flat(),
+			this.getSceneGroup(SceneGroups.PieceCenters),
+			gameState,
+			renderSettings,
+		);
 
 		if(renderSettings.debug.boardCenter) {
 			const centerSquare = new Mesh(
@@ -810,7 +818,6 @@ export class GameRunner implements IEventQueueListener {
 
 	private drawBoard(
 		boardGroup: Group,
-		spaceCenterPoints: Vector3[][],
 		boardWidth: number,
 		boardHeight: number
 	): void {
@@ -1057,7 +1064,17 @@ export class GameRunner implements IEventQueueListener {
 		//}, time => console.log(`drawPlacedPieces update piece coordinates:${time}`));
 	}
 
-	public debugSpaceCoords(gameState: Game | undefined, renderSettings: RenderSettings = defaultRenderSettings()): void {
+	/**
+	* draw small shapes on top of the center of each space on the board
+	* that can be shown or hidden to convey to the user which spaces are possible moves
+	* for their currently selected piece
+	**/
+	public buildCenterIndicatorsForSpaces(
+		targetSpaces: BoardLocation[],
+		targetGroup: Group,
+		gameState: Game | undefined,
+		renderSettings: RenderSettings = defaultRenderSettings()
+	): void {
 		const game = gameState !== undefined ? gameState : this.getCurrentGameState();
 		const boardWidth = renderSettings.boardSpaceWidth * game.board.files;
 		const boardHeight = renderSettings.boardSpaceHeight * game.board.ranks;
@@ -1079,76 +1096,169 @@ export class GameRunner implements IEventQueueListener {
 			renderSettings.boardSpaceWidth,
 			renderSettings.boardSpaceHeight
 		);
-		console.log({ renderCoords });
-		const debugSceneGroup = this.getSceneGroup(SceneGroups.Debug);
-		debugSceneGroup.remove(...debugSceneGroup.children);
-		const placeDebugObjects = []
+
+		//console.log({ renderCoords });
+
+		targetGroup.remove(...targetGroup.children);
 		const square = makeLocationDebugSquare();
-		for(let rankIndex = 0; rankIndex < game.board.ranks; rankIndex++) {
-			for(let fileIndex = 0; fileIndex < game.board.files; fileIndex++) {
-				const insertCube = square.clone();
-				placeDebugObjects.push(insertCube);
-				insertCube.position.copy(renderCoords[rankIndex][fileIndex]);
-				insertCube.position.setZ(zIndexes.floating);
-				insertCube.matrixWorldNeedsUpdate = true;
-			}
+		const placeDebugObjects = targetSpaces.map(space => {
+			const insertCube = square.clone();
+			insertCube.position.copy(renderCoords[space.rank - 1][space.file - 1]);
+			insertCube.position.setZ(zIndexes.floating);
+			insertCube.matrixWorldNeedsUpdate = true;
+			//these start off hidden
+			insertCube.visible = false;
+			insertCube.userData["rank"] = space.rank;
+			insertCube.userData["file"] = space.file;
+			return insertCube;
+		});
+
+		targetGroup.add(...placeDebugObjects);
+	}
+
+	private showSpaceCenters(spaces: BoardLocation[]): void {
+		const spaceCenterIndicators = this.getSceneGroup(SceneGroups.PieceCenters).children;
+		//hide all of them
+		spaceCenterIndicators.forEach(indicator => {
+			indicator.visible = false;
+		});
+
+		//show the selected spaces
+		spaces.forEach(space => {
+			const spaceObject = spaceCenterIndicators.find(indicator => {
+				return indicator.userData["rank"] === space.rank && indicator.userData["file"] === space.file;
+			});
+			if (spaceObject !== undefined) spaceObject.visible = true;
+		});
+	}
+
+	private createMakeMoveEvent(move: Move): void {
+		console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
+		this.getCommunicationStack().pushEvent({
+			eventType: CommunicationEventTypes.MAKE_MOVE,
+			eventInfo: {
+				moveString: move.originalString !== undefined ? move.originalString : "BAD CLIENT SIDE MOVE STRING",
+			},
+		} as CommunicationEvent);
+	}
+
+	private handleUserInputResult(
+		userInputResult: Move[] | PlayerHeldPiece | PlacedPiece | undefined | null
+	): boolean {
+		//TODO instead of using 'undefined' to mean "a piece needs deselected/no piece found"
+		//and 'null' to mean "event was ignored for a non-game logic reason",
+		//actually make a type that represents that information
+		if (userInputResult === null) {
+			return false;
 		}
-		debugSceneGroup.add(...placeDebugObjects);
-		requestAnimationFrame(this.renderStep.bind(this));
+		if (userInputResult === undefined) {
+			//deselect piece
+			this.getInteractionController().resetSelectedPiece();
+			//hide the move indicator icons, and set the flag to redraw
+			this.showSpaceCenters([]);
+			return true;
+		}
+
+		if (Array.isArray(userInputResult)) {
+			const moves = userInputResult as Move[];
+			//TODO if a move has no possible moves, you should reject trying to
+			//select it
+			//no moves for selected piece
+			if (moves.length === 0) {
+				return false;
+			}
+
+			//send the only possible move
+			if (moves.length === 1) {
+				const move = moves[0];
+				console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
+				this.createMakeMoveEvent(move);
+				this.showSpaceCenters([]);
+				return true;
+			//prompt the user to choos from amongst many moves
+			} else {
+				//multiple moves are possible, so the UI needs to prompt the user to
+				//disambiguate them (to promote or not to promote),
+				//so we post an event to the UI layer asking the user to make a selection
+				this.getCommunicationStack().pushEvent({
+					eventType: CommunicationEventTypes.PROMPT_SELECT_MOVE,
+					eventInfo: {
+						moveOptions: moves.map((move: Move, id: number) => {
+							return {
+								id,
+								promote: move.promotesPiece ? Promote.Do : Promote.No,
+								displayMessage: move.promotesPiece ? "Promote" : "No Promote",
+							}
+						}),
+
+					} as PromptSelectMove
+				});
+				//add a callback to handle the answer event
+				this.getCommunicationStack().pushNotifyCallback((event: CommunicationEvent, callbackId: number) => {
+					if (event.eventType !== CommunicationEventTypes.ANSWER_PROMPT) {
+						return;
+					}
+
+					const userSelectedMoveId = (event.eventInfo as AnswerPrompt).selectedChoiceId;
+
+					const selectedMove = moves[userSelectedMoveId];
+					this.createMakeMoveEvent(selectedMove);
+					//callback unregisters itself when it is finished
+					this.getCommunicationStack().removeNotifyCallback(callbackId);
+				});
+			}
+
+			return false;
+		}
+
+		//need to select a piece
+		if (isPlaced(
+			userInputResult as PlacedPiece | PlayerHeldPiece)
+			|| isHeldPiece(userInputResult as PlacedPiece | PlayerHeldPiece)) {
+			this.getInteractionController().setSelectedPiece(userInputResult);
+
+			let playerColor;
+			if (isPlaced(userInputResult)) {
+				const pieceAndPlayer = findPlacedPieceAndPlayer(
+					this.getCurrentGameState(),
+					userInputResult.rank,
+					userInputResult.file,
+				);
+				if (pieceAndPlayer === undefined) throw new Error(`findPlacedPieceAndPlayer failed to find info for piece`);
+				playerColor = pieceAndPlayer.player;
+			} else {
+				playerColor = userInputResult.player;
+			}
+
+			if (isHeldPiece(userInputResult)) throw new Error(`TODO find moves for held piece`);
+			const player = findPlayer(this.getCurrentGameState(), playerColor);
+			const moves = player.moves;
+			const movesForSelectedPiece = moves.filter((mv: Move) => {
+				return mv.start.rank === userInputResult.rank
+					&& mv.start.file === userInputResult.file;
+			});
+			console.error(`need to highlight spaces:`, { movesForSelectedPiece });
+			const squaresToShow = movesForSelectedPiece.map((mv: Move) => {
+				return {
+					rank: mv.end.rank,
+					file: mv.end.file,
+				} as BoardLocation;
+			});
+
+			this.showSpaceCenters(squaresToShow);
+			return true;
+		}
+
+		return false;
 	}
 
 	public newEventNotification(event: EventWrapper) {
 		console.log("game notified of event:", event);
 		switch(event.type) {
 			case EventType.Mouse:
-				const moves = this.handleMouseEvent(event);
-				if(moves !== undefined && moves.length > 0) {
-					//send the only possible move
-					if (moves.length === 1) {
-						const move = moves[0];
-						console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
-						this.getCommunicationStack().pushEvent({
-							eventType: CommunicationEventTypes.MAKE_MOVE,
-							eventInfo: {
-								moveString: move.originalString !== undefined ? move.originalString : "BAD CLIENT SIDE MOVE STRING",
-							},
-						} as CommunicationEvent);
-						//this.getPostMoveCallback()(move.originalString || "BAD CLIENT SIDE MOVE STRING");
-					//prompt the user to choos from amongst many moves
-					} else {
-						//TODO de-dupe this with the promotion selection case
-						this.getCommunicationStack().pushEvent({
-							eventType: CommunicationEventTypes.PROMPT_SELECT_MOVE,
-							eventInfo: {
-								moveOptions: moves.map((move: Move, id: number) => {
-									return {
-										id,
-										promote: move.promotesPiece ? Promote.Do : Promote.No,
-										displayMessage: move.promotesPiece ? "Promote" : "No Promote",
-									}
-								}),
-
-							} as PromptSelectMove
-						});
-						this.getCommunicationStack().pushNotifyCallback((event: CommunicationEvent, callbackId: number) => {
-							if (event.eventType !== CommunicationEventTypes.ANSWER_PROMPT) {
-								return;
-							}
-
-							const userSelectedMoveId = (event.eventInfo as AnswerPrompt).selectedChoiceId;
-
-							const selectedMove = moves[userSelectedMoveId];
-							this.getCommunicationStack().pushEvent({
-								eventType: CommunicationEventTypes.MAKE_MOVE,
-								eventInfo: {
-									moveString: selectedMove.originalString !== undefined ? selectedMove.originalString : "BAD SELECTED STRING AFTER PROMPT",
-								} as MakeMove,
-							});
-							//callback unregisters itself when it is finished
-							this.getCommunicationStack().removeNotifyCallback(callbackId);
-						});
-					}
-				}
+				const userInputResult = this.handleMouseEvent(event);
+				const shouldRerender = this.handleUserInputResult(userInputResult);
+				if (shouldRerender) this.renderStep();
 				break;
 			case EventType.Keyboard:
 				this.handleKeyboardEvent(event);
@@ -1159,13 +1269,15 @@ export class GameRunner implements IEventQueueListener {
 	}
 
 	/**
-	* TODO this is running for both mouse down and mouse up, need to
-	* use both effectively for the piece drag & drop
-	* @returns if game state was changed, the new game state is returned, if not, undefined
+	* TODO need to use mouse down and mouse up to implement drag an drop
+	* @returns list of moves of length > 1 if the user must select a move,
+	* list of length 1 if only one move is possible
+	* undefined if piece-deselection is necessary 
+	* null if the event was ignored for some reason (like mousedown vs mouseup)
 	**/
-	private handleMouseEvent(event: EventWrapper): Move[] | undefined {
+	private handleMouseEvent(event: EventWrapper): Move[] | PlayerHeldPiece | PlacedPiece | undefined | null {
 		if (event.event.type !== "mouseup") {
-			return undefined;
+			return null;
 		}
 		const interactionController = this.getInteractionController();
 		const currentGameState = this.getCurrentGameState();

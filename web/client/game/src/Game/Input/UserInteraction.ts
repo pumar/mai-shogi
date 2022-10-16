@@ -1,7 +1,7 @@
 import { PlayerColor } from "../Consts";
 import { findPlayer, Game } from "../types/Game";
 import { Move } from "../types/Move";
-import { arePiecesEqual, HeldPiece, isHeldPiece, PlacedPiece, PlayerHeldPiece } from "../types/Piece";
+import { arePiecesEqual, HeldPiece, isHeldPiece, PlacedPiece, PlayerHeldPiece, PlayerPlacedPiece } from "../types/Piece";
 
 type ClickedSpace = {
 	rank: number;
@@ -14,7 +14,7 @@ type ClickedPiece = {
 }
 
 function isClickedPiece(e: ClickedPiece | ClickedSpace): e is ClickedPiece {
-	return (e as ClickedPiece).piece !== undefined;
+	return (e as ClickedPiece).piece !== undefined && (e as ClickedPiece).pieceOwner !== undefined;
 }
 function isClickedSpace(e: ClickedPiece | ClickedSpace): e is ClickedSpace {
 	return (e as ClickedSpace).rank !== undefined;
@@ -32,44 +32,44 @@ type InteractionEvent = {
 export class GameInteractionController {
 	private className = "GameInteractionController";
 	private selectedPiece?: PlayerHeldPiece | PlacedPiece;
+	public setSelectedPiece(newSelected: PlayerHeldPiece | PlacedPiece): void {
+		this.selectedPiece = newSelected;
+	}
 
-	public handleClick(event: InteractionEvent, currentGameState: Game): Move[] | undefined {
+	public handleClick(event: InteractionEvent, currentGameState: Game): Move[] | PlayerHeldPiece | PlacedPiece | undefined {
+		if(
+			isClickedPiece(event.clickedEntity)
+			 && this.selectedPiece === undefined
+		  ) {
+			return this.selectPiece(event, currentGameState);
+		}
+
 		if(isClickedSpace(event.clickedEntity)) {
-			if(this.selectedPiece !== undefined) {
-				return this.movePiece(event.clickedEntity, currentGameState);
-			} else {
-				this.selectPiece(event, currentGameState);
-				return undefined;
-			}
+			return this.movePiece(event.clickedEntity, currentGameState);
 		} else if(isClickedPiece(event.clickedEntity)) {
 			const clickedPiece = event.clickedEntity as ClickedPiece;
-			if(this.selectedPiece === undefined) {
-				this.selectPiece(event, currentGameState);
+			//if it is a held piece, we also need to know which player
+			//is holding that piece to check for their equality, so we convert
+			//a HeldPiece to a PlayerHeldPiece
+			const comparePiece: PlayerHeldPiece | PlacedPiece = isHeldPiece(clickedPiece.piece)
+				? { ...clickedPiece.piece, player: clickedPiece.pieceOwner }
+				: clickedPiece.piece;
+					
+			if(this.selectedPiece !== undefined && arePiecesEqual(this.selectedPiece, comparePiece)) {
+				console.log("pieces were the same, so de-selecting", {
+					selected: this.selectedPiece,
+					clickedPiece: comparePiece
+				});
+				this.resetSelectedPiece();
 				return undefined;
-			} else {
-				//if it is a held piece, we also need to know which player
-				//is holding that piece to check for their equality, so we convert
-				//a HeldPiece to a PlayerHeldPiece
-				const comparePiece: PlayerHeldPiece | PlacedPiece = isHeldPiece(clickedPiece.piece)
-					? { ...clickedPiece.piece, player: clickedPiece.pieceOwner }
-					: clickedPiece.piece;
-						
-				if(arePiecesEqual(this.selectedPiece, comparePiece)) {
-					console.log("pieces were the same, so de-selecting", {
-						selected: this.selectedPiece,
-						clickedPiece: comparePiece
-					});
-					this.resetSelectedPiece();
-					return undefined;
-				}
+			}
 
-				if (!isHeldPiece(event.clickedEntity.piece)) {
-					return this.movePiece({
-						rank: event.clickedEntity.piece.rank,
-						file: event.clickedEntity.piece.file,
-					},
-					currentGameState);
-				}
+			if (!isHeldPiece(event.clickedEntity.piece)) {
+				return this.movePiece({
+					rank: event.clickedEntity.piece.rank,
+					file: event.clickedEntity.piece.file,
+				},
+				currentGameState);
 			}
 		} else {
 			console.info(`${this.className} ignoring event:`, event);
@@ -78,15 +78,19 @@ export class GameInteractionController {
 		return undefined;
 	}
 
-	private selectPiece(event: InteractionEvent, currentGameState: Game): void {
+	private selectPiece(event: InteractionEvent, currentGameState: Game): PlayerHeldPiece | PlacedPiece | undefined {
 		const clickedPiece = event.clickedEntity as ClickedPiece;
 		if(currentGameState.viewPoint === clickedPiece.pieceOwner) {
 			console.log(`${this.className}::selectPiece clicked piece`, clickedPiece);
-			this.selectedPiece = isHeldPiece(clickedPiece.piece)
+			return isHeldPiece(clickedPiece.piece)
 				? { ...clickedPiece.piece, player: clickedPiece.pieceOwner }
 				: clickedPiece.piece;
 		} else {
-			console.log(`${this.className}::selectPiece cannot select piece as it is not the player's`);
+			console.log([
+				`${this.className}::selectPiece cannot select piece as it is not the player's`,
+				`gameViewPoint:${currentGameState.viewPoint} pieceOwner:${clickedPiece.pieceOwner}`,
+			].join(' '));
+			return undefined;
 		}
 	}
 
