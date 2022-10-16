@@ -10,7 +10,7 @@ import { debounce } from "../utils/Throttling";
 import { defaultRenderSettings, RenderSettings, setCanvasSizeToMatchLayout } from "./Renderer/Renderer";
 import { getAssetKeyForPiece } from "./types/AssetKeys";
 import { findPlacedPieceAndPlayer, findPlayer, Game } from "./types/Game";
-import { Bishop, Gold, HeldPiece, isHeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, PlacedPiece, PlayerHeldPiece, Rook, Silver } from "./types/Piece";
+import { Bishop, BoardLocation, Gold, HeldPiece, isHeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, PlacedPiece, PlayerHeldPiece, Rook, Silver } from "./types/Piece";
 import { Player } from "./types/Player";
 import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, mouseToWorld, spaceCenterPointsToBoxes, spaceCenterToBox, zIndexes } from "./RenderCalculations";
 import { makeLocationDebugSquare, makeSvgDebugMesh } from "./Entities";
@@ -22,6 +22,7 @@ import { MessageKeys, MessageTypes } from "./CommunicationConsts";
 import { sfenToGame } from "../Notation/Sfen";
 import { serverMovesToClientMoves } from "../Notation/MoveNotation";
 import { AnswerPrompt, CommunicationEvent, CommunicationEventTypes, CommunicationStack, MakeMove, mkCommunicationStack, Promote, PromptSelectMove } from "./Input/UserInputEvents";
+import { buildForRange } from "../utils/Range";
 
 
 /**
@@ -789,7 +790,14 @@ export class GameRunner implements IEventQueueListener {
 			renderCoords,
 		);
 		if(renderSettings.debug.boardLocations){
-			this.debugSpaceCoords(
+			this.renderCentersForSpaces(
+				buildForRange(1, 9, idxRank => buildForRange(1, 9, idxFile =>{
+						return {
+							rank: idxRank,
+							file: idxFile,
+						}
+					})
+				).flat(),
 				this.getCurrentGameState(),
 				renderSettings,
 			);
@@ -1055,7 +1063,11 @@ export class GameRunner implements IEventQueueListener {
 		//}, time => console.log(`drawPlacedPieces update piece coordinates:${time}`));
 	}
 
-	public debugSpaceCoords(gameState: Game | undefined, renderSettings: RenderSettings = defaultRenderSettings()): void {
+	public renderCentersForSpaces(
+		targetSpaces: BoardLocation[],
+		gameState: Game | undefined,
+		renderSettings: RenderSettings = defaultRenderSettings()
+	): void {
 		const game = gameState !== undefined ? gameState : this.getCurrentGameState();
 		const boardWidth = renderSettings.boardSpaceWidth * game.board.files;
 		const boardHeight = renderSettings.boardSpaceHeight * game.board.ranks;
@@ -1077,20 +1089,20 @@ export class GameRunner implements IEventQueueListener {
 			renderSettings.boardSpaceWidth,
 			renderSettings.boardSpaceHeight
 		);
-		console.log({ renderCoords });
+
+		//console.log({ renderCoords });
+
 		const debugSceneGroup = this.getSceneGroup(SceneGroups.Debug);
 		debugSceneGroup.remove(...debugSceneGroup.children);
-		const placeDebugObjects = []
 		const square = makeLocationDebugSquare();
-		for(let rankIndex = 0; rankIndex < game.board.ranks; rankIndex++) {
-			for(let fileIndex = 0; fileIndex < game.board.files; fileIndex++) {
-				const insertCube = square.clone();
-				placeDebugObjects.push(insertCube);
-				insertCube.position.copy(renderCoords[rankIndex][fileIndex]);
-				insertCube.position.setZ(zIndexes.floating);
-				insertCube.matrixWorldNeedsUpdate = true;
-			}
-		}
+		const placeDebugObjects = targetSpaces.map(space => {
+			const insertCube = square.clone();
+			insertCube.position.copy(renderCoords[space.rank - 1][space.file - 1]);
+			insertCube.position.setZ(zIndexes.floating);
+			insertCube.matrixWorldNeedsUpdate = true;
+			return insertCube;
+		});
+
 		debugSceneGroup.add(...placeDebugObjects);
 		requestAnimationFrame(this.renderStep.bind(this));
 	}
@@ -1170,10 +1182,45 @@ export class GameRunner implements IEventQueueListener {
 			return;
 		}
 
+		//need to select a piece
 		if (isPlaced(
 			userInputResult as PlacedPiece | PlayerHeldPiece)
 			|| isHeldPiece(userInputResult as PlacedPiece | PlayerHeldPiece)) {
 			this.getInteractionController().setSelectedPiece(userInputResult);
+
+			let playerColor;
+			if (isPlaced(userInputResult)) {
+				const pieceAndPlayer = findPlacedPieceAndPlayer(
+					this.getCurrentGameState(),
+					userInputResult.rank,
+					userInputResult.file,
+				);
+				if (pieceAndPlayer === undefined) throw new Error(`findPlacedPieceAndPlayer failed to find info for piece`);
+				playerColor = pieceAndPlayer.player;
+			} else {
+				playerColor = userInputResult.player;
+			}
+
+			if (isHeldPiece(userInputResult)) throw new Error(`TODO find moves for held piece`);
+			const player = findPlayer(this.getCurrentGameState(), playerColor);
+			const moves = player.moves;
+			const movesForSelectedPiece = moves.filter((mv: Move) => {
+				return mv.start.rank === userInputResult.rank
+					&& mv.start.file === userInputResult.file;
+			});
+			console.error(`need to highlight spaces:`, { movesForSelectedPiece });
+			const squaresToShow = movesForSelectedPiece.map((mv: Move) => {
+				return {
+					rank: mv.end.rank,
+					file: mv.end.file,
+				} as BoardLocation;
+			});;
+
+			this.renderCentersForSpaces(
+				squaresToShow,
+				this.getCurrentGameState(),
+				this.renderSettingsOrDefault(),
+			);
 		}
 	}
 
