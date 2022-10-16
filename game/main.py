@@ -55,25 +55,26 @@ class Koma:
     def encode(self) -> str:
             serialized_piece = ""
             if self.isPromoted(): serialized_piece += "+"
-            
+
             if type(self) is Fuhyou:
-                serialized_piece = "p"
+                serialized_piece += "p"
             if type(self) is Kyousha:
-                serialized_piece = "l"
+                serialized_piece += "l"
             if type(self) is Keima:
-                serialized_piece = "n"
+                serialized_piece += "n"
             if type(self) is Kinshou:
-                serialized_piece = "g"
+                serialized_piece += "g"
             if type(self) is Gyokushou:
-                serialized_piece = "k"
+                serialized_piece += "k"
             if type(self) is Ginshou:
-                serialized_piece = "s"
+                serialized_piece += "s"
             if type(self) is Kakugyou:
-                serialized_piece = "b"
+                serialized_piece += "b"
             if type(self) is Hisha:
-                serialized_piece = "r"
+                serialized_piece += "r"
             if self.isSente():
                 serialized_piece = serialized_piece.upper()
+
             return serialized_piece
 
 class Masu:
@@ -589,17 +590,20 @@ class Match:
         move_index = string_moves.index(string_move)
 
         current_move = self.current_legal_moves[move_index]
+        print(f'current_move:{current_move}');
         src_square = current_move.src_square;
         trgt_square = current_move.trgt_square;
+
+        trgt_square_koma = trgt_square.koma
 
         #print(f'doTurn src_square:({src_square.getX()}, {src_square.getY()}) trgt_square:({trgt_square.getX()}, {trgt_square.getY()})', dir(current_move))
 
         src_koma = self.grid.getMasu(src_square.getX(), src_square.getY()).getKoma()
         self.grid.getMasu(src_square.getX(), src_square.getY()).setKoma(None)
-        self.grid.getMasu(trgt_square.getX(), trgt_square.getY()).setKoma(src_koma)
+        #the masu stored in trgt_square may have been promoted, so it is not
+        #sufficient to just set the koma at trgt to the src koma
+        self.grid.getMasu(trgt_square.getX(), trgt_square.getY()).setKoma(trgt_square_koma)
 
-        #this doesn't work because current_turn is not a boolean
-        #self.current_turn = not self.current_turn
         if self.current_turn == self.player_one:
             self.current_turn = self.player_two
         else:

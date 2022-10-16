@@ -23,6 +23,7 @@ import { Move } from "./types/Move";
 import { MessageKeys, MessageTypes } from "./CommunicationConsts";
 import { sfenToGame } from "../Notation/Sfen";
 import { clientMoveToServerMove, serverMovesToClientMoves } from "../Notation/MoveNotation";
+import { AnswerPrompt, CommunicationEvent, CommunicationEventTypes, CommunicationStack, EventInfo, MakeMove, mkCommunicationStack, Promote, PromptSelectMove } from "./Input/UserInputEvents";
 
 
 /**
@@ -88,6 +89,16 @@ export class GameRunner implements IEventQueueListener {
 	private className = "GameRunner";
 	private gameStates: Game[] = [];
 	private checkDefined = makeExistsGuard("GameRunner");
+
+	private communicationStack?: CommunicationStack;
+	private getCommunicationStack(): CommunicationStack {
+		return this.checkDefined(this.communicationStack, "getCommunicationStack undefined");
+	}
+
+	public prepareCommunicationStack(): CommunicationStack {
+		this.communicationStack = mkCommunicationStack();
+		return this.communicationStack;
+	}
 
 	private _postMoveCallback?: (move: string) => void;
 	public setPostMoveCallback(cback: (move: string) => void) {
@@ -1090,10 +1101,53 @@ export class GameRunner implements IEventQueueListener {
 		console.log("game notified of event:", event);
 		switch(event.type) {
 			case EventType.Mouse:
-				const move = this.handleMouseEvent(event);
-				if(move !== undefined) {
-					console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
-					this.getPostMoveCallback()(move.originalString || "BAD CLIENT SIDE MOVE STRING");
+				const moves = this.handleMouseEvent(event);
+				if(moves !== undefined && moves.length > 0) {
+					//send the only possible move
+					if (moves.length === 1) {
+						const move = moves[0];
+						console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
+						this.getCommunicationStack().pushEvent({
+							eventType: CommunicationEventTypes.MAKE_MOVE,
+							eventInfo: {
+								moveString: move.originalString !== undefined ? move.originalString : "BAD CLIENT SIDE MOVE STRING",
+							},
+						} as CommunicationEvent);
+						//this.getPostMoveCallback()(move.originalString || "BAD CLIENT SIDE MOVE STRING");
+					//prompt the user to choos from amongst many moves
+					} else {
+						//TODO de-dupe this with the promotion selection case
+						this.getCommunicationStack().pushEvent({
+							eventType: CommunicationEventTypes.PROMPT_SELECT_MOVE,
+							eventInfo: {
+								moveOptions: moves.map((move: Move, id: number) => {
+									return {
+										id,
+										promote: move.promotesPiece ? Promote.Do : Promote.No,
+										displayMessage: move.promotesPiece ? "Promote" : "No Promote",
+									}
+								}),
+
+							} as PromptSelectMove
+						});
+						this.getCommunicationStack().pushNotifyCallback((event: CommunicationEvent, callbackId: number) => {
+							if (event.eventType !== CommunicationEventTypes.ANSWER_PROMPT) {
+								return;
+							}
+
+							const userSelectedMoveId = (event.eventInfo as AnswerPrompt).selectedChoiceId;
+
+							const selectedMove = moves[userSelectedMoveId];
+							this.getCommunicationStack().pushEvent({
+								eventType: CommunicationEventTypes.MAKE_MOVE,
+								eventInfo: {
+									moveString: selectedMove.originalString !== undefined ? selectedMove.originalString : "BAD SELECTED STRING AFTER PROMPT",
+								} as MakeMove,
+							});
+							//callback unregisters itself when it is finished
+							this.getCommunicationStack().removeNotifyCallback(callbackId);
+						});
+					}
 				}
 				break;
 			case EventType.Keyboard:
@@ -1109,7 +1163,7 @@ export class GameRunner implements IEventQueueListener {
 	* use both effectively for the piece drag & drop
 	* @returns if game state was changed, the new game state is returned, if not, undefined
 	**/
-	private handleMouseEvent(event: EventWrapper): Move | undefined {
+	private handleMouseEvent(event: EventWrapper): Move[] | undefined {
 		if (event.event.type !== "mouseup") {
 			return undefined;
 		}
@@ -1181,9 +1235,12 @@ export class GameRunner implements IEventQueueListener {
 
 		//TODO de-dupe the white and black held piece cases
 		const clickedBlackPiece = blackPieceNameToSpaceArea
-			.find((entry: [PieceNames, Box2]) => { console.log(entry); return entry[1].containsPoint(mouseCoords);});
+			.find((entry: [PieceNames, Box2]) => {
+				//console.log(entry);
+				return entry[1].containsPoint(mouseCoords);
+			});
 		if (clickedBlackPiece) {
-			console.log(`clicked black held piece:${clickedBlackPiece[0]} ${boxToString(clickedBlackPiece[1])}`);
+			//console.log(`clicked black held piece:${clickedBlackPiece[0]} ${boxToString(clickedBlackPiece[1])}`);
 			const blackPlayer = findPlayer(currentGameState, PlayerColor.Black)
 
 			const heldPiece = blackPlayer.heldPieces
@@ -1207,7 +1264,7 @@ export class GameRunner implements IEventQueueListener {
 		const clickedWhitePiece = whitePieceNameToSpaceArea
 			.find((entry: [PieceNames, Box2]) => entry[1].containsPoint(mouseCoords));
 		if (clickedWhitePiece) {
-			console.log(`clicked white held piece:${clickedWhitePiece[0]} ${boxToString(clickedWhitePiece[1])}`);
+			//console.log(`clicked white held piece:${clickedWhitePiece[0]} ${boxToString(clickedWhitePiece[1])}`);
 			const whitePlayer = findPlayer(currentGameState, PlayerColor.White);
 			const heldPiece = whitePlayer.heldPieces
 				.find(heldPiece => heldPiece.name === clickedWhitePiece[0]);

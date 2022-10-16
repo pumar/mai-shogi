@@ -1,47 +1,28 @@
 import {
-	setupGameWithDefaults,
 	MessageTypes,
 	MessageKeys,
+    CommunicationStack,
+    CommunicationEvent,
+	MakeMove,
+	GameRunner,
 } from "mai-shogi-game";
-import { GameRunner, SvgLoadConfig } from "mai-shogi-game/Game/GameRunner";
 
 import { addEventHandler, getWebsocketConnection, WebsocketEvent } from "../Network/WebsocketConnection";
 
 export {
 	notifyGameFromServer,
-	postMessageToGame,
 	connectToGame,
+	sendMove,
 }
 
 function notifyGameFromServer(message: Record<string, any>, game: GameRunner) {
 	game.receiveMessage(message);
 }
 
-function initializeGameFromMessage(
-	canvas: HTMLCanvasElement,
-	svgLoadSettings?: SvgLoadConfig,
-	fontLoadingDir?: string,
-): GameRunner {
-	const { game, eventQueue } = setupGameWithDefaults(
-		canvas,
-		svgLoadSettings,
-		fontLoadingDir,
-	);
-
-	return {
-		game
-	}
-}
-
-function postMessageToGame(
-	message: Record<string, any>,
-	game: GameRunner,
-): void {
-}
-
 function connectToGame(): {
 	getWebsocketConn: () => WebSocket,
 	game: GameRunner,
+	communicationStack: CommunicationStack,
 } {
 	//console.log(`connect to game:${gameCode}`);
 	console.log(`connect to game`);
@@ -66,20 +47,30 @@ function connectToGame(): {
 			notifyGameFromServer(parsedMessage, game);
 		});
 
-		game.setPostMoveCallback((move: string) => {
-			conn.send(JSON.stringify({
-				messageType: MessageTypes.MAKE_MOVE,
-				[MessageKeys.MOVE]: move,
-			}));
-		});
+		//game.setPostMoveCallback((move: string) => {
+		//	conn.send(JSON.stringify({
+		//		messageType: MessageTypes.MAKE_MOVE,
+		//		[MessageKeys.MOVE]: move,
+		//	}));
+		//});
 
 		return conn;
 	}
 
 	const game = new GameRunner();
+	const communicationStack: CommunicationStack = game.prepareCommunicationStack();
 
 	return {
 		getWebsocketConn,
-		game
+		game,
+		communicationStack,
 	}
+}
+
+function sendMove(wsConnection: WebSocket, commEvent: CommunicationEvent): void {
+	const moveText = (commEvent.eventInfo as MakeMove).moveString;
+	wsConnection.send(JSON.stringify({
+		messageType: MessageTypes.MAKE_MOVE,
+		[MessageKeys.MOVE]: moveText,
+	}));
 }
