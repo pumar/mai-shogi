@@ -7,23 +7,21 @@ import { makeExistsGuard } from "../utils/Guards";
 import { measureTime } from "../utils/Performance";
 import { debounce } from "../utils/Throttling";
 
-import { createGame, createHeldPieces, getPawnStartRank } from "./GameCreator";
 import { defaultRenderSettings, RenderSettings, setCanvasSizeToMatchLayout } from "./Renderer/Renderer";
 import { getAssetKeyForPiece } from "./types/AssetKeys";
 import { findPlacedPieceAndPlayer, findPlayer, Game } from "./types/Game";
-import { Bishop, Gold, HeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, PlacedPiece, Rook, Silver } from "./types/Piece";
+import { Bishop, Gold, HeldPiece, isHeldPiece, isPlaced, Knight, Lance, Pawn, Piece, PieceNames, PlacedPiece, PlayerHeldPiece, Rook, Silver } from "./types/Piece";
 import { Player } from "./types/Player";
-import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, mouseToWorld, SpaceBox, spaceCenterPointsToBoxes, spaceCenterToBox, zIndexes } from "./RenderCalculations";
+import { CalcedRenderCoords, calcRenderCoordinates, calcSpaceCoordinates, getBoardTopRightCorner, getSpaceStartPoint, HeldPiecesStand, mouseToWorld, spaceCenterPointsToBoxes, spaceCenterToBox, zIndexes } from "./RenderCalculations";
 import { makeLocationDebugSquare, makeSvgDebugMesh } from "./Entities";
 import { EventType, EventWrapper, IEventQueueListener } from "./Input/EventQueue";
-import { boxToString } from "../threeUtils/Printing";
 import { GameInteractionController } from "./Input/UserInteraction";
 import { PlayerColor } from "./Consts";
 import { Move } from "./types/Move";
 import { MessageKeys, MessageTypes } from "./CommunicationConsts";
 import { sfenToGame } from "../Notation/Sfen";
-import { clientMoveToServerMove, serverMovesToClientMoves } from "../Notation/MoveNotation";
-import { AnswerPrompt, CommunicationEvent, CommunicationEventTypes, CommunicationStack, EventInfo, MakeMove, mkCommunicationStack, Promote, PromptSelectMove } from "./Input/UserInputEvents";
+import { serverMovesToClientMoves } from "../Notation/MoveNotation";
+import { AnswerPrompt, CommunicationEvent, CommunicationEventTypes, CommunicationStack, MakeMove, mkCommunicationStack, Promote, PromptSelectMove } from "./Input/UserInputEvents";
 
 
 /**
@@ -1097,58 +1095,94 @@ export class GameRunner implements IEventQueueListener {
 		requestAnimationFrame(this.renderStep.bind(this));
 	}
 
+	private createMakeMoveEvent(move: Move): void {
+		console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
+		this.getCommunicationStack().pushEvent({
+			eventType: CommunicationEventTypes.MAKE_MOVE,
+			eventInfo: {
+				moveString: move.originalString !== undefined ? move.originalString : "BAD CLIENT SIDE MOVE STRING",
+			},
+		} as CommunicationEvent);
+	}
+
+	private handleUserInputResult(
+		userInputResult: Move[] | PlayerHeldPiece | PlacedPiece | undefined | null
+	): void {
+		//TODO instead of using 'undefined' to mean "a piece needs deselected/no piece found"
+		//and 'null' to mean "event was ignored for a non-game logic reason",
+		//actually make a type that represents that information
+		if (userInputResult === null) {
+			return;
+		}
+		if (userInputResult === undefined) {
+			//deselect piece
+			this.getInteractionController().resetSelectedPiece();
+			return;
+		}
+
+		if (Array.isArray(userInputResult)) {
+			const moves = userInputResult as Move[];
+			//TODO if a move has no possible moves, you should reject trying to
+			//select it
+			//no moves for selected piece
+			if (moves.length === 0) {
+				return;
+			}
+
+			//send the only possible move
+			if (moves.length === 1) {
+				const move = moves[0];
+				console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
+				this.createMakeMoveEvent(move);
+			//prompt the user to choos from amongst many moves
+			} else {
+				//multiple moves are possible, so the UI needs to prompt the user to
+				//disambiguate them (to promote or not to promote),
+				//so we post an event to the UI layer asking the user to make a selection
+				this.getCommunicationStack().pushEvent({
+					eventType: CommunicationEventTypes.PROMPT_SELECT_MOVE,
+					eventInfo: {
+						moveOptions: moves.map((move: Move, id: number) => {
+							return {
+								id,
+								promote: move.promotesPiece ? Promote.Do : Promote.No,
+								displayMessage: move.promotesPiece ? "Promote" : "No Promote",
+							}
+						}),
+
+					} as PromptSelectMove
+				});
+				//add a callback to handle the answer event
+				this.getCommunicationStack().pushNotifyCallback((event: CommunicationEvent, callbackId: number) => {
+					if (event.eventType !== CommunicationEventTypes.ANSWER_PROMPT) {
+						return;
+					}
+
+					const userSelectedMoveId = (event.eventInfo as AnswerPrompt).selectedChoiceId;
+
+					const selectedMove = moves[userSelectedMoveId];
+					this.createMakeMoveEvent(selectedMove);
+					//callback unregisters itself when it is finished
+					this.getCommunicationStack().removeNotifyCallback(callbackId);
+				});
+			}
+
+			return;
+		}
+
+		if (isPlaced(
+			userInputResult as PlacedPiece | PlayerHeldPiece)
+			|| isHeldPiece(userInputResult as PlacedPiece | PlayerHeldPiece)) {
+			this.getInteractionController().setSelectedPiece(userInputResult);
+		}
+	}
+
 	public newEventNotification(event: EventWrapper) {
 		console.log("game notified of event:", event);
 		switch(event.type) {
 			case EventType.Mouse:
-				const moves = this.handleMouseEvent(event);
-				if(moves !== undefined && moves.length > 0) {
-					//send the only possible move
-					if (moves.length === 1) {
-						const move = moves[0];
-						console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
-						this.getCommunicationStack().pushEvent({
-							eventType: CommunicationEventTypes.MAKE_MOVE,
-							eventInfo: {
-								moveString: move.originalString !== undefined ? move.originalString : "BAD CLIENT SIDE MOVE STRING",
-							},
-						} as CommunicationEvent);
-						//this.getPostMoveCallback()(move.originalString || "BAD CLIENT SIDE MOVE STRING");
-					//prompt the user to choos from amongst many moves
-					} else {
-						//TODO de-dupe this with the promotion selection case
-						this.getCommunicationStack().pushEvent({
-							eventType: CommunicationEventTypes.PROMPT_SELECT_MOVE,
-							eventInfo: {
-								moveOptions: moves.map((move: Move, id: number) => {
-									return {
-										id,
-										promote: move.promotesPiece ? Promote.Do : Promote.No,
-										displayMessage: move.promotesPiece ? "Promote" : "No Promote",
-									}
-								}),
-
-							} as PromptSelectMove
-						});
-						this.getCommunicationStack().pushNotifyCallback((event: CommunicationEvent, callbackId: number) => {
-							if (event.eventType !== CommunicationEventTypes.ANSWER_PROMPT) {
-								return;
-							}
-
-							const userSelectedMoveId = (event.eventInfo as AnswerPrompt).selectedChoiceId;
-
-							const selectedMove = moves[userSelectedMoveId];
-							this.getCommunicationStack().pushEvent({
-								eventType: CommunicationEventTypes.MAKE_MOVE,
-								eventInfo: {
-									moveString: selectedMove.originalString !== undefined ? selectedMove.originalString : "BAD SELECTED STRING AFTER PROMPT",
-								} as MakeMove,
-							});
-							//callback unregisters itself when it is finished
-							this.getCommunicationStack().removeNotifyCallback(callbackId);
-						});
-					}
-				}
+				const userInputResult = this.handleMouseEvent(event);
+				this.handleUserInputResult(userInputResult);
 				break;
 			case EventType.Keyboard:
 				this.handleKeyboardEvent(event);
@@ -1159,13 +1193,15 @@ export class GameRunner implements IEventQueueListener {
 	}
 
 	/**
-	* TODO this is running for both mouse down and mouse up, need to
-	* use both effectively for the piece drag & drop
-	* @returns if game state was changed, the new game state is returned, if not, undefined
+	* TODO need to use mouse down and mouse up to implement drag an drop
+	* @returns list of moves of length > 1 if the user must select a move,
+	* list of length 1 if only one move is possible
+	* undefined if piece-deselection is necessary 
+	* null if the event was ignored for some reason (like mousedown vs mouseup)
 	**/
-	private handleMouseEvent(event: EventWrapper): Move[] | undefined {
+	private handleMouseEvent(event: EventWrapper): Move[] | PlayerHeldPiece | PlacedPiece | undefined | null {
 		if (event.event.type !== "mouseup") {
-			return undefined;
+			return null;
 		}
 		const interactionController = this.getInteractionController();
 		const currentGameState = this.getCurrentGameState();
