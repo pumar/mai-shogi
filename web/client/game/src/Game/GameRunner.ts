@@ -1154,7 +1154,9 @@ export class GameRunner implements IEventQueueListener {
 		if (userInputResult === undefined) {
 			//deselect piece
 			this.getInteractionController().resetSelectedPiece();
-			return false;
+			//hide the move indicator icons, and set the flag to redraw
+			this.showSpaceCenters([]);
+			return true;
 		}
 
 		if (Array.isArray(userInputResult)) {
@@ -1171,7 +1173,8 @@ export class GameRunner implements IEventQueueListener {
 				const move = moves[0];
 				console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
 				this.createMakeMoveEvent(move);
-				return false;
+				this.showSpaceCenters([]);
+				return true;
 			//prompt the user to choos from amongst many moves
 			} else {
 				//multiple moves are possible, so the UI needs to prompt the user to
