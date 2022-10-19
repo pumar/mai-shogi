@@ -730,6 +730,7 @@ class Match:
                             attackingMoveSquare = attacking_move.trgt_square
                             if attackingMoveSquare.getX() == king_coordinates[0] and attackingMoveSquare.getY() == king_coordinates[1]:
                                 #move is invalid because it would put the king in check
+                                #or, the king is already in check and this move won't get the king out of check
                                 valid_move = False
                 else:
                     attacked_squares:List[Tuple[int, int]] = []
