@@ -354,7 +354,6 @@ class Keima(Koma):
             y = src_square.getY()
             if not self.isPromoted():
                 possible_deltas = [[1, -2],[-1, -2]] if isSente else [[1, 2], [-1, 2]]
-                #if not isGote: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
                 for pd in possible_deltas:
                     tX = x + pd[0]
                     tY = y + pd[1]
@@ -362,12 +361,16 @@ class Keima(Koma):
                         targetMasu = board.getMasu(tX, tY)
                         targetKoma = targetMasu.getKoma()
                         if (targetKoma == None or targetKoma.isSente() != piece.isSente()):
-                            if (isSente and y < 2) or (not isSente and y > 6):
+                            #mandatory knight promotion
+                            if (isSente and tY < 2) or (not isSente and tY > 6):
                                 promoted_piece = deepcopy(piece)
                                 promoted_piece.Promote()
                                 moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
                             else:
-                                #if not ((tY + pd[1]) > 8 or (tY + pd[1]) < 0):
+                                #rankOfNextJump = tY + pd[1]
+                                #print(f'knight on ({x}, {y}), thisJump: ({tX}, {tY}) next jump: ({tX}, {rankOfNextJump})')
+                                #the move is not legal if the only jumps available after making this
+                                #if not (rankOfNextJump > 8 or rankOfNextJump < 0):
                                 moves.append(Move(src_square, Masu(tX, tY, piece)))        
             else:
                 virtual_kin = Kinshou(piece.isSente())
@@ -380,8 +383,8 @@ class Keima(Koma):
             newPiece.onHand = False
             #TODO isn't it impossible to place the knight on a square where it cannot jump
             #ranks 1-2, 8-9
-            for i in range(0,9):
-                for j in range(0,9):
+            for i in range(0, 9):
+                for j in range(2, 7):
                     if board.getMasu(i,j).getKoma() == None:
                         moves.append(Move(None, Masu(i, j, newPiece)))
         return moves
