@@ -181,6 +181,13 @@ class Banmen:
                 pieces.append(self.getMasu(i, j).getKoma())
         return pieces
 
+    def findKingCoordinates(self, isSente: bool) -> Tuple[int, int]:
+        for i in range(0,9):
+            for j in range(0,9):
+                komaAtMasu = self.getMasu(i,j).getKoma()
+                if type(komaAtMasu) is Gyokushou and komaAtMasu.isSente() == isSente: 
+                    return (i,j)
+
 class Hand:
     handKoma: list[tuple[Koma, int]]
 
@@ -714,17 +721,15 @@ class Match:
                 virtual_board.getMasu(move.trgt_square.getX(), move.trgt_square.getY()).setKoma(move.trgt_square.getKoma())
 
                 if move.src_square is not None and not (move.src_square.getKoma() is Gyokushou):
-                    king_coordinates: Tuple[int, int]
-                    for i in range(0,9):
-                        for j in range(0,9):
-                            if type(self.grid.getMasu(i,j).getKoma()) is Gyokushou and self.grid.getMasu(i,j).getKoma().isSente() == isSente: 
-                                king_coordinates = (i,j)
+                    king_coordinates: Tuple[int, int] = self.grid.findKingCoordinates(isSente)
                     attacking_pieces = filter(lambda x: x != None and x.isSente() != isSente and \
                         (type(x) is Kakugyou or type(x) is Hisha or type(x) is Kyousha), virtual_board.getPieces())
                     for attacking_piece in attacking_pieces:
                         attacking_moves = attacking_piece.legalMoves(virtual_board, virtual_board.getMasu(i,j))
                         for attacking_move in attacking_moves:
-                            if attacking_move.trgt_square.getX() == king_coordinates[0] and attacking_move.trgt_square.getY() == king_coordinates[1]:
+                            attackingMoveSquare = attacking_move.trgt_square
+                            if attackingMoveSquare.getX() == king_coordinates[0] and attackingMoveSquare.getY() == king_coordinates[1]:
+                                #move is invalid because it would put the king in check
                                 valid_move = False
                 else:
                     attacked_squares:List[Tuple[int, int]] = []
@@ -736,7 +741,9 @@ class Match:
                         for attacking_move in attacking_moves:
                             attacked_square = attacking_move.trgt_square
                             attacked_squares.append([attacked_square.getX(), attacked_square.getY()])
-                    if (move.trgt_square.getX(),move.trgt_square.getY()) in attacked_squares:
+                    moveTargetSquare = move.trgt_square;
+                    if (moveTargetSquare.getX(), moveTargetSquare.getY()) in attacked_squares:
+                        # the king cannot be moved into a square that is being attacked by another piece
                         valid_move = False
 
                 if valid_move: legal_moves.append(move)
