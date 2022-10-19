@@ -116,14 +116,20 @@ export class GameInteractionController {
 
 		let selectedPossibleMoves: Move[];
 		if (isHeldPiece(this.selectedPiece)) {
-			console.warn(`TODO disambiguate held piece placement move selection`);
-			const heldPieceMove = humanPlayerMoves.find(move => move.end.rank === destRank && move.end.file === destFile);
+			//need to ensure that the move does not have a starting square
+			//elsewise we'll accidentally find some other piece's move that happens to have
+			//the same destination square
+			const heldPieceMove = humanPlayerMoves.find(move =>
+				move.start === undefined &&
+				move.end.rank === destRank && move.end.file === destFile
+			);
 			if (heldPieceMove === undefined) throw new Error(`couldn't find held piece move for dest:(${destRank}, ${destFile})`);
 			selectedPossibleMoves = [heldPieceMove];
 		} else {
 			const { file: startFile, rank: startRank } = this.selectedPiece;
 			selectedPossibleMoves = humanPlayerMoves.filter(move =>
-				move.end.rank === destRank && move.end.file === destFile
+				move.start !== undefined
+				&& move.end.rank === destRank && move.end.file === destFile
 				&& move.start.rank === startRank && move.start.file === startFile
 			);
 		}
@@ -149,8 +155,9 @@ export class GameInteractionController {
 
 	private getMovesForPlacedPiece(playerMoves: Move[], placedPiece: PlacedPiece): Move[] {
 		return playerMoves.filter(move =>
-			 move.start.rank === placedPiece.rank
-			 && move.start.file === placedPiece.file);
+			move.start !== undefined
+			&& move.start.rank === placedPiece.rank
+			&& move.start.file === placedPiece.file);
 	}
 
 	//this code moved the pieces locally, just to verify the space selection logic

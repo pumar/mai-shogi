@@ -1,9 +1,8 @@
 from copy import deepcopy
 from curses.ascii import isalpha, islower
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
+from enum import Enum
 
-# previous logic had 'white' as meaning sente
-# and 'black' as meaning gote
 class Player:
     senteSide: bool
     humanPlayer: bool
@@ -28,6 +27,15 @@ class ComputerPlayer(Player):
         self.humanPlayer = False
 
 
+class PieceName(str, Enum):
+    Fuhyou = "Fuhyou"
+    Kyousha = "Kyousha"
+    Keima = "Keima"
+    Ginshou = "Ginshou"
+    Kinshou = "Kinshou"
+    Kakugyou = "Kakugyou"
+    Hisha = "Hisha"
+
 class Koma:
     onHand = False
     promoted = False
@@ -51,7 +59,7 @@ class Koma:
 
     def isOnHand(self):
         return self.onHand
-    
+
     def encode(self) -> str:
             serialized_piece = ""
             if self.isPromoted(): serialized_piece += "+"
@@ -76,6 +84,15 @@ class Koma:
                 serialized_piece = serialized_piece.upper()
 
             return serialized_piece
+
+    def getPieceName(self) -> PieceName:
+        if type(self) is Fuhyou: return PieceName.Fuhyou
+        if type(self) is Kyousha: return Kyousha
+        if type(self) is Keima: return Keima
+        if type(self) is Ginshou: return Ginshou
+        if type(self) is Kinshou: return Kinshou
+        if type(self) is Kakugyou: return Kakugyou
+        if type(self) is Hisha: return Hisha
 
 class Masu:
     koma: Koma
@@ -163,32 +180,35 @@ class Banmen:
             for j in range(0,9):
                 pieces.append(self.getMasu(i, j).getKoma())
         return pieces
-    
+
 class Hand:
-    handKoma: Dict[Masu, int]
-    PIECES = (
-        "Fuhyou",
-        "Kyousha",
-        "Keima",
-        "Ginshou",
-        "Kinshou",
-        "Kakugyou",
-        "Hisha"
-    )
+    handKoma: list[tuple[Koma, int]]
 
     def __init__(self) -> None:
         self.handKoma = self.initialHand()
 
-    def initialHand(self) -> Dict[Masu, int]:
-        handKoma = {}
-        handKoma[Masu(koma=Fuhyou(sente = False, onHand = True))] = 3
-        handKoma[Masu(koma=Fuhyou(sente = True, onHand = True))] = 1
-        handKoma[Masu(koma=Kinshou(sente = False, onHand = True))] = 1
-        handKoma[Masu(koma=Kinshou(sente = True, onHand = True))] = 1
+    def initialHand(self) -> list[tuple[Masu, int]]:
+        handKoma = [
+                [Fuhyou(sente = True, onHand = True), 0],
+                [Fuhyou(sente = False, onHand = True), 0],
+                [Kinshou(sente = False, onHand = True), 0],
+                [Kinshou(sente = True, onHand = True), 0],
+                [Keima(sente = True, onHand = True), 1],
+                [Keima(sente = False, onHand = True), 1],
+                [Ginshou(sente = False, onHand = True), 0],
+                [Ginshou(sente = True, onHand = True), 0],
+                [Kakugyou(sente = True, onHand = True), 0],
+                [Kakugyou(sente = False, onHand = True), 0],
+                [Hisha(sente = True, onHand = True), 0],
+                [Hisha(sente = False, onHand = True), 0],
+                [Kyousha(sente = True, onHand = True), 0],
+                [Kyousha(sente = False, onHand = True), 0]
+            ]
         return handKoma
 
+#TODO moves for held pieces should not require a src_square
 class Move:
-    src_square: Masu
+    src_square: Optional[Masu]
     trgt_square: Masu
 
     def __init__(self, src_square, trgt_square) -> None:
@@ -198,34 +218,39 @@ class Move:
     def serialize(self) -> str:
         #  src: (dd)(+)a
         # trgt: dd(+)a
+        parts = []
 
-        piece = self.src_square.getKoma()
-        src = ""
-        if self.src_square.getX() > -1:
+        if not self.src_square is None:
+            src = ""
+            piece = self.src_square.getKoma()
             src += str(self.src_square.getX())
             src += str(self.src_square.getY())
-        src += piece.encode()
+            src += piece.encode()
+            parts.append(src)
 
         piece = self.trgt_square.getKoma()
         trgt = str(self.trgt_square.getX()) + str(self.trgt_square.getY())
         trgt += piece.encode()
+        parts.append(trgt)
 
-        return src + " " + trgt
-         
+        return " ".join(parts)
+
 
 class Fuhyou(Koma):
     def __init__(self, sente, onHand = False):
         super().__init__(sente, onHand)
 
-    def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
+    def legalMoves(self, board:Banmen, src_square: Optional[Masu], hand = None) -> List[Move]:
+        if src_square == None and hand == None:
+            raise Exception("legalMoves requires either a src square or the hand object to be passed in to it")
         moves: List[Move] = []
 
-        isSente = src_square.getKoma().isSente()
-        piece = src_square.getKoma()
-        x = src_square.getX()
-        y = src_square.getY()
-
         if not self.isOnHand():
+            isSente = src_square.getKoma().isSente()
+            piece = src_square.getKoma()
+            x = src_square.getX()
+            y = src_square.getY()
+
             if not self.isPromoted():
                 pd = [0,1] if not isSente else [0,-1]
                 tX = x + pd[0]
@@ -243,36 +268,43 @@ class Fuhyou(Koma):
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
         # Rewrite handkoma as a simpler data structure to simplify this part
         else:
-            if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
-            if hand[src_square] > 0:
-                column: List[Masu]
-                masu: Masu
-                # Rewrite for loops so that the method 'GetMasu' is called instead of iterating through the inner property
-                for column in board.grid:
-                    hasFuhyou = False
+            if hand == None:
+                raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
+
+            isSente = self.isSente()
+
+            #if the piece ends up being placed, it won't be on hand anymore
+            newPiece = deepcopy(self)
+            newPiece.onHand = False
+            column: List[Masu]
+            masu: Masu
+            # Rewrite for loops so that the method 'GetMasu' is called instead of iterating through the inner property
+            for column in board.grid:
+                hasFuhyou = False
+                for masu in column:
+                    if isinstance(masu.getKoma(), Fuhyou) and not masu.getKoma().isPromoted() and (masu.getKoma().isSente() == isSente):
+                        hasFuhyou = True
+                if not hasFuhyou:
                     for masu in column:
-                        if isinstance(masu.getKoma(), Fuhyou) and not masu.getKoma().isPromoted() and (masu.getKoma().isSente() == isSente):
-                            hasFuhyou = True
-                    if not hasFuhyou:
-                        for masu in column:
-                            if masu.getKoma() == None and ((isSente and masu.getY() != 8) or (not isSente and masu.getY() != 0)):
-                                moves.append(Move(src_square, Masu(masu.getX(),masu.getY(), piece)))
-        
-        return moves                              
+                        if masu.getKoma() == None and ((isSente and masu.getY() != 8) or (not isSente and masu.getY() != 0)):
+                            moves.append(Move(None, Masu(masu.getX(),masu.getY(), newPiece)))
+
+        return moves
 
 class Kyousha(Koma):
     def __init__(self, sente, onHand=False):
         super().__init__(sente, onHand)
 
-    def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
+    def legalMoves(self, board:Banmen, src_square: Optional[Masu] = None, hand = None) -> List[Move]:
+        if src_square == None and hand == None:
+            raise Exception("legalMoves requires either a src square or the hand object to be passed in to it")
         moves: List[Move] = []
 
-        isSente = src_square.getKoma().isSente()
-        piece = src_square.getKoma()
-        x = src_square.getX()
-        y = src_square.getY()
-        
         if not self.isOnHand():
+            piece = src_square.getKoma()
+            isSente = piece.isSente()
+            x = src_square.getX()
+            y = src_square.getY()
             if not self.isPromoted():
                 pd = [0,1] if isSente else [0,-1]
                 tX = x
@@ -294,11 +326,9 @@ class Kyousha(Koma):
                 virtual_kin = Kinshou(isSente)
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
         else:
-            if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
-            if hand[src_square] > 0:
-                for i in range(0,9):
-                    for j in range(0,9):
-                        if board.getMasu(i,j).getKoma() == None: moves.append(Move(src_square, Masu(i, j, piece)))
+            newMoves = self.getHeldPiecesMoves(board, self)
+            moves.extend(newMoves)
+
         return moves
 
 class Keima(Koma):
@@ -306,14 +336,15 @@ class Keima(Koma):
         super().__init__(sente, onHand)
     
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
+        if src_square == None and hand == None:
+            raise Exception("legalMoves requires either a src square or the hand object to be passed in to it")
         moves: List[Move] = []
 
-        piece = src_square.getKoma()
-        isSente = piece.isSente()
-        x = src_square.getX()
-        y = src_square.getY()
-
         if not self.isOnHand():
+            piece = src_square.getKoma()
+            isSente = piece.isSente()
+            x = src_square.getX()
+            y = src_square.getY()
             if not self.isPromoted():
                 possible_deltas = [[1, -2],[-1, -2]] if isSente else [[1, 2], [-1, 2]]
                 #if not isGote: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
@@ -335,11 +366,17 @@ class Keima(Koma):
                 virtual_kin = Kinshou(piece.isSente())
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
         else:
-            if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
-            if hand[src_square] > 0:
-                for i in range(0,9):
-                    for j in range(0,9):
-                        if board.getMasu(i,j).getKoma() == None: moves.append(Move(src_square, Masu(i, j, piece)))
+            if hand == None:
+                raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
+
+            newPiece = deepcopy(self)
+            newPiece.onHand = False
+            #TODO isn't it impossible to place the knight on a square where it cannot jump
+            #ranks 1-2, 8-9
+            for i in range(0,9):
+                for j in range(0,9):
+                    if board.getMasu(i,j).getKoma() == None:
+                        moves.append(Move(None, Masu(i, j, newPiece)))
         return moves
 
 class Ginshou(Koma):
@@ -347,14 +384,16 @@ class Ginshou(Koma):
         super().__init__(sente, onHand)
 
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
+        if src_square == None and hand == None:
+            raise Exception("legalMoves requires either a src square or the hand object to be passed in to it")
         moves: List[Move] = []
 
-        isSente = src_square.getKoma().isSente()
-        piece = src_square.getKoma()
-        x = src_square.getX()
-        y = src_square.getY()
-
         if not self.isOnHand():
+            isSente = src_square.getKoma().isSente()
+            piece = src_square.getKoma()
+            x = src_square.getX()
+            y = src_square.getY()
+
             if not self.isPromoted():
                 #these deltas are for sente
                 possible_deltas = [[0,1],[1,1],[-1,1],[-1,-1],[1,-1]]
@@ -377,10 +416,14 @@ class Ginshou(Koma):
         # Rewrite handkoma as a simpler data structure to simplify this part
         else:
             if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
-            if hand[src_square] > 0:
-                for i in range(0,9):
-                    for j in range(0,9):
-                        if board.getMasu(i,j).getKoma() == None: moves.append(Move(src_square, Masu(i, j, piece)))
+
+            newPiece = deepcopy(self)
+            newPiece.onHand = False
+
+            for i in range(0,9):
+                for j in range(0,9):
+                    if board.getMasu(i,j).getKoma() == None:
+                        moves.append(Move(None, Masu(i, j, newPiece)))
         return moves
 
 class Kinshou(Koma):
@@ -391,17 +434,19 @@ class Kinshou(Koma):
         raise Exception("The Golden General cannot be promoted.")
 
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None, virtualized_piece: Koma = None) -> List[Move]:
+        if src_square == None and hand == None:
+            raise Exception("legalMoves requires either a src square or the hand object to be passed in to it")
         moves: List[Move] = []
 
         if virtualized_piece != None: piece = deepcopy(virtualized_piece)
         else: piece = src_square.getKoma()
 
-        isSente = piece.isSente()
-
-        x = src_square.getX()
-        y = src_square.getY()
-
         if not self.isOnHand():
+            isSente = piece.isSente()
+
+            x = src_square.getX()
+            y = src_square.getY()
+
             #these are the deltas for sente
             possible_deltas = [
                 [1, -1], [0, -1], [-1, -1],
@@ -417,27 +462,35 @@ class Kinshou(Koma):
                     targetMasu = board.getMasu(tX, tY)
                     if (targetMasu.getKoma() == None or targetMasu.getKoma().isSente() != isSente):
                         moves.append(Move(src_square, Masu(tX, tY, piece)))
-        elif virtualized_piece == None:
-            if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
-            if hand[src_square] > 0:
-                for i in range(0,9):
-                    for j in range(0,9):
-                        if board.getMasu(i,j).getKoma() == None: moves.append(Move(src_square, Masu(i, j, piece)))
-        return moves                      
+        #virtualized_piece could be a promoted piece, which means that it's impossible
+        #for that piece to be held in the hand. When pieces are sent to a player's hand, they are unpromoted
+        elif virtualized_piece is None:
+            if hand is None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
+
+            newPiece = deepcopy(self)
+            newPiece.onHand = False
+
+            for i in range(0, 9):
+                for j in range(0, 9):
+                    if board.getMasu(i, j).getKoma() is None:
+                        moves.append(Move(src_square, Masu(i, j, newPiece)))
+        return moves
 
 class Kakugyou(Koma):
     def __init__(self, sente, onHand=False):
         super().__init__(sente, onHand)
 
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
+        if src_square == None and hand == None:
+            raise Exception("legalMoves requires either a src square or the hand object to be passed in to it")
         moves: List[Move] = []
 
-        isSente = src_square.getKoma().isSente()
-        piece = src_square.getKoma()
-        x = src_square.getX()
-        y = src_square.getY()
-        
         if not self.isOnHand():
+            isSente = src_square.getKoma().isSente()
+            piece = src_square.getKoma()
+            x = src_square.getX()
+            y = src_square.getY()
+
             #the bishops moves are the same even if you 'flip' them,
             #so we only need sente's deltas diagonal moves
             possible_deltas = [[1,-1],[1,1],[-1,-1],[-1,1]]
@@ -468,11 +521,12 @@ class Kakugyou(Koma):
                         if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isSente):
                             moves.append(Move(src_square, Masu(tX, tY, piece)))
         else:
-            if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
-            if hand[src_square] > 0:
-                for i in range(0,9):
-                    for j in range(0,9):
-                        if board.getMasu(i,j).getKoma() == None: moves.append(Move(src_square, Masu(i, j, piece)))
+            if hand == None:
+                raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
+
+            newMoves = getDefaultHeldPieceMoves(board, self)
+            moves.extend(newMoves)
+
         return moves
 
 class Hisha(Koma):
@@ -480,14 +534,16 @@ class Hisha(Koma):
         super().__init__(sente, onHand)
 
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
+        if src_square == None and hand == None:
+            raise Exception("legalMoves requires either a src square or the hand object to be passed in to it")
         moves: List[Move] = []
 
-        piece = src_square.getKoma()
-        isSente = piece.isSente()
-        x = src_square.getX()
-        y = src_square.getY()
-        
         if not self.isOnHand():
+            piece = src_square.getKoma()
+            isSente = piece.isSente()
+            x = src_square.getX()
+            y = src_square.getY()
+
             #hisha/rook can only move horizontally and vertically
             #no need to invert the deltas for gote
             possible_deltas = [[0,1],[0,-1],[1,0],[-1,0]]
@@ -518,11 +574,12 @@ class Hisha(Koma):
                         if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isSente):
                             moves.append(Move(src_square, Masu(tX, tY, piece)))
         else:
-            if hand == None: raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
-            if hand[src_square] > 0:
-                for i in range(0,9):
-                    for j in range(0,9):
-                        if board.getMasu(i,j).getKoma() == None: moves.append(Move(src_square, Masu(i, j, piece)))
+            if hand == None:
+                raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
+
+            newMoves = getDefaultHeldPieceMoves(board, self)
+            moves.extend(newMoves)
+
         return moves
 
 class Gyokushou(Koma):
@@ -536,6 +593,8 @@ class Gyokushou(Koma):
         raise Exception("The King cannot be promoted.")
 
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None) -> List[Move]:
+        if src_square == None or hand != None:
+            raise Exception("legalMoves for the Gyokushou requires that the gyokushou NOT be in the hand, and that a source square is passed")
         moves: List[Move] = []
 
         piece = src_square.getKoma()
@@ -581,9 +640,11 @@ class Match:
         self.current_legal_moves = []
 
 
+    #TODO as long as held moves are being added into the move list, moving a piece on the
+    #board can randomly place a held piece somewhere as well
+    #I think the memory for a piece is being shared somewhere where it shouldn't be
     def doTurn(self, string_move: str):
         string_moves = [move.serialize() for move in self.current_legal_moves] 
-        #print(f"doTurn, looking for move:({string_move}) in current legal moves:", string_moves)
         if string_move not in string_moves:
             raise MoveNotFound("The move that was sent is not valid.")
 
@@ -594,20 +655,45 @@ class Match:
         src_square = current_move.src_square;
         trgt_square = current_move.trgt_square;
 
-        trgt_square_koma = trgt_square.koma
+        moveTargetKoma = trgt_square.koma
 
-        #print(f'doTurn src_square:({src_square.getX()}, {src_square.getY()}) trgt_square:({trgt_square.getX()}, {trgt_square.getY()})', dir(current_move))
+        #need to decrement the count for the held piece that is about to be placed
+        if src_square is None:
+            #it's the held piece we're looking for if the piece type and the player match
+            #the move being made
+            matchingHeldKoma = filter(lambda x: type(x[0]) == type(moveTargetKoma) and x[0].isSente() == moveTargetKoma.isSente(), self.hand.handKoma)
+            #print(matchingHeldKoma)
+            thisKomaType = next(matchingHeldKoma)
+            if thisKomaType is None:
+                print(f'failed to find held koma for pieceName:{moveTargetKoma.getPieceName()} and isSente:{moveTargetKoma.isSente()}')
+            else:
+                #decrease the # of held koma
+                thisKomaType[1] -= 1
 
-        src_koma = self.grid.getMasu(src_square.getX(), src_square.getY()).getKoma()
-        self.grid.getMasu(src_square.getX(), src_square.getY()).setKoma(None)
+        if not src_square is None:
+            self.grid.getMasu(src_square.getX(), src_square.getY()).setKoma(None)
+
+        targetMasu = self.grid.getMasu(trgt_square.getX(), trgt_square.getY())
+        pieceOnBoardAtDestination = targetMasu.getKoma()
+        if not pieceOnBoardAtDestination is None:
+            #need to increment the held piece count for the player that made the move
+            #if a piece was taken
+            countForTakenKoma = next(filter(lambda x: type(x[0]) == type(pieceOnBoardAtDestination) and x[0].isSente() == self.current_turn.senteSide, self.hand.handKoma))
+            countForTakenKoma[1] += 1
+
+
         #the masu stored in trgt_square may have been promoted, so it is not
         #sufficient to just set the koma at trgt to the src koma
-        self.grid.getMasu(trgt_square.getX(), trgt_square.getY()).setKoma(trgt_square_koma)
+        targetMasu.setKoma(moveTargetKoma)
 
+        self.changeTurn()
+
+    def changeTurn(self):
         if self.current_turn == self.player_one:
             self.current_turn = self.player_two
         else:
             self.current_turn = self.player_one
+
 
     def getPlayerWhoMustMakeTheNextMove(self):
         if self.current_turn == self.player_one:
@@ -623,10 +709,11 @@ class Match:
             for move in all_moves:
                 valid_move = True
                 virtual_board = deepcopy(self.grid)
-                virtual_board.getMasu(move.src_square.getX(), move.src_square.getY()).setKoma(None)
+                if not move.src_square is None:
+                    virtual_board.getMasu(move.src_square.getX(), move.src_square.getY()).setKoma(None)
                 virtual_board.getMasu(move.trgt_square.getX(), move.trgt_square.getY()).setKoma(move.trgt_square.getKoma())
 
-                if not (move.src_square.getKoma() is Gyokushou):
+                if move.src_square is not None and not (move.src_square.getKoma() is Gyokushou):
                     king_coordinates: Tuple[int, int]
                     for i in range(0,9):
                         for j in range(0,9):
@@ -643,10 +730,12 @@ class Match:
                     attacked_squares:List[Tuple[int, int]] = []
                     attacking_pieces = filter(lambda x: x != None and x.isSente() != isSente, virtual_board.getPieces())
                     for attacking_piece in attacking_pieces:
+                        if attacking_piece.isOnHand():
+                            raise Exception('filtersOote, attaking piece cannot be a held piece')
                         attacking_moves = attacking_piece.legalMoves(virtual_board, virtual_board.getMasu(i,j))
                         for attacking_move in attacking_moves:
                             attacked_square = attacking_move.trgt_square
-                            attacked_squares.append(attacked_square.getX(), attacked_square.getY())
+                            attacked_squares.append([attacked_square.getX(), attacked_square.getY()])
                     if (move.trgt_square.getX(),move.trgt_square.getY()) in attacked_squares:
                         valid_move = False
 
@@ -656,16 +745,33 @@ class Match:
 
         isSente = self.current_turn.isSente()
         moves: List[Move] = []
+        #get moves from pieces on the board
         for i in range(0, 9):
             for j in range(0, 9):
-            #for j in range(8, -1, -1):
                 koma = self.grid.getMasu(i,j).getKoma()
-                if koma != None and koma.isSente() == isSente:
+                if not koma is None and koma.isSente() == isSente:
                     moves.extend(koma.legalMoves(self.grid, self.grid.getMasu(i,j)))
+
+        #get moves from the held pieces per player
+        #note that do to the piece placement rules of the pawns(fuhyou),
+        #it is possible to have pieces in your hand but no moves that come
+        #from held pieces
+        heldPiecesMoves = self.getHeldPiecesMoves(isSente)
+        moves.extend(heldPiecesMoves)
 
         moves = filtersOote(moves, isSente)
         self.current_legal_moves = moves
 
+        return moves
+
+    def getHeldPiecesMoves(self, isSente: bool) -> List[Move]:
+        moves = []
+        for komaCount in self.hand.handKoma:
+            number = komaCount[1]
+            koma = komaCount[0]
+            if number > 0 and koma.isSente() == isSente:
+                moves.extend(koma.legalMoves(self.grid, None, self.hand))
+        print(f'made moves from hand for player isSente:{isSente}', len(moves))
         return moves
 
     def deserializeBoardState(self, sfen: str) -> Banmen:
@@ -696,9 +802,10 @@ class Match:
             sfen+= "/"
         sfen = sfen[:-1]
         sfen += " b " if self.current_turn.isSente() else " w "
-        for masu, number in self.hand.handKoma.items():
+        for komaCount in self.hand.handKoma:
+            number = komaCount[1]
+            koma = komaCount[0]
             if number > 0:
-                koma = masu.getKoma()
                 if number == 1:
                     serializedKoma = koma.encode()
                 else:
@@ -708,3 +815,12 @@ class Match:
                 sfen += serializedKoma
         return sfen
 
+def getDefaultHeldPieceMoves(board: Banmen, piece: Koma) -> list[Move]:
+    moves = []
+    newPiece = deepcopy(piece)
+    newPiece.onHand = False
+    for i in range(0,9):
+        for j in range(0,9):
+            if board.getMasu(i,j).getKoma() == None:
+                moves.append(Move(None, Masu(i, j, newPiece)))
+    return moves

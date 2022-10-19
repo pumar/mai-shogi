@@ -8,6 +8,7 @@ export {
 	getHands,
 	letterToPiece,
 	getPiecesFromRank,
+	pieceToLetter,
 }
 
 enum Splits {
@@ -238,4 +239,31 @@ function letterToPiece(letter: string): [PieceNames, PlayerColor] {
 			throw new Error(`Sfen::letterToPiece could not determine piece name from letter:${letter}`);
 	}
 	return [pieceName, player];
+}
+
+/**
+* @param name PieceName that needs to be converted into an SFEN letter
+* @returns pieceName -> letter (lowercase)
+**/
+function pieceToLetter(name: PieceNames): string {
+	switch(name){
+		case PieceNames.Pawn:
+			return 'p';
+		case PieceNames.Bishop:
+			return 'b';
+		case PieceNames.Lance:
+			return 'l';
+		case PieceNames.Knight:
+			return 'n';
+		case PieceNames.Silver:
+			return 's';
+		case PieceNames.Gold:
+			return 'g';
+		case PieceNames.King:
+			return 'k';
+		case PieceNames.Rook:
+			return 'r';
+		default:
+			throw new Error(`Sfen::letterToPiece could not determine piece letter from name:${name}`);
+	}
 }

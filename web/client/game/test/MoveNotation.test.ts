@@ -48,6 +48,15 @@ describe("MoveNotation.ts - move parsing", () => {
 					promotesPiece: true,
 				}
 			},
+			{
+				input: "67N",
+				answer: {
+					start: undefined,
+					end: { rank: 7, file: 8 },
+					originalString: "67N",
+					promotesPiece: false
+				}
+			},
 		];
 		test.each(cases)("%p", (testCase) => {
 			expect(parseMove(testCase.input)).toStrictEqual(testCase.answer);

@@ -19,7 +19,7 @@ import { GameInteractionController } from "./Input/UserInteraction";
 import { PlayerColor } from "./Consts";
 import { Move } from "./types/Move";
 import { MessageKeys, MessageTypes } from "./CommunicationConsts";
-import { sfenToGame } from "../Notation/Sfen";
+import { pieceToLetter, sfenToGame } from "../Notation/Sfen";
 import { serverMovesToClientMoves } from "../Notation/MoveNotation";
 import { AnswerPrompt, CommunicationEvent, CommunicationEventTypes, CommunicationStack, MakeMove, mkCommunicationStack, Promote, PromptSelectMove } from "./Input/UserInputEvents";
 import { buildForRange } from "../utils/Range";
@@ -1230,13 +1230,22 @@ export class GameRunner implements IEventQueueListener {
 				playerColor = userInputResult.player;
 			}
 
-			if (isHeldPiece(userInputResult)) throw new Error(`TODO find moves for held piece`);
+			let movesForSelectedPiece: Move[];
+
 			const player = findPlayer(this.getCurrentGameState(), playerColor);
-			const moves = player.moves;
-			const movesForSelectedPiece = moves.filter((mv: Move) => {
-				return mv.start.rank === userInputResult.rank
-					&& mv.start.file === userInputResult.file;
-			});
+			if(isHeldPiece(userInputResult)){
+				console.log({ userInputResult, moves: player.moves });
+				movesForSelectedPiece = player.moves.filter((mv: Move) => {
+					return mv.start === undefined
+						&& mv.heldPieceName === userInputResult.name;
+				});
+			} else {
+				const moves = player.moves;
+				movesForSelectedPiece = moves.filter((mv: Move) => {
+					return mv.start !== undefined && mv.start.rank === userInputResult.rank
+						&& mv.start.file === userInputResult.file;
+				});
+			}
 			console.error(`need to highlight spaces:`, { movesForSelectedPiece });
 			const squaresToShow = movesForSelectedPiece.map((mv: Move) => {
 				return {

@@ -5,7 +5,7 @@ export {
 }
 
 type Move = {
-	start: BoardLocation,
+	start?: BoardLocation,
 	end: BoardLocation,
 	heldPieceName?: PieceNames;
 	promotesPiece: boolean;
