@@ -188,6 +188,16 @@ class Banmen:
                 if type(komaAtMasu) is Gyokushou and komaAtMasu.isSente() == isSente: 
                     return (i,j)
 
+    #get all masu that do not have a koma on them
+    def getOpenSpaces(self) -> List[Masu]:
+        masuList = []
+        for i in range(0, 9):
+            for j in range(0, 9):
+                masu = self.getMasu(i, j)
+                if masu.getKoma() == None:
+                    masuList.append(masu)
+        return masuList
+
 class Hand:
     handKoma: list[tuple[Koma, int]]
 
@@ -333,7 +343,11 @@ class Kyousha(Koma):
                 virtual_kin = Kinshou(isSente)
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
         else:
-            newMoves = self.getHeldPiecesMoves(board, self)
+            #TODO kyousha held moves are crashing the game
+            openSpaces = board.getOpenSpaces()
+            placePiece = deepcopy(self)
+            placePiece.onHand = false
+            newMoves = list(map(lambda masu: Move(None, Masu(masu.x, masu.y, placePiece)), openSpaces))
             moves.extend(newMoves)
 
         return moves
@@ -448,8 +462,10 @@ class Kinshou(Koma):
             raise Exception("legalMoves requires either a src square or the hand object to be passed in to it")
         moves: List[Move] = []
 
-        if virtualized_piece != None: piece = deepcopy(virtualized_piece)
-        else: piece = src_square.getKoma()
+        if virtualized_piece != None:
+            piece = deepcopy(virtualized_piece)
+        else:
+            piece = src_square.getKoma()
 
         if not self.isOnHand():
             isSente = piece.isSente()
@@ -520,18 +536,19 @@ class Kakugyou(Koma):
                     if targetKoma != None and targetKoma.isSente() == isSente:
                         break;
 
+                    isPromotionPossible = (not isSente and tY > 5) or (isSente and tY < 3)
+                    if isPromotionPossible:
+                        promoted_piece = deepcopy(piece)
+                        promoted_piece.Promote()
+                        moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
+                    #the non-promoting move is an option as well
+                    moves.append(Move(src_square, Masu(tX, tY, piece)))
+                    print(f'kakugyou on ({x}, {y}) added move for square: ({tX}, {tY})')
+
                     #target space is occupied by an enemy piece
                     #we can take it, so this move will be added
-                    #but, it prevents us from being able to move any further in that direction
+                    #but, we cannot advance any further, so we break the loop
                     if (targetKoma != None and targetKoma.isSente() != isSente):
-                        #if we can promote, that move becomes an option
-                        if (not isSente and tY > 5) or (isSente and tY < 3):
-                            promoted_piece = deepcopy(piece)
-                            promoted_piece.Promote()
-                            moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
-                        #the non-promoting move is an option as well
-                        moves.append(Move(src_square, Masu(tX, tY, piece)))
-                        print(f'kakugyou on ({x}, {y}) added move for square: ({tX}, {tY})')
                         break
 
             #if the bishop is promoted, it gains some king moves as well
