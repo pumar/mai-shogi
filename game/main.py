@@ -208,19 +208,20 @@ class Hand:
 
     def initialHand(self) -> list[tuple[Masu, int]]:
         handKoma = [
-                [Fuhyou(sente = True, onHand = True), 0],
+                [Fuhyou(sente = True, onHand = True), 1],
+                [Kinshou(sente = True, onHand = True), 1],
+                [Keima(sente = True, onHand = True), 1],
+                [Ginshou(sente = True, onHand = True), 1],
+                [Kakugyou(sente = True, onHand = True), 1],
+                [Hisha(sente = True, onHand = True), 1],
+                [Kyousha(sente = True, onHand = True), 1],
+
                 [Fuhyou(sente = False, onHand = True), 0],
                 [Kinshou(sente = False, onHand = True), 0],
-                [Kinshou(sente = True, onHand = True), 0],
-                [Keima(sente = True, onHand = True), 0],
                 [Keima(sente = False, onHand = True), 0],
                 [Ginshou(sente = False, onHand = True), 0],
-                [Ginshou(sente = True, onHand = True), 0],
-                [Kakugyou(sente = True, onHand = True), 1],
                 [Kakugyou(sente = False, onHand = True), 0],
-                [Hisha(sente = True, onHand = True), 0],
                 [Hisha(sente = False, onHand = True), 0],
-                [Kyousha(sente = True, onHand = True), 1],
                 [Kyousha(sente = False, onHand = True), 0]
             ]
         return handKoma
@@ -493,6 +494,9 @@ class Kinshou(Koma):
         raise Exception("The Golden General cannot be promoted.")
 
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None, virtualized_piece: Koma = None) -> List[Move]:
+        #TODO causes the same issue as the lance, if we create held piece moves the game will crash at filters oote
+        #because src_square is undefined
+        return []
         if src_square == None and hand == None:
             raise Exception("legalMoves requires either a src square or the hand object to be passed in to it")
         moves: List[Move] = []
