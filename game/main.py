@@ -536,8 +536,10 @@ class Kakugyou(Koma):
                     if targetKoma != None and targetKoma.isSente() == isSente:
                         break;
 
-                    isPromotionPossible = (not isSente and tY > 5) or (isSente and tY < 3)
-                    if isPromotionPossible:
+                    startsInPromotionRange = (isSente and y < 3) or (not isSente and y > 5)
+                    movesIntoPromotionRange = (isSente and tY < 3) or (not isSente and tY > 5)
+
+                    if not self.isPromoted() and (startsInPromotionRange or movesIntoPromotionRange):
                         promoted_piece = deepcopy(piece)
                         promoted_piece.Promote()
                         moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
