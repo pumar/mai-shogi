@@ -87,12 +87,12 @@ class Koma:
 
     def getPieceName(self) -> PieceName:
         if type(self) is Fuhyou: return PieceName.Fuhyou
-        if type(self) is Kyousha: return Kyousha
-        if type(self) is Keima: return Keima
-        if type(self) is Ginshou: return Ginshou
-        if type(self) is Kinshou: return Kinshou
-        if type(self) is Kakugyou: return Kakugyou
-        if type(self) is Hisha: return Hisha
+        if type(self) is Kyousha: return PieceName.Kyousha
+        if type(self) is Keima: return PieceName.Keima
+        if type(self) is Ginshou: return PieceName.Ginshou
+        if type(self) is Kinshou: return PieceName.Kinshou
+        if type(self) is Kakugyou: return PieceName.Kakugyou
+        if type(self) is Hisha: return PieceName.Hisha
 
 class Masu:
     koma: Koma
@@ -178,7 +178,9 @@ class Banmen:
         pieces = []
         for i in range(0,9):
             for j in range(0,9):
-                pieces.append(self.getMasu(i, j).getKoma())
+                koma = self.getMasu(i, j).getKoma()
+                if not koma is None:
+                    pieces.append(koma)
         return pieces
 
     def findKingCoordinates(self, isSente: bool) -> Tuple[int, int]:
@@ -210,15 +212,15 @@ class Hand:
                 [Fuhyou(sente = False, onHand = True), 0],
                 [Kinshou(sente = False, onHand = True), 0],
                 [Kinshou(sente = True, onHand = True), 0],
-                [Keima(sente = True, onHand = True), 1],
-                [Keima(sente = False, onHand = True), 1],
+                [Keima(sente = True, onHand = True), 0],
+                [Keima(sente = False, onHand = True), 0],
                 [Ginshou(sente = False, onHand = True), 0],
                 [Ginshou(sente = True, onHand = True), 0],
-                [Kakugyou(sente = True, onHand = True), 0],
+                [Kakugyou(sente = True, onHand = True), 1],
                 [Kakugyou(sente = False, onHand = True), 0],
                 [Hisha(sente = True, onHand = True), 0],
                 [Hisha(sente = False, onHand = True), 0],
-                [Kyousha(sente = True, onHand = True), 0],
+                [Kyousha(sente = True, onHand = True), 1],
                 [Kyousha(sente = False, onHand = True), 0]
             ]
         return handKoma
@@ -313,8 +315,10 @@ class Kyousha(Koma):
         super().__init__(sente, onHand)
 
     def legalMoves(self, board:Banmen, src_square: Optional[Masu] = None, hand = None) -> List[Move]:
-        if src_square == None and hand == None:
-            raise Exception("legalMoves requires either a src square or the hand object to be passed in to it")
+        #TODO kyousha moves cause an exception in filters oote
+        return []
+        if (src_square == None or src_square.getKoma() == None) and hand == None:
+            raise Exception("legalMoves:kyousha requires either a src square or the hand object to be passed in to it")
         moves: List[Move] = []
 
         if not self.isOnHand():
@@ -323,34 +327,65 @@ class Kyousha(Koma):
             x = src_square.getX()
             y = src_square.getY()
             if not self.isPromoted():
-                pd = [0,1] if isSente else [0,-1]
+                pd = [0, -1] if isSente else [0, 1]
                 tX = x
                 tY = y
                 while(True):
                     tX += pd[0]
-                    tY += + pd[1]
-                    if(-1 < tX < 9 and -1 < tY < 9):
-                        if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isSente):
-                            if (isSente and tY > 5) or (not isSente and tY < 3):
-                                promoted_piece = deepcopy(piece)
-                                promoted_piece.Promote()
-                                moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
-                            if not ((tY + pd[1]) > 8 or (tY + pd[1]) < 0):
-                                moves.append(Move(src_square, Masu(tX, tY, piece)))
-                        if board.getMasu(tX, tY).getKoma() != None: break
-                    else: break
+                    tY += pd[1]
+
+                    #off the board
+                    if(tX < 0 or tX > 8 or tY < 0 or tY > 8):
+                        break
+
+                    komaAtDestination = board.getMasu(tX, tY).getKoma()
+
+                    #ran into an ally piece, we can advance no further
+                    if komaAtDestination != None and komaAtDestination.isSente() == isSente:
+                        break
+
+                    shouldBreak = komaAtDestination != None
+                    endsInPromotionRange = (not isSente and ty > 5) or (isSente and tY < 3)
+                    mustPromote = (not isSente and tY == 8) or (isSente and tY == 0)
+
+                    #if we are in the promotion range, promotion becomes possible
+                    if not self.isPromoted() and endsInPromotionRange:
+                        promoted_piece = deepcopy(piece)
+                        promoted_piece.Promote()
+                        moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
+
+                    #if we are on the last rank, we must promote
+                    #so the non-promotion move is not added to the list
+                    if not mustPromote:
+                        moves.append(Move(src_square, Masu(tX, tY, piece)))
+
+                    #if there is an enemy piece at the destination square, even though
+                    #we can take it, we cannot move beyond it
+                    if shouldBreak:
+                        break
+
             else:
                 virtual_kin = Kinshou(isSente)
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
         else:
-            #TODO kyousha held moves are crashing the game
-            openSpaces = board.getOpenSpaces()
+            legalOpenSpaces = list(filter(self.isLegalLanceDropSpace, board.getOpenSpaces()))
+            spacesStrs = " ".join(list(map(lambda x: f'({x.getX()}, {x.getY()})', legalOpenSpaces)))
+            print(f'lance held moves: {spacesStrs}')
             placePiece = deepcopy(self)
-            placePiece.onHand = false
-            newMoves = list(map(lambda masu: Move(None, Masu(masu.x, masu.y, placePiece)), openSpaces))
+            placePiece.onHand = False
+            newMoves = list(map(lambda masu: Move(None, Masu(masu.x, masu.y, placePiece)), legalOpenSpaces))
             moves.extend(newMoves)
 
+        createdMoves = " ".join(map(lambda z: f'({z.serialize()})', moves))
+        handOrLocation = f'({src_square.getX()}, {src_square.getY()})' if src_square != None else "(in hand)"
+        print(f'lance on {handOrLocation} made moves:({createdMoves})')
         return moves
+
+    def isLegalLanceDropSpace(self, masu: Masu):
+        y = masu.getY()
+        return y != 0 and y != 8
+
+
 
 class Keima(Koma):
     def __init__(self, sente, onHand=False):
@@ -774,11 +809,12 @@ class Match:
                 virtual_board.getMasu(move.trgt_square.getX(), move.trgt_square.getY()).setKoma(move.trgt_square.getKoma())
 
                 if move.src_square is not None and not (move.src_square.getKoma() is Gyokushou):
-                    king_coordinates: Tuple[int, int] = self.grid.findKingCoordinates(isSente)
+                    king_coordinates: Tuple[int, int] = virtual_board.findKingCoordinates(isSente)
                     attacking_pieces = filter(lambda x: x != None and x.isSente() != isSente and \
-                        (type(x) is Kakugyou or type(x) is Hisha or type(x) is Kyousha), virtual_board.getPieces())
+                        self.isRangedPiece(x), virtual_board.getPieces())
                     for attacking_piece in attacking_pieces:
-                        attacking_moves = attacking_piece.legalMoves(virtual_board, virtual_board.getMasu(i,j))
+                        print(f'attacking piece piece name:{attacking_piece.getPieceName()} move:{move.serialize()}')
+                        attacking_moves = attacking_piece.legalMoves(virtual_board, virtual_board.getMasu(i, j))
                         for attacking_move in attacking_moves:
                             attackingMoveSquare = attacking_move.trgt_square
                             if attackingMoveSquare.getX() == king_coordinates[0] and attackingMoveSquare.getY() == king_coordinates[1]:
@@ -824,6 +860,10 @@ class Match:
         self.current_legal_moves = moves
 
         return moves
+
+    def isRangedPiece(self, koma: Koma) -> bool:
+        komaType = type(koma)
+        return komaType is Kakugyou or komaType is Hisha or komaType is Kyousha
 
     def getHeldPiecesMoves(self, isSente: bool) -> List[Move]:
         moves = []
