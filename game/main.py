@@ -595,17 +595,35 @@ class Hisha(Koma):
                 while(True):
                     tX += pd[0]
                     tY += + pd[1]
-                    if(-1 < tX < 9 and -1 < tY < 9):
-                        targetKoma = board.getMasu(tX, tY).getKoma()
-                        if (targetKoma == None or targetKoma.isSente() != isSente):
-                            if (not isSente and tY > 5) or (isSente and tY < 3):
-                                promoted_piece = deepcopy(piece)
-                                promoted_piece.Promote()
-                                moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
-                            moves.append(Move(src_square, Masu(tX, tY, piece)))
-                        if board.getMasu(tX, tY).getKoma() != None: break
-                    else:
+                    #off the board
+                    if(tX < 0 or tX > 8 or tY < 0 or tY > 8):
                         break
+
+                    komaAtDestination = board.getMasu(tX, tY).getKoma()
+                    ranIntoPiece = komaAtDestination != None
+
+                    #if we ran into a piece, and it's an ally piece,
+                    #we can't move to that square and we can't go beyond it either
+                    if ranIntoPiece and komaAtDestination.isSente() == isSente:
+                        break
+
+                    movesIntoPromotionRange = (isSente and tY < 3) or (not isSente and tY > 5)
+                    startsInPromotionRange = (isSente and y < 3) or (not isSente and y > 5)
+
+                    #add the promotion case
+                    if not self.isPromoted() and (movesIntoPromotionRange or startsInPromotionRange):
+                        promoted_piece = deepcopy(piece)
+                        promoted_piece.Promote()
+                        moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
+
+                    #add the non-promotion case
+                    moves.append(Move(src_square, Masu(tX, tY, piece)))
+
+                    #can advance no further because we ran into an enemy piece, so
+                    #stop the loop
+                    if ranIntoPiece:
+                        break
+
             #if the hisha/rook is promoted, it gains the king's diagonal moves
             if self.isPromoted():
                 possible_deltas = [[1,-1],[1,1],[-1,-1],[-1,1]]
