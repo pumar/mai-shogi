@@ -743,6 +743,9 @@ class Match:
     #board can randomly place a held piece somewhere as well
     #I think the memory for a piece is being shared somewhere where it shouldn't be
     def doTurn(self, string_move: str):
+        #TODO the piece that you selected at the client side may not be the piece actually placed
+        #regardless of what you clicked, held pieces will be placed in the order from left to right
+        #as they exist
         string_moves = [move.serialize() for move in self.current_legal_moves] 
         if string_move not in string_moves:
             raise MoveNotFound("The move that was sent is not valid.")
