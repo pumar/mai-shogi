@@ -119,7 +119,7 @@ export class GameInteractionController {
 			//need to ensure that the move does not have a starting square
 			//elsewise we'll accidentally find some other piece's move that happens to have
 			//the same destination square
-			const heldPieceMove = humanPlayerMoves.find(move =>
+			const heldPieceMove = movesForSelectedPiece.find(move =>
 				move.start === undefined &&
 				move.end.rank === destRank && move.end.file === destFile
 			);
@@ -127,7 +127,7 @@ export class GameInteractionController {
 			selectedPossibleMoves = [heldPieceMove];
 		} else {
 			const { file: startFile, rank: startRank } = this.selectedPiece;
-			selectedPossibleMoves = humanPlayerMoves.filter(move =>
+			selectedPossibleMoves = movesForSelectedPiece.filter(move =>
 				move.start !== undefined
 				&& move.end.rank === destRank && move.end.file === destFile
 				&& move.start.rank === startRank && move.start.file === startFile
@@ -150,7 +150,9 @@ export class GameInteractionController {
 
 	private getMovesForHeldPiece(playerMoves: Move[], heldPiece: HeldPiece): Move[] {
 		const pieceName = heldPiece.name;
-		return playerMoves.filter(move => move.heldPieceName === pieceName);
+		const moves = playerMoves.filter(move => move.heldPieceName === pieceName);
+		console.error('getMovesForHeldPiece', { heldPiece, moves });
+		return moves;
 	}
 
 	private getMovesForPlacedPiece(playerMoves: Move[], placedPiece: PlacedPiece): Move[] {

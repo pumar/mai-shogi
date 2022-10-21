@@ -1175,7 +1175,7 @@ export class GameRunner implements IEventQueueListener {
 				this.createMakeMoveEvent(move);
 				this.showSpaceCenters([]);
 				return true;
-			//prompt the user to choos from amongst many moves
+			//prompt the user to choose from amongst many moves
 			} else {
 				//multiple moves are possible, so the UI needs to prompt the user to
 				//disambiguate them (to promote or not to promote),
