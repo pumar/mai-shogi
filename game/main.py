@@ -268,8 +268,11 @@ class Fuhyou(Koma):
         moves: List[Move] = []
 
         if not self.isOnHand():
+            if src_square.getKoma() != self:
+                print(f'Strange behavior in legal moves for fuhyou, piece at src_square is not this object', src_square.getKoma())
+            piece = self
             isSente = src_square.getKoma().isSente()
-            piece = src_square.getKoma()
+            #piece = src_square.getKoma()
             x = src_square.getX()
             y = src_square.getY()
 
@@ -325,7 +328,9 @@ class Kyousha(Koma):
         moves: List[Move] = []
 
         if not self.isOnHand():
-            piece = src_square.getKoma()
+            if src_square.getKoma() != self:
+                print(f'Strange behavior in legal moves for kyousha, piece at src_square is not this object', src_square.getKoma())
+            piece = self
             isSente = piece.isSente()
             x = src_square.getX()
             y = src_square.getY()
@@ -405,7 +410,10 @@ class Keima(Koma):
         moves: List[Move] = []
 
         if not self.isOnHand():
-            piece = src_square.getKoma()
+            if src_square.getKoma() != self:
+                print(f'Strange behavior in legal moves for keima, piece at src_square is not this object', src_square.getKoma())
+            piece = self
+            #piece = src_square.getKoma()
             isSente = piece.isSente()
             x = src_square.getX()
             y = src_square.getY()
@@ -456,8 +464,11 @@ class Ginshou(Koma):
         moves: List[Move] = []
 
         if not self.isOnHand():
+            if src_square.getKoma() != self:
+                print(f'Strange behavior in legal moves for keima, piece at src_square is not this object', src_square.getKoma())
+            piece = self
             isSente = src_square.getKoma().isSente()
-            piece = src_square.getKoma()
+            #piece = src_square.getKoma()
             x = src_square.getX()
             y = src_square.getY()
 
@@ -511,9 +522,13 @@ class Kinshou(Koma):
         if virtualized_piece != None:
             piece = deepcopy(virtualized_piece)
         else:
-            piece = src_square.getKoma()
+            #piece = src_square.getKoma()
+            piece = self
 
         if not self.isOnHand():
+            if src_square.getKoma() != self:
+                print(f'Strange behavior in legal moves for kinshou, piece at src_square is not this object', src_square.getKoma())
+            piece = self
             isSente = piece.isSente()
 
             x = src_square.getX()
@@ -558,7 +573,10 @@ class Kakugyou(Koma):
         moves: List[Move] = []
 
         if not self.isOnHand():
-            piece = src_square.getKoma()
+            if src_square.getKoma() != self:
+                print(f'Strange behavior in legal moves for kakugyou, piece at src_square is not this object', src_square.getKoma())
+            piece = self
+            #piece = src_square.getKoma()
             isSente = piece.isSente()
             x = src_square.getX()
             y = src_square.getY()
@@ -627,7 +645,10 @@ class Hisha(Koma):
         moves: List[Move] = []
 
         if not self.isOnHand():
-            piece = src_square.getKoma()
+            if src_square.getKoma() != self:
+                print(f'Strange behavior in legal moves for hisha, piece at src_square is not this object', src_square.getKoma())
+            piece = self
+            #piece = src_square.getKoma()
             isSente = piece.isSente()
             x = src_square.getX()
             y = src_square.getY()
@@ -824,11 +845,13 @@ class Match:
 
                 if move.src_square is not None and not (move.src_square.getKoma() is Gyokushou):
                     king_coordinates: Tuple[int, int] = virtual_board.findKingCoordinates(isSente)
-                    attacking_pieces = filter(lambda x: x.isSente() != isSente and \
-                        self.isRangedPiece(x), virtual_board.getPieces())
+                    attacking_pieces = list(filter(lambda x: x.isSente() != isSente and \
+                        self.isRangedPiece(x), virtual_board.getPieces()))
                     #if this is commented out, an error occurs
                     #if it isn't commented out, the game works
-                    printAttackingPieces = " ".join(map(lambda attk: attk.encode(), attacking_pieces))
+                    print('before', attacking_pieces)
+                    #printAttackingPieces = " ".join(map(lambda attk: attk.encode(), attacking_pieces))
+                    print(attacking_pieces)
                     #print(f'attacking pieces: ({printAttackingPieces})')
                     for attacking_piece in attacking_pieces:
                         #print(f'attacking piece piece name:{attacking_piece.getPieceName()} moveSrc:{move.src_square.serializeLocation()} moveTrgt:{move.trgt_square.serializeLocation()}')
