@@ -503,9 +503,6 @@ class Kinshou(Koma):
         raise Exception("The Golden General cannot be promoted.")
 
     def legalMoves(self,  board:Banmen, src_square: Masu, hand = None, virtualized_piece: Koma = None) -> List[Move]:
-        #TODO causes the same issue as the lance, if we create held piece moves the game will crash at filters oote
-        #because src_square is undefined
-        return []
         if src_square == None and hand == None:
             raise Exception("legalMoves requires either a src square or the hand object to be passed in to it")
         moves: List[Move] = []
