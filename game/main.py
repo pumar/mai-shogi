@@ -122,6 +122,9 @@ class Masu:
     def setY(self,y):
         self.y = y
 
+    def serializeLocation(self):
+        return f'{self.getX()}{self.getY()}'
+
 class Banmen:
     grid: List[List[Masu]]
 
@@ -226,7 +229,6 @@ class Hand:
             ]
         return handKoma
 
-#TODO moves for held pieces should not require a src_square
 class Move:
     src_square: Optional[Masu]
     trgt_square: Masu
@@ -277,7 +279,7 @@ class Fuhyou(Koma):
                 tY = y + pd[1]
                 if(-1 < tX < 9 and -1 < tY < 9):
                     if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isSente):
-                        if (isSente and y > 6) or (not isSente and y < 2):
+                        if (not isSente and y > 6) or (isSente and y < 2):
                             promoted_piece = deepcopy(piece)
                             promoted_piece.Promote()
                             moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
@@ -317,9 +319,9 @@ class Kyousha(Koma):
 
     def legalMoves(self, board:Banmen, src_square: Optional[Masu] = None, hand = None) -> List[Move]:
         #TODO kyousha moves cause an exception in filters oote
-        return []
-        if (src_square == None or src_square.getKoma() == None) and hand == None:
-            raise Exception("legalMoves:kyousha requires either a src square or the hand object to be passed in to it")
+        #return []
+        #if (src_square == None or src_square.getKoma() == None) and hand == None:
+        #    raise Exception("legalMoves:kyousha requires either a src square or the hand object to be passed in to it")
         moves: List[Move] = []
 
         if not self.isOnHand():
@@ -346,7 +348,7 @@ class Kyousha(Koma):
                         break
 
                     shouldBreak = komaAtDestination != None
-                    endsInPromotionRange = (not isSente and ty > 5) or (isSente and tY < 3)
+                    endsInPromotionRange = (not isSente and tY > 5) or (isSente and tY < 3)
                     mustPromote = (not isSente and tY == 8) or (isSente and tY == 0)
 
                     #if we are in the promotion range, promotion becomes possible
@@ -358,7 +360,8 @@ class Kyousha(Koma):
                     #if we are on the last rank, we must promote
                     #so the non-promotion move is not added to the list
                     if not mustPromote:
-                        moves.append(Move(src_square, Masu(tX, tY, piece)))
+                        #moves.append(Move(src_square, Masu(tX, tY, piece)))
+                        moves.append(Move(src_square, Masu(tX, tY, deepcopy(piece))))
 
                     #if there is an enemy piece at the destination square, even though
                     #we can take it, we cannot move beyond it
@@ -369,9 +372,11 @@ class Kyousha(Koma):
                 virtual_kin = Kinshou(isSente)
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
         else:
+            if hand == None:
+                raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
             legalOpenSpaces = list(filter(self.isLegalLanceDropSpace, board.getOpenSpaces()))
             spacesStrs = " ".join(list(map(lambda x: f'({x.getX()}, {x.getY()})', legalOpenSpaces)))
-            print(f'lance held moves: {spacesStrs}')
+            #print(f'legal open spaces for lance:{spacesStrs}')
             placePiece = deepcopy(self)
             placePiece.onHand = False
             newMoves = list(map(lambda masu: Move(None, Masu(masu.x, masu.y, placePiece)), legalOpenSpaces))
@@ -379,12 +384,14 @@ class Kyousha(Koma):
 
         createdMoves = " ".join(map(lambda z: f'({z.serialize()})', moves))
         handOrLocation = f'({src_square.getX()}, {src_square.getY()})' if src_square != None else "(in hand)"
-        print(f'lance on {handOrLocation} made moves:({createdMoves})')
+        #print(f'lance on {handOrLocation} made moves:({createdMoves})')
         return moves
 
     def isLegalLanceDropSpace(self, masu: Masu):
         y = masu.getY()
-        return y != 0 and y != 8
+        result = y != 0 and y != 8
+        #print(f'isLegalLanceDropSpace y:{y} result:{result}')
+        return result
 
 
 
@@ -584,7 +591,7 @@ class Kakugyou(Koma):
                         moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
                     #the non-promoting move is an option as well
                     moves.append(Move(src_square, Masu(tX, tY, piece)))
-                    print(f'kakugyou on ({x}, {y}) added move for square: ({tX}, {tY})')
+                    #print(f'kakugyou on ({x}, {y}) added move for square: ({tX}, {tY})')
 
                     #target space is occupied by an enemy piece
                     #we can take it, so this move will be added
@@ -811,16 +818,20 @@ class Match:
             for move in all_moves:
                 valid_move = True
                 virtual_board = deepcopy(self.grid)
-                if not move.src_square is None:
+                if move.src_square is not None:
                     virtual_board.getMasu(move.src_square.getX(), move.src_square.getY()).setKoma(None)
                 virtual_board.getMasu(move.trgt_square.getX(), move.trgt_square.getY()).setKoma(move.trgt_square.getKoma())
 
                 if move.src_square is not None and not (move.src_square.getKoma() is Gyokushou):
                     king_coordinates: Tuple[int, int] = virtual_board.findKingCoordinates(isSente)
-                    attacking_pieces = filter(lambda x: x != None and x.isSente() != isSente and \
+                    attacking_pieces = filter(lambda x: x.isSente() != isSente and \
                         self.isRangedPiece(x), virtual_board.getPieces())
+                    #if this is commented out, an error occurs
+                    #if it isn't commented out, the game works
+                    printAttackingPieces = " ".join(map(lambda attk: attk.encode(), attacking_pieces))
+                    #print(f'attacking pieces: ({printAttackingPieces})')
                     for attacking_piece in attacking_pieces:
-                        print(f'attacking piece piece name:{attacking_piece.getPieceName()} move:{move.serialize()}')
+                        #print(f'attacking piece piece name:{attacking_piece.getPieceName()} moveSrc:{move.src_square.serializeLocation()} moveTrgt:{move.trgt_square.serializeLocation()}')
                         attacking_moves = attacking_piece.legalMoves(virtual_board, virtual_board.getMasu(i, j))
                         for attacking_move in attacking_moves:
                             attackingMoveSquare = attacking_move.trgt_square
@@ -830,7 +841,7 @@ class Match:
                                 valid_move = False
                 else:
                     attacked_squares:List[Tuple[int, int]] = []
-                    attacking_pieces = filter(lambda x: x != None and x.isSente() != isSente, virtual_board.getPieces())
+                    attacking_pieces = filter(lambda x: x.isSente() != isSente, virtual_board.getPieces())
                     for attacking_piece in attacking_pieces:
                         if attacking_piece.isOnHand():
                             raise Exception('filtersOote, attaking piece cannot be a held piece')
