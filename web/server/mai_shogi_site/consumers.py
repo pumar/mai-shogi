@@ -67,7 +67,7 @@ class GameConsumer(WebsocketConsumer):
 
                 playerMoves = self.serializeMoves(self.match)
 
-                print(f'playerMoves:{playerMoves}');
+                #print(f'playerMoves:{playerMoves}');
 
                 #TODO de-duplicate this, it's also in the connect handler of this class
                 messageDict = {}

@@ -268,8 +268,8 @@ class Fuhyou(Koma):
         moves: List[Move] = []
 
         if not self.isOnHand():
-            if src_square.getKoma() != self:
-                print(f'Strange behavior in legal moves for fuhyou, piece at src_square is not this object', src_square.getKoma())
+            if src_square.getKoma() == None:
+                print(f'Strange behavior in legal moves for fuhyou, piece at src_square is none', src_square.getKoma())
             piece = self
             isSente = src_square.getKoma().isSente()
             #piece = src_square.getKoma()
@@ -328,8 +328,8 @@ class Kyousha(Koma):
         moves: List[Move] = []
 
         if not self.isOnHand():
-            if src_square.getKoma() != self:
-                print(f'Strange behavior in legal moves for kyousha, piece at src_square is not this object', src_square.getKoma())
+            if src_square.getKoma() == None:
+                print(f'Strange behavior in legal moves for kyousha, piece at src_square is none', src_square.getKoma())
             piece = self
             isSente = piece.isSente()
             x = src_square.getX()
@@ -381,7 +381,6 @@ class Kyousha(Koma):
                 raise Exception("The 'Hand' object is a required argument for calculating legal moves of a piece in hand.")
             legalOpenSpaces = list(filter(self.isLegalLanceDropSpace, board.getOpenSpaces()))
             spacesStrs = " ".join(list(map(lambda x: f'({x.getX()}, {x.getY()})', legalOpenSpaces)))
-            #print(f'legal open spaces for lance:{spacesStrs}')
             placePiece = deepcopy(self)
             placePiece.onHand = False
             newMoves = list(map(lambda masu: Move(None, Masu(masu.x, masu.y, placePiece)), legalOpenSpaces))
@@ -389,13 +388,11 @@ class Kyousha(Koma):
 
         createdMoves = " ".join(map(lambda z: f'({z.serialize()})', moves))
         handOrLocation = f'({src_square.getX()}, {src_square.getY()})' if src_square != None else "(in hand)"
-        #print(f'lance on {handOrLocation} made moves:({createdMoves})')
         return moves
 
     def isLegalLanceDropSpace(self, masu: Masu):
         y = masu.getY()
         result = y != 0 and y != 8
-        #print(f'isLegalLanceDropSpace y:{y} result:{result}')
         return result
 
 
@@ -410,8 +407,8 @@ class Keima(Koma):
         moves: List[Move] = []
 
         if not self.isOnHand():
-            if src_square.getKoma() != self:
-                print(f'Strange behavior in legal moves for keima, piece at src_square is not this object', src_square.getKoma())
+            if src_square.getKoma() == None:
+                print(f'Strange behavior in legal moves for keima, piece at src_square is none', src_square.getKoma())
             piece = self
             #piece = src_square.getKoma()
             isSente = piece.isSente()
@@ -432,10 +429,6 @@ class Keima(Koma):
                                 promoted_piece.Promote()
                                 moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
                             else:
-                                #rankOfNextJump = tY + pd[1]
-                                #print(f'knight on ({x}, {y}), thisJump: ({tX}, {tY}) next jump: ({tX}, {rankOfNextJump})')
-                                #the move is not legal if the only jumps available after making this
-                                #if not (rankOfNextJump > 8 or rankOfNextJump < 0):
                                 moves.append(Move(src_square, Masu(tX, tY, piece)))        
             else:
                 virtual_kin = Kinshou(piece.isSente())
@@ -464,8 +457,8 @@ class Ginshou(Koma):
         moves: List[Move] = []
 
         if not self.isOnHand():
-            if src_square.getKoma() != self:
-                print(f'Strange behavior in legal moves for keima, piece at src_square is not this object', src_square.getKoma())
+            if src_square.getKoma() == None:
+                print(f'Strange behavior in legal moves for keima, piece at src_square is none', src_square.getKoma())
             piece = self
             isSente = src_square.getKoma().isSente()
             #piece = src_square.getKoma()
@@ -526,8 +519,8 @@ class Kinshou(Koma):
             piece = self
 
         if not self.isOnHand():
-            if src_square.getKoma() != self:
-                print(f'Strange behavior in legal moves for kinshou, piece at src_square is not this object', src_square.getKoma())
+            if src_square.getKoma() == None:
+                print(f'Strange behavior in legal moves for kinshou, piece at src_square is none', src_square.getKoma())
             piece = self
             isSente = piece.isSente()
 
@@ -573,8 +566,8 @@ class Kakugyou(Koma):
         moves: List[Move] = []
 
         if not self.isOnHand():
-            if src_square.getKoma() != self:
-                print(f'Strange behavior in legal moves for kakugyou, piece at src_square is not this object', src_square.getKoma())
+            if src_square.getKoma() == None:
+                print(f'Strange behavior in legal moves for kakugyou, piece at src_square is none', src_square.getKoma())
             piece = self
             #piece = src_square.getKoma()
             isSente = piece.isSente()
@@ -609,7 +602,6 @@ class Kakugyou(Koma):
                         moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
                     #the non-promoting move is an option as well
                     moves.append(Move(src_square, Masu(tX, tY, piece)))
-                    #print(f'kakugyou on ({x}, {y}) added move for square: ({tX}, {tY})')
 
                     #target space is occupied by an enemy piece
                     #we can take it, so this move will be added
@@ -645,8 +637,8 @@ class Hisha(Koma):
         moves: List[Move] = []
 
         if not self.isOnHand():
-            if src_square.getKoma() != self:
-                print(f'Strange behavior in legal moves for hisha, piece at src_square is not this object', src_square.getKoma())
+            if src_square.getKoma() == None:
+                print(f'Strange behavior in legal moves for hisha, piece at src_square is none', src_square.getKoma())
             piece = self
             #piece = src_square.getKoma()
             isSente = piece.isSente()
@@ -847,12 +839,7 @@ class Match:
                     king_coordinates: Tuple[int, int] = virtual_board.findKingCoordinates(isSente)
                     attacking_pieces = list(filter(lambda x: x.isSente() != isSente and \
                         self.isRangedPiece(x), virtual_board.getPieces()))
-                    #if this is commented out, an error occurs
-                    #if it isn't commented out, the game works
-                    print('before', attacking_pieces)
-                    #printAttackingPieces = " ".join(map(lambda attk: attk.encode(), attacking_pieces))
-                    print(attacking_pieces)
-                    #print(f'attacking pieces: ({printAttackingPieces})')
+
                     for attacking_piece in attacking_pieces:
                         #print(f'attacking piece piece name:{attacking_piece.getPieceName()} moveSrc:{move.src_square.serializeLocation()} moveTrgt:{move.trgt_square.serializeLocation()}')
                         attacking_moves = attacking_piece.legalMoves(virtual_board, virtual_board.getMasu(i, j))
