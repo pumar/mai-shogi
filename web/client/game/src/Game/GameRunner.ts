@@ -443,6 +443,7 @@ export class GameRunner implements IEventQueueListener {
 			["rook+", "BlackCrownedRook.svg"],
 			["gold", "BlackGold.svg"],
 			["lance", "BlackLance.svg"],
+			["lance+", "BlackGoldLance.svg"],
 			["goldlance", "BlackGoldLance.svg"],
 			["pawn", "BlackPawn.svg"],
 			["pawn+", "BlackGoldPawn.svg"],

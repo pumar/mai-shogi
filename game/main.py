@@ -439,8 +439,6 @@ class Keima(Koma):
 
             newPiece = deepcopy(self)
             newPiece.onHand = False
-            #TODO isn't it impossible to place the knight on a square where it cannot jump
-            #ranks 1-2, 8-9
             for i in range(0, 9):
                 for j in range(2, 7):
                     if board.getMasu(i,j).getKoma() == None:
