@@ -751,8 +751,8 @@ class Match:
         self.hand = Hand()
         
         if self.player_one.isSente():
-            self.current_turn = deepcopy(self.player_one)
-        else: self.current_turn = deepcopy(self.player_two)
+            self.current_turn = self.player_one
+        else: self.current_turn = self.player_two
 
         self.current_legal_moves = []
 
@@ -837,7 +837,7 @@ class Match:
                     king_coordinates: Tuple[int, int] = virtual_board.findKingCoordinates(isSente)
                     attacking_pieces = list(filter(lambda x: x.isSente() != isSente and \
                         self.isRangedPiece(x), virtual_board.getPieces()))
-                    if not isSente: print(f'king coordinates: {king_coordinates[0]} {king_coordinates[1]} player is sente:{isSente}')
+                    #if not isSente: print(f'king coordinates: {king_coordinates[0]} {king_coordinates[1]} player is sente:{isSente}')
 
                     for attacking_piece in attacking_pieces:
                         #print(f'attacking piece piece name:{attacking_piece.getPieceName()} moveSrc:{move.src_square.serializeLocation()} moveTrgt:{move.trgt_square.serializeLocation()}')
@@ -845,6 +845,7 @@ class Match:
                         for attacking_move in attacking_moves:
                             attackingMoveSquare = attacking_move.trgt_square
                             #if not isSente: print(f'attackingMoveSquare:({attackingMoveSquare.getX()}, {attackingMoveSquare.getY()}) attackingPiece:{attacking_piece.getPieceName()}')
+                            #print(f'attackingMoveSquare:({attackingMoveSquare.getX()}, {attackingMoveSquare.getY()}) kingCoordinates:({king_coordinates[0]}, {king_coordinates[1]})')
                             if attackingMoveSquare.getX() == king_coordinates[0] and attackingMoveSquare.getY() == king_coordinates[1]:
                                 #move is invalid because it would put the king in check
                                 #or, the king is already in check and this move won't get the king out of check
