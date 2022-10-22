@@ -137,6 +137,11 @@ class Banmen:
         
         return self.grid[x][y]
     
+    def clearPieces(self):
+        for i in range(0, 9):
+            for j in range(0, 9):
+                self.grid[i][j].setKoma(None)
+
     def initialBanmen(self):
         board: List[List[Masu]] = []
         for i in range(0,9):
@@ -386,8 +391,6 @@ class Kyousha(Koma):
             newMoves = list(map(lambda masu: Move(None, Masu(masu.x, masu.y, placePiece)), legalOpenSpaces))
             moves.extend(newMoves)
 
-        createdMoves = " ".join(map(lambda z: f'({z.serialize()})', moves))
-        handOrLocation = f'({src_square.getX()}, {src_square.getY()})' if src_square != None else "(in hand)"
         return moves
 
     def isLegalLanceDropSpace(self, masu: Masu):
@@ -834,12 +837,14 @@ class Match:
                     king_coordinates: Tuple[int, int] = virtual_board.findKingCoordinates(isSente)
                     attacking_pieces = list(filter(lambda x: x.isSente() != isSente and \
                         self.isRangedPiece(x), virtual_board.getPieces()))
+                    if not isSente: print(f'king coordinates: {king_coordinates[0]} {king_coordinates[1]} player is sente:{isSente}')
 
                     for attacking_piece in attacking_pieces:
                         #print(f'attacking piece piece name:{attacking_piece.getPieceName()} moveSrc:{move.src_square.serializeLocation()} moveTrgt:{move.trgt_square.serializeLocation()}')
                         attacking_moves = attacking_piece.legalMoves(virtual_board, virtual_board.getMasu(i, j))
                         for attacking_move in attacking_moves:
                             attackingMoveSquare = attacking_move.trgt_square
+                            #if not isSente: print(f'attackingMoveSquare:({attackingMoveSquare.getX()}, {attackingMoveSquare.getY()}) attackingPiece:{attacking_piece.getPieceName()}')
                             if attackingMoveSquare.getX() == king_coordinates[0] and attackingMoveSquare.getY() == king_coordinates[1]:
                                 #move is invalid because it would put the king in check
                                 #or, the king is already in check and this move won't get the king out of check
