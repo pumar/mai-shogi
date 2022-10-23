@@ -21,14 +21,12 @@ class HasCleanGame(unittest.TestCase):
     match = None
 
     def setUp(self):
-        print('setUp')
         self.playerOne = ComputerPlayer(True)
         self.playerTwo = ComputerPlayer(False)
 
         self.match = getCleanMatch(self.playerOne, self.playerTwo)
 
     def tearDown(self):
-        print('tearDown')
         self.playerOne = None
         self.playerTwo = None
         self.match = None
@@ -49,6 +47,13 @@ class TestBanMen(HasCleanGame):
     def testGetPieces(self):
         pieces = self.match.grid.getPieces()
         self.assertIs(len(pieces), 0)
+        self.match.grid.grid[0][0] = Masu(0, 0, Kakugyou(True))
+        piecesKakugyou = self.match.grid.getPieces()
+        self.assertIs(len(piecesKakugyou), 1)
+        koma, masu = piecesKakugyou[0]
+        self.assertIs(masu.getX(), 0)
+        self.assertIs(masu.getY(), 0)
+        self.assertIs(koma.isSente(), True)
 
     def testSetPiece(self):
         self.match.grid.getMasu(0, 0).setKoma(Kyousha(False))

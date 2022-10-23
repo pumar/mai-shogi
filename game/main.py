@@ -183,13 +183,14 @@ class Banmen:
             board[i][6].setKoma(Fuhyou(True))
         return board
 
-    def getPieces(self) -> List[Koma]:
+    def getPieces(self) -> List[Tuple[Koma, Masu]]:
         pieces = []
         for i in range(0,9):
             for j in range(0,9):
-                koma = self.getMasu(i, j).getKoma()
+                masu = self.getMasu(i, j)
+                koma = masu.getKoma()
                 if not koma is None:
-                    pieces.append(koma)
+                    pieces.append((koma, masu))
         return pieces
 
     def findKingCoordinates(self, isSente: bool) -> Tuple[int, int]:
@@ -217,13 +218,13 @@ class Hand:
 
     def initialHand(self) -> list[tuple[Masu, int]]:
         handKoma = [
-                [Fuhyou(sente = True, onHand = True), 0],
-                [Kinshou(sente = True, onHand = True), 0],
-                [Keima(sente = True, onHand = True), 0],
-                [Ginshou(sente = True, onHand = True), 0],
-                [Kakugyou(sente = True, onHand = True), 0],
-                [Hisha(sente = True, onHand = True), 0],
-                [Kyousha(sente = True, onHand = True), 0],
+                [Fuhyou(sente = True, onHand = True), 1],
+                [Kinshou(sente = True, onHand = True), 1],
+                [Keima(sente = True, onHand = True), 1],
+                [Ginshou(sente = True, onHand = True), 1],
+                [Kakugyou(sente = True, onHand = True), 1],
+                [Hisha(sente = True, onHand = True), 1],
+                [Kyousha(sente = True, onHand = True), 1],
 
                 [Fuhyou(sente = False, onHand = True), 0],
                 [Kinshou(sente = False, onHand = True), 0],
@@ -836,18 +837,16 @@ class Match:
 
                 if move.src_square is not None and not (move.src_square.getKoma() is Gyokushou):
                     king_coordinates: Tuple[int, int] = virtual_board.findKingCoordinates(isSente)
-                    attacking_pieces = list(filter(lambda x: x.isSente() != isSente and \
-                        self.isRangedPiece(x), virtual_board.getPieces()))
-                    #if not isSente: print(f'king coordinates: {king_coordinates[0]} {king_coordinates[1]} player is sente:{isSente}')
-                    #print(f'filters sente {len(attacking_pieces)}')
+                    #get a (koma, masu) tuple for every piece on the board, as a list
+                    attacking_pieces = list(filter(lambda x: x[0].isSente() != isSente and \
+                        self.isRangedPiece(x[0]), virtual_board.getPieces()))
 
                     for attacking_piece in attacking_pieces:
-                        #print(f'attacking piece piece name:{attacking_piece.getPieceName()} moveSrc:{move.src_square.serializeLocation()} moveTrgt:{move.trgt_square.serializeLocation()}')
-                        attacking_moves = attacking_piece.legalMoves(virtual_board, virtual_board.getMasu(i, j))
+                        masu = attacking_piece[1]
+                        koma = attacking_piece[0]
+                        attacking_moves = koma.legalMoves(virtual_board, masu)
                         for attacking_move in attacking_moves:
                             attackingMoveSquare = attacking_move.trgt_square
-                            #if not isSente: print(f'attackingMoveSquare:({attackingMoveSquare.getX()}, {attackingMoveSquare.getY()}) attackingPiece:{attacking_piece.getPieceName()}')
-                            #print(f'attackingMoveSquare:({attackingMoveSquare.getX()}, {attackingMoveSquare.getY()}) kingCoordinates:({king_coordinates[0]}, {king_coordinates[1]})')
                             if attackingMoveSquare.getX() == king_coordinates[0] and attackingMoveSquare.getY() == king_coordinates[1]:
                                 #move is invalid because it would put the king in check
                                 #or, the king is already in check and this move won't get the king out of check
