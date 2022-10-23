@@ -123,38 +123,27 @@ class TestPieceMoves(HasCleanGame):
         movesXYList = list(map(self.moveToTupleForTest, knightMoves))
         self.assertTrue(self.checkMovesAgainstAnswerMoves(movesXYList, answerXYList))
 
-
-
-#print("==========================")
-#pprint(self.match.hand.handKoma)
-#pprint(self.banmen.getPieces())
-#moves = self.match.getMoves()
-#printMoves = list(map(lambda x: x.serialize(), moves))
-
 #TODO for some god forsaken reason, in order for this test script to work the current working directory
 #must be the root of the project, so not mai-shogi/game, but mai-shogi
-#class TestFiltersOote(unittest.TestCase):
-#    #the keima cannot move because it would put the king in check
-#    def testCantPutOwnKingInCheck(self):
-#        playerOne = ComputerPlayer(True)
-#        playerTwo = ComputerPlayer(False)
-#        match, newBanmen = getCleanMatch(playerOne, playerTwo)
-#        match.current_turn = deepcopy(match.player_two)
-#
-#        king = Gyokushou(False)
-#        knight = Keima(False, onHand=False)
-#        lance = Kyousha(True)
-#
-#        newBanmen.grid[4][0] = Masu(4, 0, king)
-#        newBanmen.grid[4][1] = Masu(4, 1, knight)
-#        newBanmen.grid[4][2] = Masu(4, 2, lance)
-#        match.grid = newBanmen
-#
-#        moves = match.getMoves()
-#        printMoves = list(map(lambda x: x.serialize(), match.getMoves()))
-#        print(printMoves)
-#        knightMoves = list(filter(lambda mv: mv.src_square != None and mv.src_square.getKoma() == knight, moves))
-#        self.assertIs(len(knightMoves), 0)
+class TestFiltersOote(HasCleanGame):
+    #the keima cannot move because it would put the king in check
+    def testCantPutOwnKingInCheck(self):
+        self.match.current_turn = self.playerTwo
+
+        king = Gyokushou(False)
+        knight = Keima(False, onHand=False)
+        lance = Kyousha(True)
+
+        self.banmen.grid[4][0] = Masu(4, 0, king)
+        self.banmen.grid[4][1] = Masu(4, 1, knight)
+        self.banmen.grid[4][2] = Masu(4, 2, lance)
+
+        moves = self.match.getMoves()
+        printMoves = list(map(lambda x: x.serialize(), self.match.getMoves()))
+        print(printMoves)
+        knightMoves = list(filter(lambda mv: mv.src_square != None and mv.src_square.getKoma() == knight, moves))
+        self.assertIs(len(knightMoves), 0)
+        #TODO check the king's moves too!
 
 
 if __name__ == '__main__':
