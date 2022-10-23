@@ -853,11 +853,11 @@ class Match:
                                 valid_move = False
                 else:
                     attacked_squares:List[Tuple[int, int]] = []
-                    attacking_pieces = filter(lambda x: x.isSente() != isSente, virtual_board.getPieces())
-                    for attacking_piece in attacking_pieces:
-                        if attacking_piece.isOnHand():
+                    attacking_pieces = filter(lambda x: x[0].isSente() != isSente, virtual_board.getPieces())
+                    for koma, masu in attacking_pieces:
+                        if koma.isOnHand():
                             raise Exception('filtersOote, attaking piece cannot be a held piece')
-                        attacking_moves = attacking_piece.legalMoves(virtual_board, virtual_board.getMasu(i,j))
+                        attacking_moves = koma.legalMoves(virtual_board, virtual_board.getMasu(i,j))
                         for attacking_move in attacking_moves:
                             attacked_square = attacking_move.trgt_square
                             attacked_squares.append([attacked_square.getX(), attacked_square.getY()])
