@@ -217,13 +217,13 @@ class Hand:
 
     def initialHand(self) -> list[tuple[Masu, int]]:
         handKoma = [
-                [Fuhyou(sente = True, onHand = True), 1],
-                [Kinshou(sente = True, onHand = True), 1],
-                [Keima(sente = True, onHand = True), 1],
-                [Ginshou(sente = True, onHand = True), 1],
-                [Kakugyou(sente = True, onHand = True), 1],
-                [Hisha(sente = True, onHand = True), 1],
-                [Kyousha(sente = True, onHand = True), 1],
+                [Fuhyou(sente = True, onHand = True), 0],
+                [Kinshou(sente = True, onHand = True), 0],
+                [Keima(sente = True, onHand = True), 0],
+                [Ginshou(sente = True, onHand = True), 0],
+                [Kakugyou(sente = True, onHand = True), 0],
+                [Hisha(sente = True, onHand = True), 0],
+                [Kyousha(sente = True, onHand = True), 0],
 
                 [Fuhyou(sente = False, onHand = True), 0],
                 [Kinshou(sente = False, onHand = True), 0],

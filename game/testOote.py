@@ -5,15 +5,13 @@ from typing import List, Tuple
 
 from . import *
 
-def getCleanMatch(playerOne, playerTwo) -> tuple[Match, Banmen]:
+def getCleanMatch(playerOne, playerTwo) -> Match:
     match = Match(playerOne, playerTwo)
     match.hand.handKoma = []
-    match.handKoma = []
     newBanmen = Banmen()
     newBanmen.clearPieces()
-    match.hand.handKoma = []
-
-    return (match, newBanmen)
+    match.grid = newBanmen
+    return match
 
 #test suit that has access to two players
 #and a handless, pieceless banmen
@@ -21,19 +19,19 @@ class HasCleanGame(unittest.TestCase):
     playerOne = None
     playerTwo = None
     match = None
-    banmen = None
 
     def setUp(self):
+        print('setUp')
         self.playerOne = ComputerPlayer(True)
         self.playerTwo = ComputerPlayer(False)
 
-        self.match, self.banmen = getCleanMatch(self.playerOne, self.playerTwo)
+        self.match = getCleanMatch(self.playerOne, self.playerTwo)
 
     def tearDown(self):
+        print('tearDown')
         self.playerOne = None
         self.playerTwo = None
         self.match = None
-        self.banmen = None
 
 class TestCurrentPlayerIsSente(HasCleanGame):
 
@@ -49,25 +47,25 @@ class TestCurrentPlayerIsSente(HasCleanGame):
 
 class TestBanMen(HasCleanGame):
     def testGetPieces(self):
-        pieces = self.banmen.getPieces()
+        pieces = self.match.grid.getPieces()
         self.assertIs(len(pieces), 0)
 
     def testSetPiece(self):
-        self.banmen.getMasu(0, 0).setKoma(Kyousha(False))
-        pieces = self.banmen.getPieces()
+        self.match.grid.getMasu(0, 0).setKoma(Kyousha(False))
+        pieces = self.match.grid.getPieces()
         self.assertIs(len(pieces), 1)
 
-        copyBanmen = deepcopy(self.banmen)
+        copyBanmen = deepcopy(self.match.grid)
         copyPieces = copyBanmen.getPieces()
         self.assertIs(len(copyPieces), 1)
 
-        lance = self.banmen.getMasu(0, 0).getKoma()
+        lance = self.match.grid.getMasu(0, 0).getKoma()
         self.assertIsNotNone(lance)
         self.assertFalse(lance.isSente())
 
     def testDeepcopyDoesNotCreatePieces(self):
-        self.banmen.getMasu(0, 0).setKoma(Kyousha(False))
-        copyBanmen = deepcopy(self.banmen)
+        self.match.grid.getMasu(0, 0).setKoma(Kyousha(False))
+        copyBanmen = deepcopy(self.match.grid)
         copyPieces = copyBanmen.getPieces()
         self.assertIs(len(copyPieces), 1)
 
@@ -90,9 +88,9 @@ class TestPieceMoves(HasCleanGame):
         self.match.current_player = self.playerOne
         lance = Kyousha(True, onHand=False)
         lanceMasu = Masu(4, 2, lance)
-        self.banmen.grid[4][2] = lanceMasu
+        self.match.grid.grid[4][2] = lanceMasu
 
-        lanceMoves = lance.legalMoves(self.banmen, lanceMasu, None)
+        lanceMoves = lance.legalMoves(self.match.grid, lanceMasu, None)
         movesXYList = list(map(self.moveToTupleForTest, lanceMoves))
 
         answerXYList = [[4, 1, True], [4, 1, False], [4, 0, True]]
@@ -102,12 +100,12 @@ class TestPieceMoves(HasCleanGame):
         self.match.current_player = self.playerTwo
         king = Gyokushou(False)
         kingMasu = Masu(4, 0, king)
-        self.banmen.grid[4][0] = Masu(4, 0, king)
+        self.match.grid.grid[4][0] = Masu(4, 0, king)
         answerXYList = [
             [5, 0, False], [3, 0, False],
             [5, 1, False], [4, 1, False], [3, 1, False]
         ]
-        kingMoves = king.legalMoves(self.banmen, kingMasu, None)
+        kingMoves = king.legalMoves(self.match.grid, kingMasu, None)
         movesXYList = list(map(self.moveToTupleForTest, kingMoves))
         self.assertTrue(self.checkMovesAgainstAnswerMoves(movesXYList, answerXYList))
 
@@ -115,11 +113,11 @@ class TestPieceMoves(HasCleanGame):
         self.match.current_player = self.playerTwo
         knight = Keima(False)
         knightMasu = Masu(4, 1, knight)
-        self.banmen.grid[4][1] = Masu(4, 1, knight)
+        self.match.grid.grid[4][1] = Masu(4, 1, knight)
         answerXYList = [
             [5, 3, False], [3, 3, False]
         ]
-        knightMoves = knight.legalMoves(self.banmen, knightMasu, None)
+        knightMoves = knight.legalMoves(self.match.grid, knightMasu, None)
         movesXYList = list(map(self.moveToTupleForTest, knightMoves))
         self.assertTrue(self.checkMovesAgainstAnswerMoves(movesXYList, answerXYList))
 
@@ -134,13 +132,13 @@ class TestFiltersOote(HasCleanGame):
         knight = Keima(False, onHand=False)
         lance = Kyousha(True)
 
-        self.banmen.grid[4][0] = Masu(4, 0, king)
-        self.banmen.grid[4][1] = Masu(4, 1, knight)
-        self.banmen.grid[4][2] = Masu(4, 2, lance)
+        self.match.grid.grid[4][0] = Masu(4, 0, king)
+        self.match.grid.grid[4][1] = Masu(4, 1, knight)
+        self.match.grid.grid[4][2] = Masu(4, 2, lance)
 
         moves = self.match.getMoves()
+        pieces = self.match.grid.getPieces()
         printMoves = list(map(lambda x: x.serialize(), self.match.getMoves()))
-        print(printMoves)
         knightMoves = list(filter(lambda mv: mv.src_square != None and mv.src_square.getKoma() == knight, moves))
         self.assertIs(len(knightMoves), 0)
         #TODO check the king's moves too!
