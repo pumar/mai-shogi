@@ -1,6 +1,7 @@
 import unittest
 from copy import deepcopy
 from pprint import pprint
+from typing import List, Tuple
 
 from . import *
 
@@ -71,8 +72,16 @@ class TestBanMen(HasCleanGame):
         self.assertIs(len(copyPieces), 1)
 
 class TestPieceMoves(HasCleanGame):
-    def moveToTupleForTest(self, move):
+    def moveToTupleForTest(self, move: Move) -> [int, int, bool]:
         return [move.trgt_square.getX(), move.trgt_square.getY(), move.trgt_square.getKoma().isPromoted()]
+
+    def checkMovesAgainstAnswerMoves(self, movesXYList: List[Tuple[int, int, bool]], answerXYList: List[Tuple[int, int, bool]]) -> bool:
+        for x, y, promotes in answerXYList:
+            moveWithSameTarget = list(filter(lambda mvLoc: mvLoc[0] == x and mvLoc[1] == y and mvLoc[2] == promotes, movesXYList))
+            if len(moveWithSameTarget) != 1:
+                return False
+
+        return True
 
     def testLanceMoves(self):
         self.playerOne = ComputerPlayer(True)
@@ -87,9 +96,34 @@ class TestPieceMoves(HasCleanGame):
         movesXYList = list(map(self.moveToTupleForTest, lanceMoves))
 
         answerXYList = [[4, 1, True], [4, 1, False], [4, 0, True]]
-        for x, y, promotes in answerXYList:
-            moveWithSameTarget = list(filter(lambda mvLoc: mvLoc[0] == x and mvLoc[1] == y and mvLoc[2] == promotes, movesXYList))
-            self.assertIs(len(moveWithSameTarget), 1)
+        self.assertTrue(self.checkMovesAgainstAnswerMoves(movesXYList, answerXYList))
+
+    def testKingMoves(self):
+        self.match.current_player = self.playerTwo
+        king = Gyokushou(False)
+        kingMasu = Masu(4, 0, king)
+        self.banmen.grid[4][0] = Masu(4, 0, king)
+        answerXYList = [
+            [5, 0, False], [3, 0, False],
+            [5, 1, False], [4, 1, False], [3, 1, False]
+        ]
+        kingMoves = king.legalMoves(self.banmen, kingMasu, None)
+        movesXYList = list(map(self.moveToTupleForTest, kingMoves))
+        self.assertTrue(self.checkMovesAgainstAnswerMoves(movesXYList, answerXYList))
+
+    def testKnightMoves(self):
+        self.match.current_player = self.playerTwo
+        knight = Keima(False)
+        knightMasu = Masu(4, 1, knight)
+        self.banmen.grid[4][1] = Masu(4, 1, knight)
+        answerXYList = [
+            [5, 3, False], [3, 3, False]
+        ]
+        knightMoves = knight.legalMoves(self.banmen, knightMasu, None)
+        movesXYList = list(map(self.moveToTupleForTest, knightMoves))
+        self.assertTrue(self.checkMovesAgainstAnswerMoves(movesXYList, answerXYList))
+
+
 
 #print("==========================")
 #pprint(self.match.hand.handKoma)
