@@ -8,9 +8,13 @@ def getCleanMatch(playerOne, playerTwo) -> tuple[Match, Banmen]:
     match.handKoma = []
     newBanmen = Banmen()
     newBanmen.clearPieces()
+    match.hand.handKoma = []
+
     return (match, newBanmen)
 
-class TestCurrentPlayerIsSente(unittest.TestCase):
+#test suit that has access to two players
+#and a handless, pieceless banmen
+class HasCleanGame(unittest.TestCase):
     playerOne = None
     playerTwo = None
     match = None
@@ -28,6 +32,8 @@ class TestCurrentPlayerIsSente(unittest.TestCase):
         self.match = None
         self.banmen = None
 
+class TestCurrentPlayerIsSente(HasCleanGame):
+
     #ensure that the first player gets to play first
     def testSenteGoesFirst(self):
         self.assertTrue(self.match.current_turn.isSente())
@@ -38,8 +44,32 @@ class TestCurrentPlayerIsSente(unittest.TestCase):
         self.match.changeTurn()
         self.assertFalse(self.match.current_turn.isSente())
 
+class TestBanMen(HasCleanGame):
+    def testGetPieces(self):
+        pieces = self.banmen.getPieces()
+        self.assertIs(len(pieces), 0)
+
+    def testSetPiece(self):
+        self.banmen.getMasu(0, 0).setKoma(Kyousha(False))
+        pieces = self.banmen.getPieces()
+        self.assertIs(len(pieces), 1)
+        lance = self.banmen.getMasu(0, 0).getKoma()
+        self.assertIsNotNone(lance)
+        self.assertFalse(lance.isSente())
 
 #class TestLanceMoves(unittest.TestCase):
+#    def setUp(self):
+#        self.playerOne = ComputerPlayer(True)
+#        self.playerTwo = ComputerPlayer(False)
+#
+#        self.match, self.banmen = getCleanMatch(self.playerOne, self.playerTwo)
+#
+#    def tearDown(self):
+#        self.playerOne = None
+#        self.playerTwo = None
+#        self.match = None
+#        self.banmen = None
+#
 #    def testLanceMoves(self):
 #        playerOne = ComputerPlayer(True)
 #        playerTwo = ComputerPlayer(False)
@@ -52,7 +82,7 @@ class TestCurrentPlayerIsSente(unittest.TestCase):
 #        moves = match.getMoves()
 #        #printMoves = list(map(lambda x: x.serialize(), moves))
 #
-#        movesXYList = list(map(lambda x: [x.trgt_square.getX(), x.trgt_square.getY(), x.trgt_square.getKoma().isPromoted()], moves))
+#        movesXYList = list(map(lambda x: [x.trgt_square.getX(), x.trgt_square.getY(), x.trgt_square.getKoma().isPromoted(), x.trgt_square.getKoma().getPieceName()], moves))
 #        print(movesXYList)
 #
 #        answerXYList = [[4, 1, True], [4, 1, False], [4, 0, True]]
