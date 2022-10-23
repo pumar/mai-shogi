@@ -1,4 +1,6 @@
 import unittest
+from copy import deepcopy
+from pprint import pprint
 
 from . import *
 
@@ -53,42 +55,47 @@ class TestBanMen(HasCleanGame):
         self.banmen.getMasu(0, 0).setKoma(Kyousha(False))
         pieces = self.banmen.getPieces()
         self.assertIs(len(pieces), 1)
+
+        copyBanmen = deepcopy(self.banmen)
+        copyPieces = copyBanmen.getPieces()
+        self.assertIs(len(copyPieces), 1)
+
         lance = self.banmen.getMasu(0, 0).getKoma()
         self.assertIsNotNone(lance)
         self.assertFalse(lance.isSente())
 
-#class TestLanceMoves(unittest.TestCase):
-#    def setUp(self):
-#        self.playerOne = ComputerPlayer(True)
-#        self.playerTwo = ComputerPlayer(False)
-#
-#        self.match, self.banmen = getCleanMatch(self.playerOne, self.playerTwo)
-#
-#    def tearDown(self):
-#        self.playerOne = None
-#        self.playerTwo = None
-#        self.match = None
-#        self.banmen = None
-#
-#    def testLanceMoves(self):
-#        playerOne = ComputerPlayer(True)
-#        playerTwo = ComputerPlayer(False)
-#
-#        match, banmen = getCleanMatch(playerOne, playerTwo)
-#        match.current_player = playerOne
-#        lance = Kyousha(True, onHand=False)
-#        banmen.grid[4][2] = Masu(4, 2, lance)
-#        print(banmen.getPieces())
-#        moves = match.getMoves()
-#        #printMoves = list(map(lambda x: x.serialize(), moves))
-#
-#        movesXYList = list(map(lambda x: [x.trgt_square.getX(), x.trgt_square.getY(), x.trgt_square.getKoma().isPromoted(), x.trgt_square.getKoma().getPieceName()], moves))
-#        print(movesXYList)
-#
-#        answerXYList = [[4, 1, True], [4, 1, False], [4, 0, True]]
-#        for x, y, promotes in answerXYList:
-#            moveWithSameTarget = list(filter(lambda mvLoc: mvLoc[0] == x and mvLoc[1] == y and mvLoc[2] == promotes, movesXYList))
-#            self.assertIs(len(moveWithSameTarget), 1)
+    def testDeepcopyDoesNotCreatePieces(self):
+        self.banmen.getMasu(0, 0).setKoma(Kyousha(False))
+        copyBanmen = deepcopy(self.banmen)
+        copyPieces = copyBanmen.getPieces()
+        self.assertIs(len(copyPieces), 1)
+
+class TestPieceMoves(HasCleanGame):
+    def moveToTupleForTest(self, move):
+        return [move.trgt_square.getX(), move.trgt_square.getY(), move.trgt_square.getKoma().isPromoted()]
+
+    def testLanceMoves(self):
+        self.playerOne = ComputerPlayer(True)
+        self.playerTwo = ComputerPlayer(False)
+
+        self.match.current_player = self.playerOne
+        lance = Kyousha(True, onHand=False)
+        lanceMasu = Masu(4, 2, lance)
+        self.banmen.grid[4][2] = lanceMasu
+
+        lanceMoves = lance.legalMoves(self.banmen, lanceMasu, None)
+        movesXYList = list(map(self.moveToTupleForTest, lanceMoves))
+
+        answerXYList = [[4, 1, True], [4, 1, False], [4, 0, True]]
+        for x, y, promotes in answerXYList:
+            moveWithSameTarget = list(filter(lambda mvLoc: mvLoc[0] == x and mvLoc[1] == y and mvLoc[2] == promotes, movesXYList))
+            self.assertIs(len(moveWithSameTarget), 1)
+
+#print("==========================")
+#pprint(self.match.hand.handKoma)
+#pprint(self.banmen.getPieces())
+#moves = self.match.getMoves()
+#printMoves = list(map(lambda x: x.serialize(), moves))
 
 #TODO for some god forsaken reason, in order for this test script to work the current working directory
 #must be the root of the project, so not mai-shogi/game, but mai-shogi

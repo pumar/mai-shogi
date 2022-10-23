@@ -2,6 +2,7 @@ from copy import deepcopy
 from curses.ascii import isalpha, islower
 from typing import Dict, List, Tuple, Optional
 from enum import Enum
+from pprint import pprint
 
 class Player:
     senteSide: bool
@@ -838,6 +839,7 @@ class Match:
                     attacking_pieces = list(filter(lambda x: x.isSente() != isSente and \
                         self.isRangedPiece(x), virtual_board.getPieces()))
                     #if not isSente: print(f'king coordinates: {king_coordinates[0]} {king_coordinates[1]} player is sente:{isSente}')
+                    #print(f'filters sente {len(attacking_pieces)}')
 
                     for attacking_piece in attacking_pieces:
                         #print(f'attacking piece piece name:{attacking_piece.getPieceName()} moveSrc:{move.src_square.serializeLocation()} moveTrgt:{move.trgt_square.serializeLocation()}')
@@ -876,6 +878,7 @@ class Match:
             for j in range(0, 9):
                 koma = self.grid.getMasu(i,j).getKoma()
                 if not koma is None and koma.isSente() == isSente:
+                    print(f'board piece:{koma.getPieceName()}')
                     moves.extend(koma.legalMoves(self.grid, self.grid.getMasu(i,j)))
 
         #get moves from the held pieces per player
