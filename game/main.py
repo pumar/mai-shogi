@@ -193,12 +193,13 @@ class Banmen:
                     pieces.append((koma, masu))
         return pieces
 
-    def findKingCoordinates(self, isSente: bool) -> Tuple[int, int]:
+    def findKingCoordinates(self, isSente: bool) -> Optional[Tuple[int, int]]:
         for i in range(0,9):
             for j in range(0,9):
                 komaAtMasu = self.getMasu(i,j).getKoma()
                 if type(komaAtMasu) is Gyokushou and komaAtMasu.isSente() == isSente: 
                     return (i,j)
+        return None
 
     #get all masu that do not have a koma on them
     def getOpenSpaces(self) -> List[Masu]:
@@ -216,7 +217,7 @@ class Hand:
     def __init__(self) -> None:
         self.handKoma = self.initialHand()
 
-    def initialHand(self) -> list[tuple[Masu, int]]:
+    def initialHand(self) -> list[tuple[Koma, int]]:
         handKoma = [
                 [Fuhyou(sente = True, onHand = True), 1],
                 [Kinshou(sente = True, onHand = True), 1],
@@ -287,14 +288,22 @@ class Fuhyou(Koma):
                 pd = [0,1] if not isSente else [0,-1]
                 tX = x + pd[0]
                 tY = y + pd[1]
-                if(-1 < tX < 9 and -1 < tY < 9):
-                    if (board.getMasu(tX, tY).getKoma() == None or board.getMasu(tX, tY).getKoma().isSente() != isSente):
-                        if (not isSente and y > 6) or (isSente and y < 2):
-                            promoted_piece = deepcopy(piece)
-                            promoted_piece.Promote()
-                            moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
-                        if not ((tY + pd[1]) > 8 or (tY + pd[1]) < 0):
-                            moves.append(Move(src_square, Masu(tX, tY, piece)))
+
+                #off the board
+                if tX > 8 or tX < 0 or tY > 8 or tY < 0:
+                    return []
+
+                koma = board.getMasu(tX, tY).getKoma()
+                if (koma == None or koma.isSente() != isSente):
+                    #if we are in the first or last 3 ranks, then we can choose to promote
+                    if (not isSente and tY > 5) or (isSente and tY < 3):
+                        promoted_piece = deepcopy(piece)
+                        promoted_piece.Promote()
+                        moves.append(Move(src_square, Masu(tX, tY, promoted_piece)))
+                    #if the target square is the last (gote) or first (sente) rank
+                    #then there can't be a non-promoting move
+                    if not (tY > 7 or tY < 1):
+                        moves.append(Move(src_square, Masu(tX, tY, piece)))
             else:
                 virtual_kin = Kinshou(isSente)
                 moves.extend(virtual_kin.legalMoves(board, src_square, hand, piece))
@@ -444,8 +453,12 @@ class Keima(Koma):
 
             newPiece = deepcopy(self)
             newPiece.onHand = False
+            if self.isSente():
+                knightPlaceRanks = range(2, 9)
+            else:
+                knightPlaceRanks = range(0, 7)
             for i in range(0, 9):
-                for j in range(2, 7):
+                for j in knightPlaceRanks:
                     if board.getMasu(i,j).getKoma() == None:
                         moves.append(Move(None, Masu(i, j, newPiece)))
         return moves
@@ -831,40 +844,42 @@ class Match:
             for move in all_moves:
                 valid_move = True
                 virtual_board = deepcopy(self.grid)
-                if move.src_square is not None:
-                    virtual_board.getMasu(move.src_square.getX(), move.src_square.getY()).setKoma(None)
-                virtual_board.getMasu(move.trgt_square.getX(), move.trgt_square.getY()).setKoma(move.trgt_square.getKoma())
 
-                if move.src_square is not None and not (move.src_square.getKoma() is Gyokushou):
-                    king_coordinates: Tuple[int, int] = virtual_board.findKingCoordinates(isSente)
-                    #get a (koma, masu) tuple for every piece on the board, as a list
-                    attacking_pieces = list(filter(lambda x: x[0].isSente() != isSente and \
-                        self.isRangedPiece(x[0]), virtual_board.getPieces()))
-
-                    for attacking_piece in attacking_pieces:
-                        masu = attacking_piece[1]
-                        koma = attacking_piece[0]
-                        attacking_moves = koma.legalMoves(virtual_board, masu)
-                        for attacking_move in attacking_moves:
-                            attackingMoveSquare = attacking_move.trgt_square
-                            if attackingMoveSquare.getX() == king_coordinates[0] and attackingMoveSquare.getY() == king_coordinates[1]:
-                                #move is invalid because it would put the king in check
-                                #or, the king is already in check and this move won't get the king out of check
-                                valid_move = False
-                else:
+                if move.src_square is not None and type(move.src_square.getKoma()) is Gyokushou:
                     attacked_squares:List[Tuple[int, int]] = []
                     attacking_pieces = filter(lambda x: x[0].isSente() != isSente, virtual_board.getPieces())
                     for koma, masu in attacking_pieces:
                         if koma.isOnHand():
                             raise Exception('filtersOote, attaking piece cannot be a held piece')
-                        attacking_moves = koma.legalMoves(virtual_board, virtual_board.getMasu(i,j))
+                        attacking_moves = koma.legalMoves(virtual_board, masu)
                         for attacking_move in attacking_moves:
                             attacked_square = attacking_move.trgt_square
                             attacked_squares.append([attacked_square.getX(), attacked_square.getY()])
                     moveTargetSquare = move.trgt_square;
-                    if (moveTargetSquare.getX(), moveTargetSquare.getY()) in attacked_squares:
+                    targetSquareIsBeingAttacked = [moveTargetSquare.getX(), moveTargetSquare.getY()] in attacked_squares
+                    if targetSquareIsBeingAttacked:
                         # the king cannot be moved into a square that is being attacked by another piece
                         valid_move = False
+                else:
+                    if move.src_square is not None:
+                        virtual_board.getMasu(move.src_square.getX(), move.src_square.getY()).setKoma(None)
+                    virtual_board.getMasu(move.trgt_square.getX(), move.trgt_square.getY()).setKoma(move.trgt_square.getKoma())
+
+                    king_coordinates: Tuple[int, int] = virtual_board.findKingCoordinates(isSente)
+                    if king_coordinates is not None:
+                        #get a (koma, masu) tuple for every piece on the board, as a list
+                        attacking_pieces = list(filter(lambda x: x[0].isSente() != isSente, virtual_board.getPieces()))
+
+                        for attacking_piece in attacking_pieces:
+                            masu = attacking_piece[1]
+                            koma = attacking_piece[0]
+                            attacking_moves = koma.legalMoves(virtual_board, masu)
+                            for attacking_move in attacking_moves:
+                                attackingMoveSquare = attacking_move.trgt_square
+                                if attackingMoveSquare.getX() == king_coordinates[0] and attackingMoveSquare.getY() == king_coordinates[1]:
+                                    #move is invalid because it would put the king in check
+                                    #or, the king is already in check and this move won't get the king out of check
+                                    valid_move = False
 
                 if valid_move: legal_moves.append(move)
 
@@ -877,7 +892,7 @@ class Match:
             for j in range(0, 9):
                 koma = self.grid.getMasu(i,j).getKoma()
                 if not koma is None and koma.isSente() == isSente:
-                    print(f'board piece:{koma.getPieceName()}')
+                    #print(f'board piece:{koma.getPieceName()}')
                     moves.extend(koma.legalMoves(self.grid, self.grid.getMasu(i,j)))
 
         #get moves from the held pieces per player
@@ -903,7 +918,6 @@ class Match:
             koma = komaCount[0]
             if number > 0 and koma.isSente() == isSente:
                 moves.extend(koma.legalMoves(self.grid, None, self.hand))
-        print(f'made moves from hand for player isSente:{isSente}', len(moves))
         return moves
 
     def deserializeBoardState(self, sfen: str) -> Banmen:
