@@ -1429,6 +1429,11 @@ export class GameRunner implements IEventQueueListener {
 				const errorMessage = message[MessageKeys.ERROR_MESSAGE];
 				console.error(`error message from server:${errorMessage}`);
 				break;
+			case MessageTypes.YOU_WIN:
+				alert('YOU WIN');
+				break;
+			case MessageTypes.YOU_LOSE:
+				alert('YOU LOSE');
 			default:
 				throw new Error(`receiveMessage unhandled messageType:${messageType}`);
 		}

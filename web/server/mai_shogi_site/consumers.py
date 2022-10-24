@@ -1,6 +1,6 @@
 import random
 import json
-from typing import List
+from typing import List, Tuple
 from channels.generic.websocket import WebsocketConsumer
 
 from enum import Enum
@@ -9,6 +9,7 @@ from .game import Match
 from .game import ComputerPlayer
 from .game import HumanPlayer
 from .game import MoveNotFound
+from .game import Move
 #from .PythonGameEngine import HumanPlayer
 #from .PythonGameEngine import ComputerPlayer
 
@@ -18,6 +19,8 @@ class MessageTypes(str, Enum):
     GAME_STATE_UPDATE = "gsu"
     MAKE_MOVE = "mm"
     ERROR = "err"
+    YOU_LOSE = "yl"
+    YOU_WIN = "yw"
 
 class MessageKeys(str, Enum):
     MESSAGE_TYPE = "messageType"
@@ -30,22 +33,25 @@ class MessageKeys(str, Enum):
 #when accessing things like Django models
 #https://channels.readthedocs.io/en/stable/tutorial/part_2.html
 class GameConsumer(WebsocketConsumer):
-    #dummyGame = None
     match = None
     def connect(self):
         self.accept()
-        self.match = self.createMatch()
+        self.match, self.player = self.createMatch()
         messageDict = {}
+        #TODO have AI make a move if the user is gote
+        playerMoves = self.match.getMoves()
         messageDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.GAME_STATE_UPDATE
         messageDict[MessageKeys.MATCH] = self.match.serializeBoardState()
-        messageDict[MessageKeys.MOVES] = list(map(lambda x: x.serialize(), self.match.getMoves()))
+        messageDict[MessageKeys.MOVES] = self.serializeMoves(playerMoves)
         self.send(text_data=json.dumps(messageDict))
 
-    def createMatch(self) -> Match:
-        return Match(
+    def createMatch(self) -> Tuple[Match, HumanPlayer]:
+        humanPlayer = HumanPlayer(True)#sente human player
+        match = Match(
             ComputerPlayer(False),#gote computer player
-            HumanPlayer(True),#sente human player
+            humanPlayer
         )
+        return (match, humanPlayer)
 
     def disconnect(self, close_code):
         pass
@@ -62,19 +68,35 @@ class GameConsumer(WebsocketConsumer):
                 print(f'did move:{moveToPost}')
                 nextMoveIsComputer = not self.match.getPlayerWhoMustMakeTheNextMove().humanPlayer
                 print(f'is next player the computer{nextMoveIsComputer}')
+
+                computerHasLost = False
                 if nextMoveIsComputer:
-                    self.makeAiMove()
+                    computerHasLost = self.makeAiMove()
 
-                playerMoves = self.serializeMoves(self.match)
+                closeConnection = False
 
-                #print(f'playerMoves:{playerMoves}');
-
-                #TODO de-duplicate this, it's also in the connect handler of this class
                 messageDict = {}
-                messageDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.GAME_STATE_UPDATE
-                messageDict[MessageKeys.MATCH] = self.match.serializeBoardState()
-                messageDict[MessageKeys.MOVES] = playerMoves
+                if computerHasLost:
+                    messageDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.YOU_WIN
+                    messageDict[MessageKeys.MATCH] = self.match.serializeBoardState()
+                    closeConnection = True
+                else:
+                    playerMoves = self.match.getMoves()
+                    playerMovesSerialized = self.serializeMoves(playerMoves)
+                    #you lose
+                    if len(playerMoves) == 0:
+                        messageDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.YOU_LOSE
+                        messageDict[MessageKeys.MATCH] = self.match.serializeBoardState()
+                        closeConnection = True
+                    else:
+                        #print(f'playerMoves:{playerMoves}');
+                        messageDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.GAME_STATE_UPDATE
+                        messageDict[MessageKeys.MATCH] = self.match.serializeBoardState()
+                        messageDict[MessageKeys.MOVES] = playerMovesSerialized
                 self.send(text_data=json.dumps(messageDict))
+                if closeConnection:
+                    self.close()
+
             except MoveNotFound as e:
                 print("error on server receive handler for MAKE_MOVE", e)
                 errorDict = {}
@@ -84,12 +106,18 @@ class GameConsumer(WebsocketConsumer):
         else:
             print(f'unknown message type:{messageType}')
 
-    def serializeMoves(self, match: Match) -> List[str]:
-        return list(map(lambda x: x.serialize(), match.getMoves()))
+    def serializeMoves(self, moves: List[Move]) -> List[str]:
+        return list(map(lambda x: x.serialize(), moves))
 
-    def makeAiMove(self):
-        stringMoves = self.serializeMoves(self.match)
-        randomMoveIndex = random.randrange(0, len(stringMoves) - 1, 1)
+    #returns False if play continues, or True if the computer has lost
+    def makeAiMove(self) -> bool:
+        moves = self.match.getMoves()
+        print(f'computer has {len(moves)} moves')
+        if len(moves) == 0:
+            return True
+        stringMoves = self.serializeMoves(moves)
+        randomMoveIndex = random.randrange(0, len(stringMoves), 1)
         moveToPost = stringMoves[randomMoveIndex]
         self.match.doTurn(moveToPost)
+        return False
 

@@ -7,6 +7,8 @@ enum MessageTypes {
 	GAME_STATE_UPDATE = "gsu",
 	MAKE_MOVE = "mm",
 	ERROR = "err",
+	YOU_LOSE = "yl",
+	YOU_WIN = "yw"
 }
 
 enum MessageKeys {
