@@ -2,6 +2,7 @@ import random
 import json
 from typing import List, Tuple
 from channels.generic.websocket import WebsocketConsumer
+from pprint import pprint
 
 from enum import Enum
 
@@ -112,6 +113,8 @@ class GameConsumer(WebsocketConsumer):
     #returns False if play continues, or True if the computer has lost
     def makeAiMove(self) -> bool:
         moves = self.match.getMoves()
+        if len(moves) == 1:
+            print(moves[0].serialize())
         print(f'computer has {len(moves)} moves')
         if len(moves) == 0:
             return True

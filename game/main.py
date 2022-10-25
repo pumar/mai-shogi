@@ -155,7 +155,10 @@ class Banmen:
         #board[1][0].setKoma(Keima(False))
         #board[2][0].setKoma(Ginshou(False))
         #board[3][0].setKoma(Kinshou(False))
-        board[4][0].setKoma(Gyokushou(False))
+
+        board[8][0].setKoma(Gyokushou(False))
+        #board[4][0].setKoma(Gyokushou(False))
+
         #board[5][0].setKoma(Kinshou(False))
         #board[6][0].setKoma(Ginshou(False))
         #board[7][0].setKoma(Keima(False))
@@ -838,6 +841,10 @@ class Match:
 
     def getMoves(self) -> List[Move]:
 
+        #TODO there is a bug where the king can always move one square away from the piece that's attacking it
+        #because when that piece generates it's moves, it registers it's final square as being the square
+        #that the king is on. In filters oote, we need to make sure that the ranged piece's line of sight extends beyond
+        #the king in the king move legality checks
         def filtersOote(all_moves: List[Move], isSente: bool):
             legal_moves: List[Move] = []
             
@@ -846,6 +853,12 @@ class Match:
                 virtual_board = deepcopy(self.grid)
 
                 if move.src_square is not None and type(move.src_square.getKoma()) is Gyokushou:
+                    king = move.src_square.getKoma()
+                    kingX = move.src_square.getX()
+                    kingY = move.src_square.getY()
+                    #take the king off of the board so that kyousha, kakugyou and
+                    #hisha can also attack the squares behind it
+                    virtual_board.grid[kingX][kingY] = Masu(kingX, kingY, None)
                     attacked_squares:List[Tuple[int, int]] = []
                     attacking_pieces = filter(lambda x: x[0].isSente() != isSente, virtual_board.getPieces())
                     for koma, masu in attacking_pieces:
@@ -860,6 +873,8 @@ class Match:
                     if targetSquareIsBeingAttacked:
                         # the king cannot be moved into a square that is being attacked by another piece
                         valid_move = False
+                    #put the king back where it was
+                    virtual_board.grid[kingX][kingY] = Masu(kingX, kingY, king)
                 else:
                     if move.src_square is not None:
                         virtual_board.getMasu(move.src_square.getX(), move.src_square.getY()).setKoma(None)

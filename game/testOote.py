@@ -53,8 +53,6 @@ class HasCleanGame(unittest.TestCase):
 
         return True
 
-
-
 class TestCurrentPlayerIsSente(HasCleanGame):
 
     #ensure that the first player gets to play first
@@ -293,7 +291,6 @@ class TestHeldPieceMoves(HasCleanGame):
                 else:
                     countShouldBe = 0
                 self.assertIs(y, countShouldBe, f'space ({xIndex}, {yIndex}) should have been counted exactly {countShouldBe} times, but was counted:{y} times')
-        pass
 
     def getSpaceCountsAtZero(self):
         squareCountMap = []
@@ -302,6 +299,50 @@ class TestHeldPieceMoves(HasCleanGame):
             for y in range(0, 9):
                 squareCountMap[x].append(0)
         return squareCountMap
+
+class TestMates(HasCleanGame):
+    def testLadderMate(self):
+        #Gote's turn
+        kingKoma = Gyokushou(False)
+        kingMasu = Masu(7, 0, kingKoma)
+        self.match.current_turn = self.playerTwo
+        self.match.grid.grid[8][0] = kingMasu
+
+        rookKoma1 = Hisha(True)
+        rookKoma2 = Hisha(True)
+        self.match.grid.grid[0][8] = Masu(0, 8, rookKoma1)
+        self.match.grid.grid[1][8] = Masu(1, 8, rookKoma2)
+        moves = self.match.getMoves()
+        self.assertTrue(len(moves) > 0)
+
+        #move rook 1 to the 2nd rank
+        self.match.grid.grid[0][7] = Masu(0, 7, None)
+        self.match.grid.grid[0][1] = Masu(0, 1, rookKoma1)
+        #king still has moves
+        moves = self.match.getMoves()
+        self.assertTrue(len(moves) > 0)
+
+        #move rook 2 to the 1st rank
+        self.match.grid.grid[1][8] = Masu(1, 8, None)
+        self.match.grid.grid[1][0] = Masu(1, 0, rookKoma2)
+
+        #king has no moves
+        moves = self.match.getMoves()
+        self.assertIs(len(moves), 0)
+        #remove rook 2
+        self.match.grid.grid[1][0] = Masu(1, 0)
+        #king should have moves
+        moves = self.match.getMoves()
+        self.assertTrue(len(moves) > 0)
+
+        #place promoted rook on last rank
+        promotedRook = Hisha(True)
+        promotedRook.Promote()
+        self.match.grid.grid[1][0] = Masu(1, 0, promotedRook)
+        #king should have no moves
+        moves = self.match.getMoves()
+        self.assertIs(len(moves), 0)
+
 
 if __name__ == '__main__':
     unittest.main()
