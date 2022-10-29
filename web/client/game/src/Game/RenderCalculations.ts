@@ -4,6 +4,7 @@ import { PlayerColor } from "./Consts";
 import { RenderSettings } from "./Renderer/Renderer";
 import { Game } from "./types/Game";
 import { PieceNames } from "./types/Piece";
+import { Turn } from "./types/Player";
 
 export {
 	calcRenderCoordinates,
@@ -124,6 +125,7 @@ function calcRenderCoordinates(
 	);
 
 	const spaceCenterPoints: Vector3[][] = calcSpaceCoordinates(
+		gameState.viewPoint,
 		ranks,
 		files,
 		spaceStartPointX,
@@ -266,6 +268,7 @@ function getStandCenterPoints(
 }
 
 function calcSpaceCoordinates(
+	viewPoint: Turn,
 	ranks: number,
 	files: number,
 	spaceStartPointX: number,
@@ -288,6 +291,29 @@ function calcSpaceCoordinates(
 		}
 		spaceCenterPoints.push(filePoints);
 	}
+
+	//if the user for this client is Gote, we need to restructure the file and
+	//rank positions array to be from that perspective
+	if (viewPoint === PlayerColor.White) {
+		console.error('flip indices');
+		let doneFlipping = false;
+		for(let rankIndex = 0; rankIndex < ranks && !doneFlipping; rankIndex++) {
+			for(let fileIndex = 0; fileIndex < files; fileIndex++) {
+				const swapRank = ranks - 1 - rankIndex;
+				const swapFile = files - 1 - fileIndex;
+				//if the loop runs for the whole board, it will spend the last half
+				//of those loops undoing what it did in the first half
+				if (swapRank === rankIndex && swapFile === fileIndex) {
+					doneFlipping = true;
+					break;
+				}
+				const thisPoint = spaceCenterPoints[rankIndex][fileIndex];
+				spaceCenterPoints[rankIndex][fileIndex] = spaceCenterPoints[swapRank][swapFile];
+				spaceCenterPoints[swapRank][swapFile] = thisPoint;
+			}
+		}
+	}
+	console.error(`space 0,0:`, spaceCenterPoints[0][0], ` space 8, 8:`, spaceCenterPoints[8][8]);
 
 	return spaceCenterPoints;
 }

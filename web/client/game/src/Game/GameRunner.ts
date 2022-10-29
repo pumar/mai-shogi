@@ -815,6 +815,19 @@ export class GameRunner implements IEventQueueListener {
 			centerSquare.position.set(0, 0, zIndexes.floating);
 			centerSquare.updateMatrixWorld();
 		}
+
+		//the mouse click detection looks at the calcualed space coordinates
+		//to determine if the mouse clicked in that region of the board
+		//SO if you rotate the board for sente's perspective, when you click something on
+		//rank 1 (the rank closest to you) it will register as a click on rank 9...
+		////if the player is gote, we need to rotate the board so that it is
+		////scene from the player's perspective
+		////this rotation needs to only be set once
+		////we could add a "flip the board" feature by changing this rotation
+		//if (gameState.viewPoint === PlayerColor.White) {
+		//	const placedPiecesGroup = this.getSceneGroup(SceneGroups.Pieces);
+		//	placedPiecesGroup.rotateZ(Math.PI);
+		//}
 	}
 
 	private drawBoard(
@@ -1043,8 +1056,8 @@ export class GameRunner implements IEventQueueListener {
 			player.pieces.forEach((drawPiece: DrawPiece) => {
 				const graphicsObject = drawPiece.graphicsObject;
 
-				//instead of just loading in half of them and then rotating them
 				const shouldRotate = player.turn === gameState.viewPoint;
+				console.log({ shouldRotate, playerTurn: player.turn, gameViewPoint: gameState.viewPoint });
 				//console.log({
 				//	playerTurn: player.turn,
 				//	viewpoint: gameState.viewPoint,
@@ -1073,7 +1086,7 @@ export class GameRunner implements IEventQueueListener {
 	public buildCenterIndicatorsForSpaces(
 		targetSpaces: BoardLocation[],
 		targetGroup: Group,
-		gameState: Game | undefined,
+		gameState: Game,
 		renderSettings: RenderSettings = defaultRenderSettings()
 	): void {
 		const game = gameState !== undefined ? gameState : this.getCurrentGameState();
@@ -1090,6 +1103,7 @@ export class GameRunner implements IEventQueueListener {
 			renderSettings.boardSpaceHeight,
 		);
 		const renderCoords = calcSpaceCoordinates(
+			gameState.viewPoint,
 			game.board.ranks,
 			game.board.files,
 			spaceStartPointX,
@@ -1456,10 +1470,21 @@ export class GameRunner implements IEventQueueListener {
 
 		const isFirstUpdate = this.gameStates.length === 0;
 		console.log({ newGame, message, isFirstUpdate });
-		//TODO the origin of this state must be on the server
-		//not on the client, so that the server can randomly give people black
-		//or white
-		newGame.viewPoint = PlayerColor.Black;
+
+		console.log({ clientPlayerSide: message[MessageKeys.CLIENT_PLAYER_SIDE] });
+		const clientPlayerSideMessage = message[MessageKeys.CLIENT_PLAYER_SIDE];
+		//TODO this state should be separate from the actual shogi game state,
+		//make it a property on the game runner
+		//the client should be able to remember what side it is
+		if (clientPlayerSideMessage !== undefined) {
+			newGame.viewPoint = clientPlayerSideMessage === "SENTE"
+				? PlayerColor.Black
+				: PlayerColor.White
+		} else {
+			const viewpoint = this.getCurrentGameState().viewPoint;
+			newGame.viewPoint = viewpoint;
+		}
+		//newGame.viewPoint = PlayerColor.Black;
 		//newGame.viewPoint = PlayerColor.White;
 
 		this.gameStates.push(newGame as Game);

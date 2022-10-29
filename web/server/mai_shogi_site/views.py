@@ -1,5 +1,3 @@
-#TODO switch to a template and use render
-#from django.shortcuts import render
 from django.http import HttpResponse
 from django.template import loader
 

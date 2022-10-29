@@ -25,9 +25,6 @@ type InteractionEvent = {
 
 /**
 * updates game's input-related state in response to pieces being clicked
-* TODO this is moving the pieces locally without confirming the validity of the move with the server
-* this can be simplified down to just telling the server what piece or space was clicked,
-* and then waiting for the server to send the new game state
 **/
 export class GameInteractionController {
 	private className = "GameInteractionController";

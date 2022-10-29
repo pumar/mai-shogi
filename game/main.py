@@ -151,21 +151,21 @@ class Banmen:
                 board[i].append(Masu(i, j, None))
 
         #file, rank order
-        #board[0][0].setKoma(Kyousha(False))
-        #board[1][0].setKoma(Keima(False))
-        #board[2][0].setKoma(Ginshou(False))
-        #board[3][0].setKoma(Kinshou(False))
+        board[0][0].setKoma(Kyousha(False))
+        board[1][0].setKoma(Keima(False))
+        board[2][0].setKoma(Ginshou(False))
+        board[3][0].setKoma(Kinshou(False))
 
         board[8][0].setKoma(Gyokushou(False))
-        #board[4][0].setKoma(Gyokushou(False))
+        board[4][0].setKoma(Gyokushou(False))
 
-        #board[5][0].setKoma(Kinshou(False))
-        #board[6][0].setKoma(Ginshou(False))
-        #board[7][0].setKoma(Keima(False))
-        #board[8][0].setKoma(Kyousha(False))
+        board[5][0].setKoma(Kinshou(False))
+        board[6][0].setKoma(Ginshou(False))
+        board[7][0].setKoma(Keima(False))
+        board[8][0].setKoma(Kyousha(False))
 
-        #board[1][1].setKoma(Kakugyou(False))
-        #board[7][1].setKoma(Hisha(False))
+        board[1][1].setKoma(Kakugyou(False))
+        board[7][1].setKoma(Hisha(False))
 
 
         board[0][8].setKoma(Kyousha(True))
@@ -182,7 +182,7 @@ class Banmen:
         board[7][7].setKoma(Kakugyou(True))
 
         for i in range(0,9):
-            #board[i][2].setKoma(Fuhyou(False))
+            board[i][2].setKoma(Fuhyou(False))
             board[i][6].setKoma(Fuhyou(True))
         return board
 
@@ -222,13 +222,13 @@ class Hand:
 
     def initialHand(self) -> list[tuple[Koma, int]]:
         handKoma = [
-                [Fuhyou(sente = True, onHand = True), 1],
-                [Kinshou(sente = True, onHand = True), 1],
-                [Keima(sente = True, onHand = True), 1],
-                [Ginshou(sente = True, onHand = True), 1],
-                [Kakugyou(sente = True, onHand = True), 1],
-                [Hisha(sente = True, onHand = True), 9],
-                [Kyousha(sente = True, onHand = True), 1],
+                [Fuhyou(sente = True, onHand = True), 0],
+                [Kinshou(sente = True, onHand = True), 0],
+                [Keima(sente = True, onHand = True), 0],
+                [Ginshou(sente = True, onHand = True), 0],
+                [Kakugyou(sente = True, onHand = True), 0],
+                [Hisha(sente = True, onHand = True), 0],
+                [Kyousha(sente = True, onHand = True), 0],
 
                 [Fuhyou(sente = False, onHand = True), 0],
                 [Kinshou(sente = False, onHand = True), 0],
@@ -833,7 +833,7 @@ class Match:
             self.current_turn = self.player_one
 
 
-    def getPlayerWhoMustMakeTheNextMove(self):
+    def getPlayerWhoMustMakeTheNextMove(self) -> Player:
         if self.current_turn == self.player_one:
             return self.player_one
         elif self.current_turn == self.player_two:
@@ -841,10 +841,6 @@ class Match:
 
     def getMoves(self) -> List[Move]:
 
-        #TODO there is a bug where the king can always move one square away from the piece that's attacking it
-        #because when that piece generates it's moves, it registers it's final square as being the square
-        #that the king is on. In filters oote, we need to make sure that the ranged piece's line of sight extends beyond
-        #the king in the king move legality checks
         def filtersOote(all_moves: List[Move], isSente: bool):
             legal_moves: List[Move] = []
             

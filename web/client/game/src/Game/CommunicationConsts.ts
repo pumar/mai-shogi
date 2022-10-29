@@ -13,6 +13,7 @@ enum MessageTypes {
 
 enum MessageKeys {
 	MESSAGE_TYPE = "messageType",
+    CLIENT_PLAYER_SIDE = "c_p_side",
 	MATCH = "match",
 	MOVES = "moves",
 	MOVE = "move",

@@ -35,8 +35,11 @@ function findPlacedPieceAndPlayer(gameState: Game, rank: number, file: number): 
 } | undefined {
 	const findPiece = (placedPieces: PlacedPiece[]) =>
 		placedPieces.find(piece => piece.rank === rank && piece.file === file);
-	let piece = findPiece(findPlayer(gameState, PlayerColor.Black).placedPieces);
+
+	const blackPlayerPieces = findPlayer(gameState, PlayerColor.Black).placedPieces;
+	let piece = findPiece(blackPlayerPieces);
 	let player = PlayerColor.Black;
+
 	if(piece === undefined) {
 		piece = findPiece(findPlayer(gameState, PlayerColor.White).placedPieces);
 		player = PlayerColor.White;

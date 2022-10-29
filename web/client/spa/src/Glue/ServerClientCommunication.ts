@@ -19,7 +19,16 @@ function notifyGameFromServer(message: Record<string, any>, game: GameRunner) {
 	game.receiveMessage(message);
 }
 
-function connectToGame(): {
+function getGameConnectUrl(vsComputer: boolean, isSente?: boolean): string {
+	if (vsComputer) {
+		const senteArg = isSente ? 'sente' : 'gote';
+		return `game/computer/${senteArg}`;
+	} else {
+		return `game/TODO`
+	}
+}
+
+function connectToGame(vsComputer: boolean, isSente?: boolean): {
 	getWebsocketConn: () => WebSocket,
 	game: GameRunner,
 	communicationStack: CommunicationStack,
@@ -27,11 +36,8 @@ function connectToGame(): {
 	//console.log(`connect to game:${gameCode}`);
 	console.log(`connect to game`);
 	const getWebsocketConn = () => {
-		const conn = getWebsocketConnection(
-		[
-			'game',
-			//gameCode
-		].join('/'));
+		const url = getGameConnectUrl(vsComputer, isSente);
+		const conn = getWebsocketConnection(url);
 
 		addEventHandler(conn, WebsocketEvent.Message, (message) => {
 			if(message === undefined){

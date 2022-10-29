@@ -48,8 +48,8 @@ const pickChoice = (commStack: CommunicationStack, choiceId: number) => {
 	});
 }
 
-const makeConn = async () => {
-	const instanceInfo = connectToGame();
+const makeConn = async (vsComputer: boolean, isSente?: boolean) => {
+	const instanceInfo = connectToGame(vsComputer, isSente);
 
 	gameInstance = instanceInfo.game;
 	window.game = gameInstance;
@@ -150,7 +150,11 @@ const makeConn = async () => {
 		<!--<label>Game code:<input type="text" bind:value={gameCode}/></label>-->
 		<!--{#if gameCode !== ""}-->
 		{#if websocketConnection === undefined}
-			<button on:click={makeConn}>Connect to game</button>
+			<div>
+				<label>vs Computer:</label>
+				<button on:click={() => makeConn(true, true)}>Play as sente (black)</button>
+				<button on:click={() => makeConn(true, false)}>Play as gote (white)</button>
+			</div>
 		{/if}
 		{#if choices.length > 0}
 			<span>Choices:</span>
