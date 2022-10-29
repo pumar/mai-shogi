@@ -37,6 +37,9 @@ let gameCommunicationStack: CommunicationStack | undefined = undefined;
 
 let websocketConnection = undefined;
 
+let gameConnectCode = undefined;
+let createConnectCode = undefined;
+
 let choices = [];
 
 const pickChoice = (commStack: CommunicationStack, choiceId: number) => {
@@ -46,6 +49,14 @@ const pickChoice = (commStack: CommunicationStack, choiceId: number) => {
 			selectedChoiceId: choiceId,
 		} as AnswerPrompt
 	});
+}
+
+const playWithFriend = (gameNeedsCreated: boolean) => {
+	if (gameNeedsCreated) {
+		const useCode = createConnectCode;
+	} else {
+		const useCode = gameConnectCode;
+	}
 }
 
 const makeConn = async (vsComputer: boolean, isSente?: boolean) => {
@@ -154,6 +165,20 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean) => {
 				<label>vs Computer:</label>
 				<button on:click={() => makeConn(true, true)}>Play as sente (black)</button>
 				<button on:click={() => makeConn(true, false)}>Play as gote (white)</button>
+			</div>
+			<div>
+				<div>
+					<label>Enter a code to play with a friend:<input type="text" /></label>
+					{#if createConnectCode !== undefined && createConnectCode !== ''}
+					<button on:click={() => playWithFriend(false)}>Connect with code</button>
+					{/if}
+				</div>
+				<div>
+					<label>Create a code to play with a friend:<input type="text" /></label>
+					{#if gameConnectCode !== undefined && gameConnectCode !== ''}
+					<button on:click={() => playWithFriend(true)}>Create game with code</button>
+					{/if}
+				</div>
 			</div>
 		{/if}
 		{#if choices.length > 0}

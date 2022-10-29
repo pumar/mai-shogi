@@ -7,6 +7,8 @@ import {
 	GameRunner,
 } from "mai-shogi-game";
 
+import { Status } from "../Network/Status";
+
 import { addEventHandler, getWebsocketConnection, WebsocketEvent } from "../Network/WebsocketConnection";
 
 export {
@@ -19,20 +21,50 @@ function notifyGameFromServer(message: Record<string, any>, game: GameRunner) {
 	game.receiveMessage(message);
 }
 
+type GameConnectParameters = {
+	vsComputer: boolean;
+	isSente?: boolean;
+	connectionDetails?: {
+		gameCode: string;
+		playerCode: string;
+	};
+}
 function getGameConnectUrl(vsComputer: boolean, isSente?: boolean): string {
 	if (vsComputer) {
 		const senteArg = isSente ? 'sente' : 'gote';
 		return `game/computer/${senteArg}`;
 	} else {
-		return `game/TODO`
+		//we need the game code to know what game to join
+		//and the player code is a secret that the server will use to identify
+		//the client as being either the sente or gote player
+		return `game/join/${gameCode}/${playerCode}
 	}
 }
 
-function connectToGame(vsComputer: boolean, isSente?: boolean): {
+type PendingGameConnection = {
 	getWebsocketConn: () => WebSocket,
 	game: GameRunner,
 	communicationStack: CommunicationStack,
-} {
+}
+
+async function createGameFromCode(code: string): Promise<> {
+	return await fetch(
+		`game/create/${code}`
+	).then(response => {
+		if (response.status === Status.HTTP_OK) {
+			//Connect to server websocket using game code
+			//receive a message from the server that says that you are waiting
+			//get an event when the other person conects that begins the game
+			const url = getGameConnectUrl();
+		} else {
+			//reset the entered game code, it was invalid
+			//ask the user to pick a different code
+		}
+	});
+
+}
+
+function connectToGame(vsComputer: boolean, isSente?: boolean): PendingGameConnection {
 	//console.log(`connect to game:${gameCode}`);
 	console.log(`connect to game`);
 	const getWebsocketConn = () => {
