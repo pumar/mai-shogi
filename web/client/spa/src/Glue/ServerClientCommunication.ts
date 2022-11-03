@@ -6,6 +6,7 @@ import {
 	MakeMove,
 	GameRunner,
 } from "mai-shogi-game";
+import { PlayerColor } from "mai-shogi-game/Game/Consts";
 
 import { Status } from "../Network/Status";
 
@@ -15,29 +16,37 @@ export {
 	notifyGameFromServer,
 	connectToGame,
 	sendMove,
+	getGameCode,
 }
 
 function notifyGameFromServer(message: Record<string, any>, game: GameRunner) {
 	game.receiveMessage(message);
 }
 
+enum HeaderKeys {
+	PLAYER_ONE_CODE = "PLAYER_ONE_CODE",
+	PLAYER_TWO_CODE = "PLAYER_TWO_CODE"
+}
+
 type GameConnectParameters = {
-	vsComputer: boolean;
-	isSente?: boolean;
-	connectionDetails?: {
-		gameCode: string;
+	vsComputer?: {
+		side: PlayerColor;
+	};
+	vsPlayer?: {
+		side: PlayerColor;
 		playerCode: string;
 	};
 }
-function getGameConnectUrl(vsComputer: boolean, isSente?: boolean): string {
-	if (vsComputer) {
-		const senteArg = isSente ? 'sente' : 'gote';
+
+function getGameConnectUrl(connectParams: GameConnectParameters): string {
+	if (connectParams.vsComputer !== undefined) {
+		const senteArg = connectParams.vsComputer.side === PlayerColor.White ? 'sente' : 'gote';
 		return `game/computer/${senteArg}`;
 	} else {
 		//we need the game code to know what game to join
 		//and the player code is a secret that the server will use to identify
 		//the client as being either the sente or gote player
-		return `game/join/${gameCode}/${playerCode}
+		return `game/join/${connectParams.vsPlayer.playerCode}`;
 	}
 }
 
@@ -47,28 +56,59 @@ type PendingGameConnection = {
 	communicationStack: CommunicationStack,
 }
 
-async function createGameFromCode(code: string): Promise<> {
+async function getGameCode(): Promise<{playerOneCode: string; playerTwoCode: string} | undefined> {
 	return await fetch(
-		`game/create/${code}`
+		`game/create`
 	).then(response => {
+		console.log({ response, headers: response.headers });
 		if (response.status === Status.HTTP_OK) {
 			//Connect to server websocket using game code
 			//receive a message from the server that says that you are waiting
 			//get an event when the other person conects that begins the game
-			const url = getGameConnectUrl();
+			//const url = getGameConnectUrl(false);
+			const playerOneCode = response.headers.get(HeaderKeys.PLAYER_ONE_CODE);
+			if (playerOneCode === undefined) {
+				console.error(`getGameCode, player one code undefined, header key:${HeaderKeys.PLAYER_ONE_CODE}`)
+				return undefined;
+			}
+			const playerTwoCode = response.headers.get(HeaderKeys.PLAYER_TWO_CODE);
+			if (playerTwoCode === undefined) {
+				console.error(`getGameCode, player one code undefined, header key:${HeaderKeys.PLAYER_TWO_CODE}`)
+				return undefined;
+			}
+			return {
+				playerOneCode,
+				playerTwoCode,
+			}
+
 		} else {
 			//reset the entered game code, it was invalid
 			//ask the user to pick a different code
+			return undefined;
 		}
 	});
-
 }
 
-function connectToGame(vsComputer: boolean, isSente?: boolean): PendingGameConnection {
+function connectToGame(vsComputer: boolean, isSente?: boolean, myConnectCode?: string): PendingGameConnection {
 	//console.log(`connect to game:${gameCode}`);
 	console.log(`connect to game`);
 	const getWebsocketConn = () => {
-		const url = getGameConnectUrl(vsComputer, isSente);
+		let connectParams: GameConnectParameters;
+		const side = isSente ? PlayerColor.White : PlayerColor.Black;
+		if (vsComputer) {
+			connectParams = {
+				vsComputer: { side }
+			}
+		} else {
+			connectParams = {
+				vsPlayer: {
+					side,
+					playerCode: myConnectCode
+				},
+			}
+		}
+
+		const url = getGameConnectUrl(connectParams);
 		const conn = getWebsocketConnection(url);
 
 		addEventHandler(conn, WebsocketEvent.Message, (message) => {

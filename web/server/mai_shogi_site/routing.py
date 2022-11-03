@@ -7,5 +7,5 @@ websocket_urlpatterns = [
         r'ws/game/computer/(?P<side>\w+)$',
         #r'ws/game/(?P<game_code>\w+)$',
         consumers.GameConsumer.as_asgi()
-    )
+    ),
 ]

@@ -14,6 +14,7 @@ import {
 import {
 	connectToGame,
 	sendMove,
+	getGameCode,
 } from "../Glue/ServerClientCommunication";
 
 import {
@@ -37,8 +38,9 @@ let gameCommunicationStack: CommunicationStack | undefined = undefined;
 
 let websocketConnection = undefined;
 
-let gameConnectCode = undefined;
-let createConnectCode = undefined;
+let playerOneCode = undefined;
+let playerTwoCode = undefined;
+let connectCode = '';
 
 let choices = [];
 
@@ -51,11 +53,20 @@ const pickChoice = (commStack: CommunicationStack, choiceId: number) => {
 	});
 }
 
-const playWithFriend = (gameNeedsCreated: boolean) => {
+const playWithFriend = async (gameNeedsCreated: boolean) => {
 	if (gameNeedsCreated) {
-		const useCode = createConnectCode;
+		const codes = await getGameCode();
 	} else {
 		const useCode = gameConnectCode;
+	}
+}
+
+const doGetGameCode = async () => {
+	const codes = await getGameCode();
+	console.error('do get game code', codes);
+	if (codes !== undefined) {
+		playerOneCode = codes.playerOneCode
+		playerTwoCode = codes.playerTwoCode
 	}
 }
 
@@ -161,22 +172,27 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean) => {
 		<!--<label>Game code:<input type="text" bind:value={gameCode}/></label>-->
 		<!--{#if gameCode !== ""}-->
 		{#if websocketConnection === undefined}
+			{#if playerOneCode === undefined && playerTwoCode === undefined}
 			<div>
 				<label>vs Computer:</label>
 				<button on:click={() => makeConn(true, true)}>Play as sente (black)</button>
 				<button on:click={() => makeConn(true, false)}>Play as gote (white)</button>
 			</div>
+			{/if}
 			<div>
 				<div>
-					<label>Enter a code to play with a friend:<input type="text" /></label>
-					{#if createConnectCode !== undefined && createConnectCode !== ''}
-					<button on:click={() => playWithFriend(false)}>Connect with code</button>
+					{#if playerOneCode === undefined && playerTwoCode === undefined}
+					<button on:click={() => doGetGameCode()}>Create a game to play with a friend</button>
+					{:else}
+					<label>Share this code with your friend:<input type="text" readonly value={playerTwoCode} /></label>
 					{/if}
 				</div>
 				<div>
-					<label>Create a code to play with a friend:<input type="text" /></label>
-					{#if gameConnectCode !== undefined && gameConnectCode !== ''}
-					<button on:click={() => playWithFriend(true)}>Create game with code</button>
+					{#if playerOneCode === undefined && playerTwoCode === undefined}
+					<label>Enter a code to join a game:<input type="text" bind:value={connectCode} /></label>
+					{/if}
+					{#if connectCode !== ''}
+					<button on:click={() => playWithFriend(true)}>connect to game with code</button>
 					{/if}
 				</div>
 			</div>
