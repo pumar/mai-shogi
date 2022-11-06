@@ -486,12 +486,19 @@ class Ginshou(Koma):
 
             if not self.isPromoted():
                 #these deltas are for sente
-                possible_deltas = [[0,1],[1,1],[-1,1],[-1,-1],[1,-1]]
+                possible_deltas = [
+                    [1, -1], [0, -1], [-1, -1],
+                    [1, 1], [-1, 1],
+                ]
                 #flip them if gote
-                if not isSente: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
+                if not isSente:
+                    possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
+                pprint(possible_deltas)
                 for pd in possible_deltas:
                     tX = x + pd[0]
                     tY = y + pd[1]
+                    if tX > 8 or tY < 0:
+                        continue
                     if(-1 < tX < 9 and -1 < tY < 9):
                         targetMasu = board.getMasu(tX, tY);
                         if (targetMasu.getKoma() == None or targetMasu.getKoma().isSente() != isSente):
@@ -550,7 +557,8 @@ class Kinshou(Koma):
                 [0, 1],
             ]
             #if we are gote, we gotta flip 'em
-            if not isSente: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
+            if not isSente:
+                possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
             for pd in possible_deltas:
                 tX = x + pd[0]
                 tY = y + pd[1]
