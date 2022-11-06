@@ -493,7 +493,7 @@ class Ginshou(Koma):
                 #flip them if gote
                 if not isSente:
                     possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
-                pprint(possible_deltas)
+
                 for pd in possible_deltas:
                     tX = x + pd[0]
                     tY = y + pd[1]

@@ -1,10 +1,14 @@
 from django.urls import re_path
 
-from . import consumers
+from .consumers import VsComputerConsumer
 
 websocket_urlpatterns = [
     re_path(
         r"^ws/game/computer/(?P<side>\w+)$",
-        consumers.GameConsumer.as_asgi(),
+        VsComputerConsumer.as_asgi(),
     ),
+    #re_path(
+    #    r"^ws/game/versus/(?P<side>\w+)$",
+    #    consumers.ClientConsumer.as_asgi(),
+    #),
 ]
