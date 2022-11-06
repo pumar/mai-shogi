@@ -40,7 +40,7 @@ type GameConnectParameters = {
 
 function getGameConnectUrl(connectParams: GameConnectParameters): string {
 	if (connectParams.vsComputer !== undefined) {
-		const senteArg = connectParams.vsComputer.side === PlayerColor.White ? 'sente' : 'gote';
+		const senteArg = connectParams.vsComputer.side === PlayerColor.Black ? 'sente' : 'gote';
 		return `game/computer/${senteArg}`;
 	} else {
 		//we need the game code to know what game to join
@@ -94,7 +94,7 @@ function connectToGame(vsComputer: boolean, isSente?: boolean, myConnectCode?: s
 	console.log(`connect to game`);
 	const getWebsocketConn = () => {
 		let connectParams: GameConnectParameters;
-		const side = isSente ? PlayerColor.White : PlayerColor.Black;
+		const side = isSente ? PlayerColor.Black : PlayerColor.White;
 		if (vsComputer) {
 			connectParams = {
 				vsComputer: { side }

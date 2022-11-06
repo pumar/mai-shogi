@@ -4,11 +4,14 @@ from django.template import loader
 import random
 import string
 
-from enum import Enum
+#from enum import Enum
 
-class ResponseHeaderKeys(str, Enum):
-    PLAYER_ONE_CODE="PLAYER_ONE_CODE"
-    PLAYER_TWO_CODE="PLAYER_TWO_CODE"
+#I want to use enums for the header keys, but python says that
+#headers must be strings, and that the values of this enum are not strings
+#I think it will be 'fixed' in Python 3.11 with something called StrEnum
+#class ResponseHeaderKeys(str, Enum):
+#    PLAYER_ONE_CODE = "PLAYER_ONE_CODE"
+#    PLAYER_TWO_CODE = "PLAYER_TWO_CODE"
 
 # Create your views here.
 def index(request):
@@ -32,8 +35,8 @@ def createGameCode(request):
     print(f'create game code p1code:{playerOneCode} p2code:{playerTwoCode}')
 
     response = HttpResponse()
-    response.headers[ResponseHeaderKeys.PLAYER_ONE_CODE] = playerOneCode
-    response.headers[ResponseHeaderKeys.PLAYER_TWO_CODE] = playerTwoCode
+    response.headers["PLAYER_ONE_CODE"] = playerOneCode
+    response.headers["PLAYER_TWO_CODE"] = playerTwoCode
     return response
 
 #https://stackoverflow.com/questions/2257441/random-string-generation-with-upper-case-letters-and-digits

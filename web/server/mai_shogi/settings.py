@@ -33,6 +33,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -43,7 +44,20 @@ INSTALLED_APPS = [
     'channels',
 ]
 
+# daphne
 ASGI_APPLICATION = "mai_shogi.asgi.application"
+
+redis_host = os.environ.get('REDIS_HOST', '127.0.0.1')
+redis_port = os.environ.get('REDIS_PORT', '6379')
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(redis_host, redis_port)],
+        },
+    },
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

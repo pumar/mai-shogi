@@ -1,8 +1,7 @@
 import random
 import json
 from typing import List, Tuple
-from channels.generic.websocket import WebsocketConsumer
-from pprint import pprint
+from channels.generic.websocket import AsyncWebsocketConsumer
 
 from enum import Enum
 
@@ -11,17 +10,17 @@ from .game import ComputerPlayer
 from .game import HumanPlayer
 from .game import MoveNotFound
 from .game import Move
-#from .PythonGameEngine import HumanPlayer
-#from .PythonGameEngine import ComputerPlayer
 
-#need to inherit from str to get JSON serialization to work:
-#https://stackoverflow.com/questions/24481852/serialising-an-enum-member-to-json
+
+# need to inherit from str to get JSON serialization to work:
+# https://stackoverflow.com/questions/24481852/serialising-an-enum-member-to-json
 class MessageTypes(str, Enum):
     GAME_STATE_UPDATE = "gsu"
     MAKE_MOVE = "mm"
     ERROR = "err"
     YOU_LOSE = "yl"
     YOU_WIN = "yw"
+
 
 class MessageKeys(str, Enum):
     MESSAGE_TYPE = "messageType"
@@ -31,47 +30,56 @@ class MessageKeys(str, Enum):
     MOVE = "move"
     ERROR_MESSAGE = "err_msg"
 
-#TODO this will need to be made asynchronous, taking care to not have race conditions
-#when accessing things like Django models
-#https://channels.readthedocs.io/en/stable/tutorial/part_2.html
-class GameConsumer(WebsocketConsumer):
+
+class GameConsumer(AsyncWebsocketConsumer):
+    """
+    taking care to not have race conditions
+    when accessing things like Django models
+    https://channels.readthedocs.io/en/stable/tutorial/part_2.html
+    """
+
     match = None
-    def connect(self):
-        self.accept()
-        #this is how we can get URL arguments
-        #in this case, I want to know whether the client is versing the computer as
-        #sente or gote
+
+    async def connect(self):
+        await self.accept()
+        # this is how we can get URL arguments
+        # in this case, I want to know whether the client is versing the
+        # computer as sente or gote
         isSente = self.scope["url_route"]["kwargs"]["side"]
         print(f'isSente?: {isSente}')
         self.match, self.player = self.createMatch(isSente == "sente")
         messageDict = {}
-        #TODO have AI make a move if the user is gote
         if not self.match.getPlayerWhoMustMakeTheNextMove().humanPlayer:
             self.makeAiMove()
         playerMoves = self.match.getMoves()
         messageDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.GAME_STATE_UPDATE
-        messageDict[MessageKeys.CLIENT_PLAYER_SIDE] = "SENTE" if self.player.isSente() else "GOTE"
+        playerSide = "SENTE" if self.player.isSente() else "GOTE"
+        messageDict[MessageKeys.CLIENT_PLAYER_SIDE] = playerSide
         messageDict[MessageKeys.MATCH] = self.match.serializeBoardState()
         messageDict[MessageKeys.MOVES] = self.serializeMoves(playerMoves)
-        self.send(text_data=json.dumps(messageDict))
+        await self.send(text_data=json.dumps(messageDict))
 
     def createMatch(self, clientIsSente: bool) -> Tuple[Match, HumanPlayer]:
         if clientIsSente:
-            humanPlayer = HumanPlayer(True)#sente human player
-            computerPlayer = ComputerPlayer(False)#gote computer player
+            # sente human player
+            humanPlayer = HumanPlayer(True)
+            # gote computer player
+            computerPlayer = ComputerPlayer(False)
         else:
-            humanPlayer = HumanPlayer(False)#gote human player
-            computerPlayer = ComputerPlayer(True)#sente computer player
+            # gote human player
+            humanPlayer = HumanPlayer(False)
+            # sente computer player
+            computerPlayer = ComputerPlayer(True)
         match = Match(
             computerPlayer,
             humanPlayer
         )
         return (match, humanPlayer)
 
-    def disconnect(self, close_code):
+    async def disconnect(self, close_code):
         pass
 
-    def receive(self, text_data):
+    async def receive(self, text_data):
         text_data_json = json.loads(text_data)
         messageType = text_data_json[MessageKeys.MESSAGE_TYPE]
         print((messageType, text_data_json))
@@ -98,33 +106,37 @@ class GameConsumer(WebsocketConsumer):
                 else:
                     playerMoves = self.match.getMoves()
                     playerMovesSerialized = self.serializeMoves(playerMoves)
-                    #you lose
+                    # you lose
                     if len(playerMoves) == 0:
                         messageDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.YOU_LOSE
                         messageDict[MessageKeys.MATCH] = self.match.serializeBoardState()
                         closeConnection = True
                     else:
-                        #print(f'playerMoves:{playerMoves}');
-                        messageDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.GAME_STATE_UPDATE
-                        messageDict[MessageKeys.MATCH] = self.match.serializeBoardState()
-                        messageDict[MessageKeys.MOVES] = playerMovesSerialized
-                self.send(text_data=json.dumps(messageDict))
+                        # print(f'playerMoves:{playerMoves}');
+                        messageDict[MessageKeys.MESSAGE_TYPE] = \
+                            MessageTypes.GAME_STATE_UPDATE
+                        messageDict[MessageKeys.MATCH] = \
+                            self.match.serializeBoardState()
+                        messageDict[MessageKeys.MOVES] = \
+                            playerMovesSerialized
+                await self.send(text_data=json.dumps(messageDict))
                 if closeConnection:
-                    self.close()
+                    await self.close()
 
             except MoveNotFound as e:
                 print("error on server receive handler for MAKE_MOVE", e)
                 errorDict = {}
                 errorDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.ERROR
-                errorDict[MessageKeys.ERROR_MESSAGE] = f'move:{moveToPost} is not valid'
-                self.send(text_data=json.dumps(errorDict))
+                errorDict[MessageKeys.ERROR_MESSAGE] = \
+                    f'move:{moveToPost} is not valid'
+                await self.send(text_data=json.dumps(errorDict))
         else:
             print(f'unknown message type:{messageType}')
 
     def serializeMoves(self, moves: List[Move]) -> List[str]:
         return list(map(lambda x: x.serialize(), moves))
 
-    #returns False if play continues, or True if the computer has lost
+    # returns False if play continues, or True if the computer has lost
     def makeAiMove(self) -> bool:
         moves = self.match.getMoves()
         if len(moves) == 1:
@@ -137,4 +149,3 @@ class GameConsumer(WebsocketConsumer):
         moveToPost = stringMoves[randomMoveIndex]
         self.match.doTurn(moveToPost)
         return False
-

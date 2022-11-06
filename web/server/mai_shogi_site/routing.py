@@ -4,8 +4,7 @@ from . import consumers
 
 websocket_urlpatterns = [
     re_path(
-        r'ws/game/computer/(?P<side>\w+)$',
-        #r'ws/game/(?P<game_code>\w+)$',
-        consumers.GameConsumer.as_asgi()
+        r"^ws/game/computer/(?P<side>\w+)$",
+        consumers.GameConsumer.as_asgi(),
     ),
 ]

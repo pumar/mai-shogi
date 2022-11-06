@@ -1,6 +1,6 @@
 import { Box2, Box3, BoxBufferGeometry, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry,  Texture,  Vector3, WebGLRenderer } from "three";
 import { mergeBufferGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { SVGLoader, SVGResult } from "three/examples/jsm/loaders/SVGLoader.js";
+import { SVGLoader, SVGResult, SVGResultPaths } from "three/examples/jsm/loaders/SVGLoader.js";
 import { Font, FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
 import { makeExistsGuard } from "../utils/Guards";
@@ -285,44 +285,10 @@ export class GameRunner implements IEventQueueListener {
 				const group = new Group();
 				group.name = "svg_piece_group";
 
-				//copy pasted this from the threejs svgloader example
-				const start = performance.now();
-				for (let i = 0; i < paths.length; i++) {
-
-					const path = paths[ i ];
-
-					const material = new MeshBasicMaterial( {
-						color: path.color,
-						side: DoubleSide,
-						//I was debugging why the pieces were drawn behind the board,
-						//and it was because this code that I pasted from the example
-						//was setting depthWrite to false...
-						depthWrite: true
-					} );
-
-					const shapes = SVGLoader.createShapes( path );
-					const geometries = [];
-
-					for (let j = 0;j < shapes.length;j++) {
-						const shape = shapes[ j ];
-						const geometry = new ShapeGeometry( shape );
-						geometries.push(geometry);
-						//const mesh = new Mesh( geometry, material );
-						//group.add( mesh );
-					}
-					//merge the geometries into one geometry, and then
-					//make one mesh instead of several hundred for HUGE
-					//performance boost when the object needs to be cloned
-					//it drastically reduces # of sub objects
-					const mergedGeometry = mergeBufferGeometries(
-						geometries
-					);
-					const mergedMesh = new Mesh(mergedGeometry, material);
-					group.add(mergedMesh);
-
-				}
-				const time = performance.now() - start;
-				console.log(`loop time:${time}, piece:${filenameSvgResult[0]}`);
+				measureTime(
+					() => this.prepareSvgGraphicsObjects(group, paths),
+					time => console.log(`loop time:${time}, piece:${filenameSvgResult[0]}`)
+				);
 
 				//we need the SVGS to have their own local space
 				//so that we can convert from the svg coord space to the gl coord space
@@ -395,6 +361,51 @@ export class GameRunner implements IEventQueueListener {
 		this.gameAssets.fonts[fontLoadingPath] = font;
 	}
 	
+	/**
+	* TODO this is really really slow
+	* need to turn the svgs into serialized threejs meshes somehow that can be
+	* cached by the browser
+	**/
+	private prepareSvgGraphicsObjects(
+		insertGroup: Group,
+		paths: SVGResultPaths[]
+	) {
+		//copy pasted this from the threejs svgloader example
+		for (let i = 0; i < paths.length; i++) {
+
+			const path = paths[ i ];
+
+			const material = new MeshBasicMaterial( {
+				color: path.color,
+				side: DoubleSide,
+				//I was debugging why the pieces were drawn behind the board,
+				//and it was because this code that I pasted from the example
+				//was setting depthWrite to false...
+				depthWrite: true
+			} );
+
+			const shapes = SVGLoader.createShapes( path );
+			const geometries = [];
+
+			for (let j = 0;j < shapes.length;j++) {
+				const shape = shapes[ j ];
+				const geometry = new ShapeGeometry( shape );
+				geometries.push(geometry);
+				//const mesh = new Mesh( geometry, material );
+				//group.add( mesh );
+			}
+			//merge the geometries into one geometry, and then
+			//make one mesh instead of several hundred for HUGE
+			//performance boost when the object needs to be cloned
+			//it drastically reduces # of sub objects
+			const mergedGeometry = mergeBufferGeometries(
+				geometries
+			);
+			const mergedMesh = new Mesh(mergedGeometry, material);
+			insertGroup.add(mergedMesh);
+		}
+	}
+
 	public setResizeHandlers(): void {
 		const gameThis = this;
 		const canvasResizeObserver = new ResizeObserver(debounce((entries: ResizeObserverEntry[], _: ResizeObserver) => {
