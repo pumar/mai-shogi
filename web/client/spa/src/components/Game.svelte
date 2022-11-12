@@ -101,6 +101,7 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 
 	gameCommunicationStack = instanceInfo.communicationStack;
 	gameCommunicationStack.pushNotifyCallback((commEvent: CommunicationEvent, _: number) => {
+		console.log("game.svelte, communicationevent from game", commEvent);
 		switch(commEvent.eventType) {
 			case CommunicationEventTypes.PROMPT_SELECT_MOVE:
 				choices = promptSelectMove(commEvent);

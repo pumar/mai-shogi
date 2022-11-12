@@ -313,7 +313,7 @@ function calcSpaceCoordinates(
 			}
 		}
 	}
-	console.error(`space 0,0:`, spaceCenterPoints[0][0], ` space 8, 8:`, spaceCenterPoints[8][8]);
+	//console.error(`space 0,0:`, spaceCenterPoints[0][0], ` space 8, 8:`, spaceCenterPoints[8][8]);
 
 	return spaceCenterPoints;
 }

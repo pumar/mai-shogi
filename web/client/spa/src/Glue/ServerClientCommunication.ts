@@ -5,6 +5,7 @@ import {
     CommunicationEvent,
 	MakeMove,
 	GameRunner,
+    EventQueue,
 } from "mai-shogi-game";
 import { PlayerColor } from "mai-shogi-game/Game/Consts";
 
@@ -162,6 +163,7 @@ function connectToGame(
 
 function sendMove(wsConnection: WebSocket, commEvent: CommunicationEvent): void {
 	const moveText = (commEvent.eventInfo as MakeMove).moveString;
+	console.log('ServerClientCommunication::sendMove, sending move event:', commEvent);
 	wsConnection.send(JSON.stringify({
 		messageType: MessageTypes.MAKE_MOVE,
 		[MessageKeys.MOVE]: moveText,

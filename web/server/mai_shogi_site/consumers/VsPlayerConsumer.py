@@ -132,17 +132,12 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
+        print(text_data_json)
         messageType = text_data_json[MessageKeys.MESSAGE_TYPE]
-        print((messageType, text_data_json))
+        print(messageType, text_data_json)
 
     async def disconnect(self, close_code):
         pass
-
-    async def receive(self, text_data):
-        pass
-        # text_data_json = json.loads(text_data)
-        # messageType = text_data_json[MessageKeys.MESSAGE_TYPE]
-        # print((messageType, text_data_json))
 
 # # TODO this is hacky, I need to find a better way to pre-populate
 # # the group with a consumer that maintains the game logic and state

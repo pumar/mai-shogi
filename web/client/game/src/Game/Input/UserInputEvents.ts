@@ -23,7 +23,7 @@ function mkCommunicationStack(): CommunicationStack {
 	return {
 		pushEvent: (event: CommunicationEvent) => {
 			eventStack.push(event);
-			console.debug(`mkCommunicationStack, event was pushed`, { event });
+			console.debug(`mkCommunicationStack::pushEvent, event was pushed`, { event });
 			(notifyCallbacks.filter(cb => cb !== undefined) as NotifyCallback[]).forEach((cb, id: number) => cb(event, id));
 		},
 		pushNotifyCallback: (newCb: NotifyCallback) => {

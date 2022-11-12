@@ -1197,7 +1197,6 @@ export class GameRunner implements IEventQueueListener {
 			//send the only possible move
 			if (moves.length === 1) {
 				const move = moves[0];
-				console.log(`sending move:${move.originalString !== undefined ? move.originalString : 'nil'}`);
 				this.createMakeMoveEvent(move);
 				this.showSpaceCenters([]);
 				return true;
