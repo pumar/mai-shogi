@@ -181,9 +181,6 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 					{#if playerOneCode === undefined && playerTwoCode === undefined}
 					<button on:click={() => doGetGameCode()}>Create a game to play with a friend</button>
 					{/if}
-					{#if playerTwoCode !== undefined}
-					<label>Share this code with your friend:<input type="text" readonly value={playerTwoCode} /></label>
-					{/if}
 				</div>
 				<div>
 					{#if playerOneCode === undefined && playerTwoCode === undefined}
@@ -194,6 +191,9 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 					{/if}
 				</div>
 			</div>
+		{/if}
+		{#if playerTwoCode !== undefined}
+		<label>Share this code with your friend:<input type="text" readonly value={playerTwoCode} /></label>
 		{/if}
 		{#if choices.length > 0}
 			<span>Choices:</span>
