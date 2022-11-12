@@ -24,8 +24,9 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
             host=redisHost,
             port=redisPort,
         )
-        groupName = redisConn.get(playerCode)
+        groupName = bytes(redisConn.get(playerCode)).decode('ascii')
         print(f'group name: {groupName}')
+        await self.channel_layer.group_add(groupName, self.channel_name)
 
 
     async def disconnect(self, close_code):

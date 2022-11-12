@@ -56,16 +56,15 @@ const pickChoice = (commStack: CommunicationStack, choiceId: number) => {
 const playWithFriend = async () => {
 	const code = connectCode;
 	makeConn(false, undefined, code);
-
 }
 
 const doGetGameCode = async () => {
 	const codes = await getGameCode();
-	console.error('do get game code', codes);
 	if (codes !== undefined) {
 		playerOneCode = codes.playerOneCode
 		playerTwoCode = codes.playerTwoCode
 	}
+	makeConn(false, undefined, playerOneCode);
 }
 
 const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: string) => {
@@ -181,7 +180,8 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 				<div>
 					{#if playerOneCode === undefined && playerTwoCode === undefined}
 					<button on:click={() => doGetGameCode()}>Create a game to play with a friend</button>
-					{:else}
+					{/if}
+					{#if playerTwoCode !== undefined}
 					<label>Share this code with your friend:<input type="text" readonly value={playerTwoCode} /></label>
 					{/if}
 				</div>

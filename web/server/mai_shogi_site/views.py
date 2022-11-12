@@ -24,7 +24,6 @@ def index(request):
 
 
 def createGameCode(request):
-    gameCode = makeRandomCode()
     senteCode = makeRandomCode()
     goteCode = makeRandomCode()
 
@@ -50,6 +49,7 @@ def createGameCode(request):
     # the websocket connections can use their player codes to look up the
     # game code, which will allow their consumers to find out what group they
     # are in
+    gameCode = f'{playerOneCode}_{playerTwoCode}'
     redisConn.set(playerOneCode, gameCode)
     redisConn.set(playerTwoCode, gameCode)
     return response
