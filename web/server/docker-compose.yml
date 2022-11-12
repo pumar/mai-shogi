@@ -22,7 +22,7 @@ services:
       - POSTGRES_NAME=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - REDIS_HOST=127.0.0.1
+      - REDIS_HOST=redis-cache
       - REDIS_PORT=6379
     depends_on:
       - db

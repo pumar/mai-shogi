@@ -285,10 +285,10 @@ export class GameRunner implements IEventQueueListener {
 				const group = new Group();
 				group.name = "svg_piece_group";
 
-				measureTime(
-					() => this.prepareSvgGraphicsObjects(group, paths),
-					time => console.log(`loop time:${time}, piece:${filenameSvgResult[0]}`)
-				);
+				//measureTime(
+				//	() => this.prepareSvgGraphicsObjects(group, paths),
+				//	time => console.log(`loop time:${time}, piece:${filenameSvgResult[0]}`)
+				//);
 
 				//we need the SVGS to have their own local space
 				//so that we can convert from the svg coord space to the gl coord space

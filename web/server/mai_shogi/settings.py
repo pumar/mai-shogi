@@ -47,8 +47,9 @@ INSTALLED_APPS = [
 # daphne
 ASGI_APPLICATION = "mai_shogi.asgi.application"
 
-redis_host = os.environ.get('REDIS_HOST', '127.0.0.1')
-redis_port = os.environ.get('REDIS_PORT', '6379')
+redis_host = os.environ.get('REDIS_HOST')
+redis_port = os.environ.get('REDIS_PORT')
+print(f'redis_host:{redis_host} redis_port:{redis_port}')
 
 CHANNEL_LAYERS = {
     "default": {
