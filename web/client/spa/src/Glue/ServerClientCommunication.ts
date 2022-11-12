@@ -46,7 +46,7 @@ function getGameConnectUrl(connectParams: GameConnectParameters): string {
 		//we need the game code to know what game to join
 		//and the player code is a secret that the server will use to identify
 		//the client as being either the sente or gote player
-		return `game/join/${connectParams.vsPlayer.playerCode}`;
+		return `game/versus/${connectParams.vsPlayer.playerCode}`;
 	}
 }
 

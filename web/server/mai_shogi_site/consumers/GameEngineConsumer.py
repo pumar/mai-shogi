@@ -1,7 +1,7 @@
 import random
 import json
 from typing import List, Tuple
-from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.generic.websocket import SyncConsumer
 
 from enum import Enum
 

@@ -53,12 +53,10 @@ const pickChoice = (commStack: CommunicationStack, choiceId: number) => {
 	});
 }
 
-const playWithFriend = async (gameNeedsCreated: boolean) => {
-	if (gameNeedsCreated) {
-		const codes = await getGameCode();
-	} else {
-		const useCode = gameConnectCode;
-	}
+const playWithFriend = async () => {
+	const code = connectCode;
+	makeConn(false, undefined, code);
+
 }
 
 const doGetGameCode = async () => {
@@ -70,8 +68,8 @@ const doGetGameCode = async () => {
 	}
 }
 
-const makeConn = async (vsComputer: boolean, isSente?: boolean) => {
-	const instanceInfo = connectToGame(vsComputer, isSente);
+const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: string) => {
+	const instanceInfo = connectToGame(vsComputer, isSente, playerCode);
 
 	gameInstance = instanceInfo.game;
 	window.game = gameInstance;
@@ -192,7 +190,7 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean) => {
 					<label>Enter a code to join a game:<input type="text" bind:value={connectCode} /></label>
 					{/if}
 					{#if connectCode !== ''}
-					<button on:click={() => playWithFriend(true)}>connect to game with code</button>
+					<button on:click={() => playWithFriend()}>connect to game with code</button>
 					{/if}
 				</div>
 			</div>

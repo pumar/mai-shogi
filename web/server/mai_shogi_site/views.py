@@ -20,7 +20,6 @@ def index(request):
     return HttpResponse(template.render(context, request));
 
 def createGameCode(request):
-    context = {}
     gameCode = makeRandomCode()
     senteCode = makeRandomCode()
     goteCode = makeRandomCode()
