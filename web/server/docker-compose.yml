@@ -3,6 +3,7 @@ version: "3.9"
 services:
   db:
     image: postgres
+    container_name: database
     volumes:
       - ./data/db:/var/lib/postgresql/data
     environment:
@@ -21,7 +22,8 @@ services:
       - POSTGRES_NAME=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - REDIS_HOST=redis-cache
+      - REDIS_HOST=127.0.0.1
+      - REDIS_PORT=6379
     depends_on:
       - db
   redis_cache:
