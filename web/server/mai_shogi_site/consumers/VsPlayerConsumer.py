@@ -2,7 +2,7 @@ import redis
 from channels.generic.websocket import AsyncWebsocketConsumer
 from os import environ
 from pprint import pprint
-from ..game import Match, HumanPlayer
+from ..game import Match, HumanPlayer, MoveNotFound
 import json
 
 from enum import Enum
@@ -130,11 +130,57 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
 
         await self.send(text_data=json.dumps(messageDict))
 
+    async def make_move(self, event):
+        if self.isPlayerOne:
+            move = event['move']
+            try: 
+                self.match.doTurn(move)
+                moves = self.match.getMoves()
+                if len(moves) == 0:
+                    # broadcast a 'player lost' event
+                    print(f'TODO player {self.playerCode} has no moves, and lost')
+                else:
+                    # TODO de-dupe with the player_connect method
+                    matchState = self.match.serializeBoardState()
+                    serializedMoves = self.match.serializeMoves(moves)
+                    nextMovePlayer = self.match.getPlayerWhoMustMakeTheNextMove().isSente()
+                    await self.channel_layer.group_send(
+                        self.gameGroupName,
+                        {
+                            'type': 'game.update',
+                            'sender': self.playerCode,
+                            'matchState': matchState,
+                            'moves': serializedMoves,
+                            'nextPlayer': nextMovePlayer,
+                        }
+                    )
+
+            except MoveNotFound as e:
+                print("error on server receive handler for MAKE_MOVE", e)
+                # TODO inform the client that sent the move that their
+                # move was invalid
+                # errorDict = {}
+                # errorDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.ERROR
+                # errorDict[MessageKeys.ERROR_MESSAGE] = \
+                #     f'move:{moveToPost} is not valid'
+                # await self.send(text_data=json.dumps(errorDict))
+
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
         print(text_data_json)
         messageType = text_data_json[MessageKeys.MESSAGE_TYPE]
         print(messageType, text_data_json)
+
+        if messageType == MessageTypes.MAKE_MOVE:
+            move = text_data_json[MessageKeys.MOVE]
+            await self.channel_layer.group_send(
+                self.gameGroupName,
+                {
+                    'type': 'make.move',
+                    'sender': self.playerCode,
+                    'move': move,
+                }
+            )
 
     async def disconnect(self, close_code):
         pass
