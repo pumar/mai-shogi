@@ -757,9 +757,11 @@ class Gyokushou(Koma):
                     moves.append(Move(src_square, Masu(tX, tY, piece)))
         return moves
 
+
 class MoveNotFound(Exception):
     def __init__(self, message):
         super().__init__(message)
+
 
 class Match:
     player_one: Player
@@ -775,31 +777,25 @@ class Match:
 
         self.grid = Banmen()
         self.hand = Hand()
-        
+
         if self.player_one.isSente():
             self.current_turn = self.player_one
-        else: self.current_turn = self.player_two
+        else:
+            self.current_turn = self.player_two
 
         self.current_legal_moves = []
 
-
-    #TODO as long as held moves are being added into the move list, moving a piece on the
-    #board can randomly place a held piece somewhere as well
-    #I think the memory for a piece is being shared somewhere where it shouldn't be
     def doTurn(self, string_move: str):
-        #TODO the piece that you selected at the client side may not be the piece actually placed
-        #regardless of what you clicked, held pieces will be placed in the order from left to right
-        #as they exist
-        string_moves = [move.serialize() for move in self.current_legal_moves] 
+        string_moves = [move.serialize() for move in self.current_legal_moves]
         if string_move not in string_moves:
             raise MoveNotFound("The move that was sent is not valid.")
 
         move_index = string_moves.index(string_move)
 
         current_move = self.current_legal_moves[move_index]
-        print(f'current_move:{current_move}');
-        src_square = current_move.src_square;
-        trgt_square = current_move.trgt_square;
+        print(f'current_move:{current_move}')
+        src_square = current_move.src_square
+        trgt_square = current_move.trgt_square
 
         moveTargetKoma = trgt_square.koma
 

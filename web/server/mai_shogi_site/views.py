@@ -52,6 +52,14 @@ def createGameCode(request):
     gameCode = f'{playerOneCode}_{playerTwoCode}'
     redisConn.set(playerOneCode, gameCode)
     redisConn.set(playerTwoCode, gameCode)
+    # store the sente/gote info in redis as a dictionary
+    # which can be grabbed with conn.hgetall([key])
+    redisConn.hmset(gameCode, {
+        "sente": senteCode,
+        "gote": goteCode,
+        "playerOne": playerOneCode,
+        "playerTwo": playerTwoCode,
+    })
     return response
 
 
