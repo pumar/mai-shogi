@@ -1468,17 +1468,6 @@ export class GameRunner implements IEventQueueListener {
 		const match = message[MessageKeys.MATCH];
 		const newGame = sfenToGame(match);
 
-		const moves = serverMovesToClientMoves(
-			message[MessageKeys.MOVES],
-		);
-
-		const nextMovePlayer = findPlayer(
-			newGame as Game,
-			(newGame as Game).nextMovePlayer,
-		);
-
-		nextMovePlayer.moves = moves;
-
 		const isFirstUpdate = this.gameStates.length === 0;
 		console.log({ newGame, message, isFirstUpdate });
 
@@ -1495,8 +1484,24 @@ export class GameRunner implements IEventQueueListener {
 			const viewpoint = this.getCurrentGameState().viewPoint;
 			newGame.viewPoint = viewpoint;
 		}
-		//newGame.viewPoint = PlayerColor.Black;
-		//newGame.viewPoint = PlayerColor.White;
+
+		const thisClientPlayer = message[MessageKeys.CLIENT_PLAYER_SIDE];
+		const nextMovePlayerColor = (newGame as Game).nextMovePlayer.toLowerCase();
+		const isMyMove = thisClientPlayer === nextMovePlayerColor;
+		const nextMovePlayer = findPlayer(
+			newGame as Game,
+			(newGame as Game).nextMovePlayer,
+		);
+
+		if (isMyMove) {
+			const movesFromMessage = message[MessageKeys.MOVES];
+			const moves = serverMovesToClientMoves(
+				movesFromMessage,
+			);
+
+			nextMovePlayer.moves = moves;
+
+		}
 
 		this.gameStates.push(newGame as Game);
 
