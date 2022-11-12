@@ -119,12 +119,18 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
         messageDict[MessageKeys.CLIENT_PLAYER_SIDE] = "SENTE" if self.isSente else "GOTE"
         # if it is our turn, we need to also send the moves to the
         # game client
+        print(f'nextPlayer:{nextPlayer} amISente?:{self.isSente}')
         if nextPlayer == self.isSente:
             messageDict[MessageKeys.MOVES] = event['moves']
+            print('sending moves')
+            pprint(event['moves'])
 
         await self.send(text_data=json.dumps(messageDict))
 
-
+    async def receive(self, text_data):
+        text_data_json = json.loads(text_data)
+        messageType = text_data_json[MessageKeys.MESSAGE_TYPE]
+        print((messageType, text_data_json))
 
     async def disconnect(self, close_code):
         pass

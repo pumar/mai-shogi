@@ -285,10 +285,10 @@ export class GameRunner implements IEventQueueListener {
 				const group = new Group();
 				group.name = "svg_piece_group";
 
-				//measureTime(
-				//	() => this.prepareSvgGraphicsObjects(group, paths),
-				//	time => console.log(`loop time:${time}, piece:${filenameSvgResult[0]}`)
-				//);
+				measureTime(
+					() => this.prepareSvgGraphicsObjects(group, paths),
+					time => console.log(`loop time:${time}, piece:${filenameSvgResult[0]}`)
+				);
 
 				//we need the SVGS to have their own local space
 				//so that we can convert from the svg coord space to the gl coord space
@@ -1068,7 +1068,7 @@ export class GameRunner implements IEventQueueListener {
 				const graphicsObject = drawPiece.graphicsObject;
 
 				const shouldRotate = player.turn === gameState.viewPoint;
-				console.log({ shouldRotate, playerTurn: player.turn, gameViewPoint: gameState.viewPoint });
+				//console.log({ shouldRotate, playerTurn: player.turn, gameViewPoint: gameState.viewPoint });
 				//console.log({
 				//	playerTurn: player.turn,
 				//	viewpoint: gameState.viewPoint,
@@ -1473,26 +1473,28 @@ export class GameRunner implements IEventQueueListener {
 
 		console.log({ clientPlayerSide: message[MessageKeys.CLIENT_PLAYER_SIDE] });
 		const clientPlayerSideMessage = message[MessageKeys.CLIENT_PLAYER_SIDE];
+		const clientPlayerColor = clientPlayerSideMessage === "SENTE"
+			? PlayerColor.Black
+			: PlayerColor.White;
 		//TODO this state should be separate from the actual shogi game state,
 		//make it a property on the game runner
 		//the client should be able to remember what side it is
 		if (clientPlayerSideMessage !== undefined) {
-			newGame.viewPoint = clientPlayerSideMessage === "SENTE"
-				? PlayerColor.Black
-				: PlayerColor.White
+			newGame.viewPoint = clientPlayerColor;
 		} else {
 			const viewpoint = this.getCurrentGameState().viewPoint;
 			newGame.viewPoint = viewpoint;
 		}
 
-		const thisClientPlayer = message[MessageKeys.CLIENT_PLAYER_SIDE];
-		const nextMovePlayerColor = (newGame as Game).nextMovePlayer.toLowerCase();
-		const isMyMove = thisClientPlayer === nextMovePlayerColor;
+		const nextMovePlayerColor = (newGame as Game).nextMovePlayer;
+		const isMyMove = clientPlayerColor === nextMovePlayerColor;
 		const nextMovePlayer = findPlayer(
 			newGame as Game,
 			(newGame as Game).nextMovePlayer,
 		);
 
+
+		console.log({ isMyMove });
 		if (isMyMove) {
 			const movesFromMessage = message[MessageKeys.MOVES];
 			const moves = serverMovesToClientMoves(
@@ -1500,7 +1502,6 @@ export class GameRunner implements IEventQueueListener {
 			);
 
 			nextMovePlayer.moves = moves;
-
 		}
 
 		this.gameStates.push(newGame as Game);
