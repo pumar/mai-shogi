@@ -90,6 +90,7 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
                 }
             )
 
+    # group handler
     async def player_connect(self, event):
         sender = event['sender']
         if sender == self.playerCode:
@@ -104,13 +105,17 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
             self.gameGroupName,
             {
                 'type': 'game.update',
+                'sender': self.playerCode,
                 'matchState': matchState,
                 'moves': moves,
                 'nextPlayer': nextMovePlayer,
             }
         )
 
+    # group handler
     async def game_update(self, event):
+        if event['sender'] == self.playerCode:
+            return
         nextPlayer = event['nextPlayer']
 
         messageDict = {}
