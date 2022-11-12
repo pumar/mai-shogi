@@ -44,6 +44,11 @@ let connectCode = '';
 
 let choices = [];
 
+const eventQueue = new EventQueue();
+eventQueue.registerCallbacks(window);
+
+let isGameRegisteredToEventQueue = false;
+
 const pickChoice = (commStack: CommunicationStack, choiceId: number) => {
 	commStack.pushEvent({
 		eventType: CommunicationEventTypes.ANSWER_PROMPT,
@@ -68,16 +73,18 @@ const doGetGameCode = async () => {
 }
 
 const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: string) => {
-	const instanceInfo = connectToGame(vsComputer, isSente, playerCode);
+	const instanceInfo = connectToGame(
+		vsComputer,
+		isSente,
+		playerCode,
+		eventQueue,
+		isGameRegisteredToEventQueue,
+	);
 
 	gameInstance = instanceInfo.game;
 	window.game = gameInstance;
 	gameInstance.setCanvas(canvas);
 	setCanvasSizeToMatchLayout(gameInstance.getCanvas());
-
-	const eventQueue = new EventQueue();
-	eventQueue.registerCallbacks(window);
-	eventQueue.addListener(gameInstance);
 
 	const interactionController = new GameInteractionController();
 	gameInstance.setInteractionController(interactionController);

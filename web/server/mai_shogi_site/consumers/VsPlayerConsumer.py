@@ -114,8 +114,6 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
 
     # group handler
     async def game_update(self, event):
-        if event['sender'] == self.playerCode:
-            return
         nextPlayer = event['nextPlayer']
 
         messageDict = {}

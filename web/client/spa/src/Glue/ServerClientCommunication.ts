@@ -89,7 +89,13 @@ async function getGameCode(): Promise<{playerOneCode: string; playerTwoCode: str
 	});
 }
 
-function connectToGame(vsComputer: boolean, isSente?: boolean, myConnectCode?: string): PendingGameConnection {
+function connectToGame(
+	vsComputer: boolean,
+	isSente?: boolean,
+	myConnectCode?: string,
+	eventQueue: EventQueue,
+	isGameRegisteredToEventQueue: boolean,
+): PendingGameConnection {
 	//console.log(`connect to game:${gameCode}`);
 	console.log(`connect to game`);
 	const getWebsocketConn = () => {
@@ -116,6 +122,15 @@ function connectToGame(vsComputer: boolean, isSente?: boolean, myConnectCode?: s
 				console.error('error in ws message handler, message undefined')
 				return;
 			}
+
+			if (!isGameRegisteredToEventQueue) {
+				eventQueue.addListener(game);
+				isGameRegisteredToEventQueue = true;
+			}
+
+			//const eventQueue = new EventQueue();
+			//eventQueue.registerCallbacks(window);
+			//eventQueue.addListener(gameInstance);
 
 
 			console.log('recieved message from server', message);
