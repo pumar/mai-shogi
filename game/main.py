@@ -836,7 +836,6 @@ class Match:
         else:
             self.current_turn = self.player_one
 
-
     def getPlayerWhoMustMakeTheNextMove(self) -> Player:
         if self.current_turn == self.player_one:
             return self.player_one
@@ -847,7 +846,7 @@ class Match:
 
         def filtersOote(all_moves: List[Move], isSente: bool):
             legal_moves: List[Move] = []
-            
+
             for move in all_moves:
                 valid_move = True
                 virtual_board = deepcopy(self.grid)
@@ -921,6 +920,10 @@ class Match:
         self.current_legal_moves = moves
 
         return moves
+
+    def serializeMoves(self, moves: List[Move]) -> List[str]:
+        return list(map(lambda x: x.serialize(), moves))
+
 
     def isRangedPiece(self, koma: Koma) -> bool:
         komaType = type(koma)

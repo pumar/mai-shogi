@@ -57,7 +57,7 @@ class GameEngineConsumer(SyncConsumer):
         playerSide = "SENTE" if self.player.isSente() else "GOTE"
         messageDict[MessageKeys.CLIENT_PLAYER_SIDE] = playerSide
         messageDict[MessageKeys.MATCH] = self.match.serializeBoardState()
-        messageDict[MessageKeys.MOVES] = self.serializeMoves(playerMoves)
+        messageDict[MessageKeys.MOVES] = self.match.serializeMoves(playerMoves)
         await self.send(text_data=json.dumps(messageDict))
 
     def createMatch(self, clientIsSente: bool) -> Tuple[Match, HumanPlayer]:
@@ -106,7 +106,7 @@ class GameEngineConsumer(SyncConsumer):
                     closeConnection = True
                 else:
                     playerMoves = self.match.getMoves()
-                    playerMovesSerialized = self.serializeMoves(playerMoves)
+                    playerMovesSerialized = self.match.serializeMoves(playerMoves)
                     # you lose
                     if len(playerMoves) == 0:
                         messageDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.YOU_LOSE
@@ -134,9 +134,6 @@ class GameEngineConsumer(SyncConsumer):
         else:
             print(f'unknown message type:{messageType}')
 
-    def serializeMoves(self, moves: List[Move]) -> List[str]:
-        return list(map(lambda x: x.serialize(), moves))
-
     # returns False if play continues, or True if the computer has lost
     def makeAiMove(self) -> bool:
         moves = self.match.getMoves()
@@ -145,7 +142,7 @@ class GameEngineConsumer(SyncConsumer):
         print(f'computer has {len(moves)} moves')
         if len(moves) == 0:
             return True
-        stringMoves = self.serializeMoves(moves)
+        stringMoves = self.match.serializeMoves(moves)
         randomMoveIndex = random.randrange(0, len(stringMoves), 1)
         moveToPost = stringMoves[randomMoveIndex]
         self.match.doTurn(moveToPost)

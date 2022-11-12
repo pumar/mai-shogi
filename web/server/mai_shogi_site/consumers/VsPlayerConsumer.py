@@ -3,6 +3,29 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from os import environ
 from pprint import pprint
 from ..game import Match, HumanPlayer
+import json
+
+from enum import Enum
+
+# TODO de-dupe these enums between consumers
+
+# need to inherit from str to get JSON serialization to work:
+# https://stackoverflow.com/questions/24481852/serialising-an-enum-member-to-json
+class MessageTypes(str, Enum):
+    GAME_STATE_UPDATE = "gsu"
+    MAKE_MOVE = "mm"
+    ERROR = "err"
+    YOU_LOSE = "yl"
+    YOU_WIN = "yw"
+
+
+class MessageKeys(str, Enum):
+    MESSAGE_TYPE = "messageType"
+    CLIENT_PLAYER_SIDE = "c_p_side"
+    MATCH = "match"
+    MOVES = "moves"
+    MOVE = "move"
+    ERROR_MESSAGE = "err_msg"
 
 
 class VsPlayerConsumer(AsyncWebsocketConsumer):
@@ -14,6 +37,8 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
     match = None
     playerCode = None
     isPlayerOne = False
+    isSente = False
+    gameGroupName = None
 
     async def connect(self):
         await self.accept()
@@ -34,6 +59,7 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
             decode_responses=True,
         )
         groupName = redisConn.get(playerCode)
+        self.gameGroupName = groupName
 
         await self.channel_layer.group_add(groupName, self.channel_name)
 
@@ -48,8 +74,9 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
         # player one's consumer will hold the game object
         # but we need to wait & listen for the message signaling that
         # player two connected, so that we can send them the information
+        isSente = playerCode == playerOneCode
+        self.isSente = isSente
         if isPlayerOne:
-            isSente = playerCode == playerOneCode
             me = HumanPlayer(isSente)
             opponent = HumanPlayer(not isSente)
 
@@ -69,6 +96,33 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
             return
         print(f'other player connected:{sender}')
         print(f'am I player one?{self.isPlayerOne}')
+        matchState = self.match.serializeBoardState()
+        playerMoves = self.match.getMoves()
+        moves = self.match.serializeMoves(playerMoves)
+        nextMovePlayer = self.match.getPlayerWhoMustMakeTheNextMove().isSente()
+        await self.channel_layer.group_send(
+            self.gameGroupName,
+            {
+                'type': 'game.update',
+                'matchState': matchState,
+                'moves': moves,
+                'nextPlayer': nextMovePlayer,
+            }
+        )
+
+    async def game_update(self, event):
+        nextPlayer = event['nextPlayer']
+
+        messageDict = {}
+        messageDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.GAME_STATE_UPDATE
+        messageDict[MessageKeys.MATCH] = event['matchState']
+        messageDict[MessageKeys.CLIENT_PLAYER_SIDE] = "SENTE" if self.isSente else "GOTE"
+        # if it is our turn, we need to also send the moves to the
+        # game client
+        if nextPlayer == self.isSente:
+            messageDict[MessageKeys.MOVES] = event['moves']
+
+        await self.send(text_data=json.dumps(messageDict))
 
 
 
