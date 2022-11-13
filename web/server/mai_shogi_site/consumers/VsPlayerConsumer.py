@@ -4,6 +4,8 @@ from os import environ
 import json
 from pprint import pprint
 
+from typing import List, Tuple
+
 from ..game import Match, HumanPlayer, MoveNotFound
 from ..consts import MessageKeys, MessageTypes
 
@@ -77,10 +79,7 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
             return
         print(f'other player connected:{sender}')
         print(f'am I player one?{self.isPlayerOne}')
-        matchState = self.match.serializeBoardState()
-        playerMoves = self.match.getMoves()
-        moves = self.match.serializeMoves(playerMoves)
-        nextMovePlayer = self.match.getPlayerWhoMustMakeTheNextMove().isSente()
+        (matchState, moves, nextMovePlayer) = self.getGroupGameUpdateState()
         await self.channel_layer.group_send(
             self.gameGroupName,
             {
@@ -91,6 +90,13 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
                 'nextPlayer': nextMovePlayer,
             }
         )
+    def getGroupGameUpdateState(self) -> Tuple[str, List[str], bool]:
+        matchState = self.match.serializeBoardState()
+        playerMoves = self.match.getMoves()
+        moves = self.match.serializeMoves(playerMoves)
+        nextMovePlayerIsSente = self.match.getPlayerWhoMustMakeTheNextMove().isSente()
+        return (matchState, moves, nextMovePlayerIsSente)
+
 
     # group handler
     async def game_update(self, event):
@@ -120,10 +126,7 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
                     # broadcast a 'player lost' event
                     print(f'TODO player {self.playerCode} has no moves, and lost')
                 else:
-                    # TODO de-dupe with the player_connect method
-                    matchState = self.match.serializeBoardState()
-                    serializedMoves = self.match.serializeMoves(moves)
-                    nextMovePlayer = self.match.getPlayerWhoMustMakeTheNextMove().isSente()
+                    (matchState, serializedMoves, nextMovePlayerIsSente) = self.getGroupGameUpdateState()
                     await self.channel_layer.group_send(
                         self.gameGroupName,
                         {
@@ -131,7 +134,7 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
                             'sender': self.playerCode,
                             'matchState': matchState,
                             'moves': serializedMoves,
-                            'nextPlayer': nextMovePlayer,
+                            'nextPlayer': nextMovePlayerIsSente,
                         }
                     )
 
