@@ -214,6 +214,18 @@ class Banmen:
                     masuList.append(masu)
         return masuList
 
+    def kingIsInCheck(self, isSente: bool) -> bool:
+        kingCoords = self.findKingCoordinates(isSente)
+        opposingPieces = list(filter(lambda x: x[0].isSente != isSente, self.getPieces()))
+        for opposingPiece in opposingPieces:
+            piece = opposingPiece[0]
+            masu = opposingPiece[1]
+            moves = piece.legalMoves(self, masu)
+            for move in moves:
+                if move.trgt_square.x == kingCoords[0] and move.trgt_square.y == kingCoords[1]:
+                    return True
+        return False
+
 class Hand:
     handKoma: list[tuple[Koma, int]]
 
@@ -340,10 +352,6 @@ class Kyousha(Koma):
         super().__init__(sente, onHand)
 
     def legalMoves(self, board:Banmen, src_square: Optional[Masu] = None, hand = None) -> List[Move]:
-        #TODO kyousha moves cause an exception in filters oote
-        #return []
-        #if (src_square == None or src_square.getKoma() == None) and hand == None:
-        #    raise Exception("legalMoves:kyousha requires either a src square or the hand object to be passed in to it")
         moves: List[Move] = []
 
         if not self.isOnHand():
@@ -849,53 +857,62 @@ class Match:
 
             for move in all_moves:
                 valid_move = True
+                # copy the board
                 virtual_board = deepcopy(self.grid)
 
-                if move.src_square is not None and type(move.src_square.getKoma()) is Gyokushou:
-                    king = move.src_square.getKoma()
-                    kingX = move.src_square.getX()
-                    kingY = move.src_square.getY()
-                    #take the king off of the board so that kyousha, kakugyou and
-                    #hisha can also attack the squares behind it
-                    virtual_board.grid[kingX][kingY] = Masu(kingX, kingY, None)
-                    attacked_squares:List[Tuple[int, int]] = []
-                    attacking_pieces = filter(lambda x: x[0].isSente() != isSente, virtual_board.getPieces())
-                    for koma, masu in attacking_pieces:
-                        if koma.isOnHand():
-                            raise Exception('filtersOote, attaking piece cannot be a held piece')
-                        attacking_moves = koma.legalMoves(virtual_board, masu)
-                        for attacking_move in attacking_moves:
-                            attacked_square = attacking_move.trgt_square
-                            attacked_squares.append([attacked_square.getX(), attacked_square.getY()])
-                    moveTargetSquare = move.trgt_square;
-                    targetSquareIsBeingAttacked = [moveTargetSquare.getX(), moveTargetSquare.getY()] in attacked_squares
-                    if targetSquareIsBeingAttacked:
-                        # the king cannot be moved into a square that is being attacked by another piece
-                        valid_move = False
-                    #put the king back where it was
-                    virtual_board.grid[kingX][kingY] = Masu(kingX, kingY, king)
-                else:
-                    if move.src_square is not None:
-                        virtual_board.getMasu(move.src_square.getX(), move.src_square.getY()).setKoma(None)
-                    virtual_board.getMasu(move.trgt_square.getX(), move.trgt_square.getY()).setKoma(move.trgt_square.getKoma())
+                moveTargetSquare = move.trgt_square
+                virtualTargetSquare = virtual_board.grid[moveTargetSquare.x][moveTargetSquare.y]
+                virtualTargetSquare.setKoma(moveTargetSquare.getKoma())
 
-                    king_coordinates: Tuple[int, int] = virtual_board.findKingCoordinates(isSente)
-                    if king_coordinates is not None:
-                        #get a (koma, masu) tuple for every piece on the board, as a list
-                        attacking_pieces = list(filter(lambda x: x[0].isSente() != isSente, virtual_board.getPieces()))
+                if virtual_board.kingIsInCheck(isSente):
+                    valid_move = False
 
-                        for attacking_piece in attacking_pieces:
-                            masu = attacking_piece[1]
-                            koma = attacking_piece[0]
-                            attacking_moves = koma.legalMoves(virtual_board, masu)
-                            for attacking_move in attacking_moves:
-                                attackingMoveSquare = attacking_move.trgt_square
-                                if attackingMoveSquare.getX() == king_coordinates[0] and attackingMoveSquare.getY() == king_coordinates[1]:
-                                    #move is invalid because it would put the king in check
-                                    #or, the king is already in check and this move won't get the king out of check
-                                    valid_move = False
+                # if move.src_square is not None and type(move.src_square.getKoma()) is Gyokushou:
+                #     king = move.src_square.getKoma()
+                #     kingX = move.src_square.getX()
+                #     kingY = move.src_square.getY()
+                #     #take the king off of the board so that kyousha, kakugyou and
+                #     #hisha can also attack the squares behind it
+                #     virtual_board.grid[kingX][kingY] = Masu(kingX, kingY, None)
+                #     attacked_squares:List[Tuple[int, int]] = []
+                #     attacking_pieces = filter(lambda x: x[0].isSente() != isSente, virtual_board.getPieces())
+                #     for koma, masu in attacking_pieces:
+                #         if koma.isOnHand():
+                #             raise Exception('filtersOote, attaking piece cannot be a held piece')
+                #         attacking_moves = koma.legalMoves(virtual_board, masu)
+                #         for attacking_move in attacking_moves:
+                #             attacked_square = attacking_move.trgt_square
+                #             attacked_squares.append([attacked_square.getX(), attacked_square.getY()])
+                #     moveTargetSquare = move.trgt_square;
+                #     targetSquareIsBeingAttacked = [moveTargetSquare.getX(), moveTargetSquare.getY()] in attacked_squares
+                #     if targetSquareIsBeingAttacked:
+                #         # the king cannot be moved into a square that is being attacked by another piece
+                #         valid_move = False
+                #     #put the king back where it was
+                #     virtual_board.grid[kingX][kingY] = Masu(kingX, kingY, king)
+                # else:
+                #     if move.src_square is not None:
+                #         virtual_board.getMasu(move.src_square.getX(), move.src_square.getY()).setKoma(None)
+                #     virtual_board.getMasu(move.trgt_square.getX(), move.trgt_square.getY()).setKoma(move.trgt_square.getKoma())
 
-                if valid_move: legal_moves.append(move)
+                #     king_coordinates: Tuple[int, int] = virtual_board.findKingCoordinates(isSente)
+                #     if king_coordinates is not None:
+                #         #get a (koma, masu) tuple for every piece on the board, as a list
+                #         attacking_pieces = list(filter(lambda x: x[0].isSente() != isSente, virtual_board.getPieces()))
+
+                #         for attacking_piece in attacking_pieces:
+                #             masu = attacking_piece[1]
+                #             koma = attacking_piece[0]
+                #             attacking_moves = koma.legalMoves(virtual_board, masu)
+                #             for attacking_move in attacking_moves:
+                #                 attackingMoveSquare = attacking_move.trgt_square
+                #                 if attackingMoveSquare.getX() == king_coordinates[0] and attackingMoveSquare.getY() == king_coordinates[1]:
+                #                     #move is invalid because it would put the king in check
+                #                     #or, the king is already in check and this move won't get the king out of check
+                #                     valid_move = False
+
+                if valid_move:
+                    legal_moves.append(move)
 
             return legal_moves
 

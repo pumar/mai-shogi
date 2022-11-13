@@ -206,6 +206,47 @@ class TestPieceMoves(HasCleanGame):
         ]
         self.assertTrue(self.checkMovesAgainstAnswerMoves(movesXYList, answerList))
 
+class TestCheck(HasCleanGame):
+    def testKingsNotInCheck(self):
+        senteKing = Gyokushou(True)
+        goteKing = Gyokushou(False)
+
+        board = self.match.grid
+
+        board.grid[0][4] = Masu(0, 4, goteKing)
+        board.grid[8][4] = Masu(8, 4, senteKing)
+        # sente king is not in check
+        self.assertFalse(board.kingIsInCheck(True))
+
+        # hisha attacks sente king
+        board.grid[7][4] = Masu(7, 4, Hisha(False))
+        # sente king is in check
+        self.assertTrue(board.kingIsInCheck(True))
+        # remove rook
+        board.grid[7][4].koma = None
+
+        # add kakugyou on the diagonal
+        board.grid[7][3] = Masu(7, 3, Kakugyou(False))
+        # sente king is in check
+        self.assertTrue(board.kingIsInCheck(True))
+        # gote king is not
+        self.assertFalse(board.kingIsInCheck(False))
+        # king moves one spot to the right
+        board.grid[8][4].koma = None
+        board.grid[8][3] = Masu(8, 3, senteKing)
+        # sente king is no longer in check
+        self.assertFalse(board.kingIsInCheck(True))
+
+        # place sente hisha on the first rank, with the gote king
+        board.grid[0][0] = Masu(0, 0, Hisha(True))
+        # Gote king is in check
+        self.assertTrue(board.kingIsInCheck(False))
+        board.grid[0][4].koma = None
+        # gote king moves to rank 2, out of check
+        board.grid[1][4].koma = goteKing
+        # gote king is not in check
+        self.assertFalse(board.kingIsInCheck(False))
+
 
 class TestFiltersOote(HasCleanGame):
     #the keima cannot move because it would put the king in check
