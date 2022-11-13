@@ -3,7 +3,7 @@ import json
 from typing import List, Tuple
 from channels.generic.websocket import SyncConsumer
 
-from enum import Enum
+from ..consts import MessageKeys, MessageTypes
 
 from ..game import Match
 from ..game import ComputerPlayer
@@ -12,27 +12,11 @@ from ..game import MoveNotFound
 from ..game import Move
 
 
-# need to inherit from str to get JSON serialization to work:
-# https://stackoverflow.com/questions/24481852/serialising-an-enum-member-to-json
-class MessageTypes(str, Enum):
-    GAME_STATE_UPDATE = "gsu"
-    MAKE_MOVE = "mm"
-    ERROR = "err"
-    YOU_LOSE = "yl"
-    YOU_WIN = "yw"
-
-
-class MessageKeys(str, Enum):
-    MESSAGE_TYPE = "messageType"
-    CLIENT_PLAYER_SIDE = "c_p_side"
-    MATCH = "match"
-    MOVES = "moves"
-    MOVE = "move"
-    ERROR_MESSAGE = "err_msg"
-
-
 class GameEngineConsumer(SyncConsumer):
     """
+    TODO this isn't actually being used, player 1's websocket is holding
+    the game state. In order to get this to work, I need to learn how to
+    use workers
     sync consumer that holds the game state, and updates it according to
     move broadcasts
     hear move broadcast on the channel group -> process the move
