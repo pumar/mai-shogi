@@ -151,35 +151,35 @@ class Banmen:
                 board[i].append(Masu(i, j, None))
 
         #file, rank order
-        board[0][0].setKoma(Kyousha(False))
-        board[1][0].setKoma(Keima(False))
-        board[2][0].setKoma(Ginshou(False))
-        board[3][0].setKoma(Kinshou(False))
+        #board[0][0].setKoma(Kyousha(False))
+        #board[1][0].setKoma(Keima(False))
+        #board[2][0].setKoma(Ginshou(False))
+        #board[3][0].setKoma(Kinshou(False))
 
-        board[8][0].setKoma(Gyokushou(False))
+        #board[8][0].setKoma(Gyokushou(False))
         board[4][0].setKoma(Gyokushou(False))
 
-        board[5][0].setKoma(Kinshou(False))
-        board[6][0].setKoma(Ginshou(False))
-        board[7][0].setKoma(Keima(False))
-        board[8][0].setKoma(Kyousha(False))
+        #board[5][0].setKoma(Kinshou(False))
+        #board[6][0].setKoma(Ginshou(False))
+        #board[7][0].setKoma(Keima(False))
+        #board[8][0].setKoma(Kyousha(False))
 
-        board[1][1].setKoma(Kakugyou(False))
-        board[7][1].setKoma(Hisha(False))
+        #board[1][1].setKoma(Kakugyou(False))
+        #board[7][1].setKoma(Hisha(False))
 
 
-        board[0][8].setKoma(Kyousha(True))
-        board[1][8].setKoma(Keima(True))
-        board[2][8].setKoma(Ginshou(True))
-        board[3][8].setKoma(Kinshou(True))
+        #board[0][8].setKoma(Kyousha(True))
+        #board[1][8].setKoma(Keima(True))
+        #board[2][8].setKoma(Ginshou(True))
+        #board[3][8].setKoma(Kinshou(True))
         board[4][8].setKoma(Gyokushou(True))
-        board[5][8].setKoma(Kinshou(True))
-        board[6][8].setKoma(Ginshou(True))
-        board[7][8].setKoma(Keima(True))
-        board[8][8].setKoma(Kyousha(True))
+        #board[5][8].setKoma(Kinshou(True))
+        #board[6][8].setKoma(Ginshou(True))
+        #board[7][8].setKoma(Keima(True))
+        #board[8][8].setKoma(Kyousha(True))
 
-        board[1][7].setKoma(Hisha(True))
-        board[7][7].setKoma(Kakugyou(True))
+        #board[1][7].setKoma(Hisha(True))
+        #board[7][7].setKoma(Kakugyou(True))
 
         for i in range(0,9):
             board[i][2].setKoma(Fuhyou(False))
@@ -227,7 +227,7 @@ class Hand:
                 [Keima(sente = True, onHand = True), 0],
                 [Ginshou(sente = True, onHand = True), 0],
                 [Kakugyou(sente = True, onHand = True), 0],
-                [Hisha(sente = True, onHand = True), 0],
+                [Hisha(sente = True, onHand = True), 9],
                 [Kyousha(sente = True, onHand = True), 0],
 
                 [Fuhyou(sente = False, onHand = True), 0],
@@ -235,7 +235,7 @@ class Hand:
                 [Keima(sente = False, onHand = True), 0],
                 [Ginshou(sente = False, onHand = True), 0],
                 [Kakugyou(sente = False, onHand = True), 0],
-                [Hisha(sente = False, onHand = True), 0],
+                [Hisha(sente = False, onHand = True), 9],
                 [Kyousha(sente = False, onHand = True), 0]
             ]
         return handKoma

@@ -18,6 +18,7 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
     """
     match = None
     playerCode = None
+    otherPlayerCode = None
     isPlayerOne = False
     isSente = False
     gameGroupName = None
@@ -53,6 +54,11 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
         print(f'sentePlayerCode:{sentePlayerCode} my code:{playerCode}')
         isPlayerOne = playerCode == playerOneCode
         self.isPlayerOne = isPlayerOne
+        # when the winner is determined, the consumer that holds the
+        # game info will need to know their opponent's code in order to
+        # declare the winner
+        if self.isPlayerOne:
+            self.otherPlayerCode = gameInfo['playerTwo']
         # player one's consumer will hold the game object
         # but we need to wait & listen for the message signaling that
         # player two connected, so that we can send them the information
@@ -90,6 +96,7 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
                 'nextPlayer': nextMovePlayer,
             }
         )
+
     def getGroupGameUpdateState(self) -> Tuple[str, List[str], bool]:
         matchState = self.match.serializeBoardState()
         playerMoves = self.match.getMoves()
@@ -119,14 +126,28 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
     async def make_move(self, event):
         if self.isPlayerOne:
             move = event['move']
-            try: 
+            wasMyTurn = event['sender'] != self.playerCode
+            try:
+                # do the sender's move
                 self.match.doTurn(move)
-                moves = self.match.getMoves()
-                if len(moves) == 0:
+                (matchState, serializedMoves, nextMovePlayerIsSente) = self.getGroupGameUpdateState()
+                print(f'isSente:{self.isSente} wasMyTurn:{wasMyTurn} #moves:{len(serializedMoves)}')
+                if len(serializedMoves) == 0:
                     # broadcast a 'player lost' event
                     print(f'TODO player {self.playerCode} has no moves, and lost')
+                    self.channel_layer.group_send(
+                        self.gameGroupName,
+                        {
+                            'type': 'game.over',
+                            'sender': self.playerCode,
+                            'reason': 'player has no moves',
+                            # if it's my turn and there are no moves, I lose
+                            # if it's my opponent's turn and there are no moves, I win
+                            'winner': self.playerCode if wasMyTurn else self.otherPlayerCode,
+                            'match': matchState
+                        }
+                    )
                 else:
-                    (matchState, serializedMoves, nextMovePlayerIsSente) = self.getGroupGameUpdateState()
                     await self.channel_layer.group_send(
                         self.gameGroupName,
                         {
@@ -140,13 +161,38 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
 
             except MoveNotFound as e:
                 print("error on server receive handler for MAKE_MOVE", e)
-                # TODO inform the client that sent the move that their
-                # move was invalid
-                # errorDict = {}
-                # errorDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.ERROR
-                # errorDict[MessageKeys.ERROR_MESSAGE] = \
-                #     f'move:{moveToPost} is not valid'
-                # await self.send(text_data=json.dumps(errorDict))
+                # inform the client that sent the move that their move
+                # was invalid
+                await self.channel_layer.group_send(
+                    self.gameGroupName,
+                    {
+                        'type': 'invalid.state',
+                        'originalSender': event['sender'],
+                        'sender': self.playerCode
+                    }
+                )
+    async def game_over(self, event):
+        winnerPlayer = event['winner']
+        iWon = winnerPlayer = self.playerCode
+        eventDict = {}
+        messageType = None
+        if iWon:
+            messageType = MessageTypes.YOU_WIN
+        else:
+            messageType = MessageTypes.YOU_LOSE
+        eventDict[MessageKeys.MESSAGE_TYPE] = messageType
+        eventDict[MessageKeys.MATCH] = event['match']
+
+    # TODO this code hasn't been tested at all
+    async def invalidState(self, event):
+        originalSenderCode = event['originalSender']
+        # move was invalid
+        if originalSenderCode == self.playerCode:
+            errorDict = {}
+            errorDict[MessageKeys.MESSAGE_TYPE] = MessageTypes.ERROR
+            errorDict[MessageKeys.ERROR_MESSAGE] = \
+                f'move:{moveToPost} is not valid'
+            await self.send(text_data=json.dumps(errorDict))
 
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
