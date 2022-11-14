@@ -80,6 +80,7 @@ class VsComputerConsumer(AsyncWebsocketConsumer):
                     computerHasLost = self.makeAiMove()
 
                 closeConnection = False
+                print(f'computerHasLost:{computerHasLost}')
 
                 messageDict = {}
                 if computerHasLost:
@@ -88,6 +89,7 @@ class VsComputerConsumer(AsyncWebsocketConsumer):
                     closeConnection = True
                 else:
                     playerMoves = self.match.getMoves()
+                    print(f'player has:{len(playerMoves)} moves')
                     playerMovesSerialized = self.serializeMoves(playerMoves)
                     # you lose
                     if len(playerMoves) == 0:
@@ -103,6 +105,7 @@ class VsComputerConsumer(AsyncWebsocketConsumer):
                         messageDict[MessageKeys.MOVES] = \
                             playerMovesSerialized
                 await self.send(text_data=json.dumps(messageDict))
+
                 if closeConnection:
                     await self.close()
 
@@ -122,8 +125,6 @@ class VsComputerConsumer(AsyncWebsocketConsumer):
     # returns False if play continues, or True if the computer has lost
     def makeAiMove(self) -> bool:
         moves = self.match.getMoves()
-        if len(moves) == 1:
-            print(moves[0].serialize())
         print(f'computer has {len(moves)} moves')
         if len(moves) == 0:
             return True
