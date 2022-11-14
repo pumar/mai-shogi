@@ -1472,9 +1472,14 @@ export class GameRunner implements IEventQueueListener {
 
 		console.log({ clientPlayerSide: message[MessageKeys.CLIENT_PLAYER_SIDE] });
 		const clientPlayerSideMessage = message[MessageKeys.CLIENT_PLAYER_SIDE];
-		const clientPlayerColor = clientPlayerSideMessage === "SENTE"
-			? PlayerColor.Black
-			: PlayerColor.White;
+		let clientPlayerColor;
+		if (clientPlayerSideMessage !== undefined) {
+			clientPlayerColor = clientPlayerSideMessage === "SENTE"
+				? PlayerColor.Black
+				: PlayerColor.White;
+		} else {
+			clientPlayerColor = this.getCurrentGameState().viewPoint;
+		}
 		//TODO this state should be separate from the actual shogi game state,
 		//make it a property on the game runner
 		//the client should be able to remember what side it is
