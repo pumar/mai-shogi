@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "engine_core",
+    "alphabeta_pruning",
+]
