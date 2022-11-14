@@ -156,7 +156,7 @@ class Banmen:
         board[2][0].setKoma(Ginshou(False))
         board[3][0].setKoma(Kinshou(False))
 
-        board[8][0].setKoma(Gyokushou(False))
+        # board[8][0].setKoma(Gyokushou(False))
         board[4][0].setKoma(Gyokushou(False))
 
         board[5][0].setKoma(Kinshou(False))
@@ -486,12 +486,19 @@ class Ginshou(Koma):
 
             if not self.isPromoted():
                 #these deltas are for sente
-                possible_deltas = [[0,1],[1,1],[-1,1],[-1,-1],[1,-1]]
+                possible_deltas = [
+                    [1, -1], [0, -1], [-1, -1],
+                    [1, 1], [-1, 1],
+                ]
                 #flip them if gote
-                if not isSente: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
+                if not isSente:
+                    possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
+
                 for pd in possible_deltas:
                     tX = x + pd[0]
                     tY = y + pd[1]
+                    if tX > 8 or tY < 0:
+                        continue
                     if(-1 < tX < 9 and -1 < tY < 9):
                         targetMasu = board.getMasu(tX, tY);
                         if (targetMasu.getKoma() == None or targetMasu.getKoma().isSente() != isSente):
@@ -550,7 +557,8 @@ class Kinshou(Koma):
                 [0, 1],
             ]
             #if we are gote, we gotta flip 'em
-            if not isSente: possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
+            if not isSente:
+                possible_deltas = [[-1*delta for delta in pd] for pd in possible_deltas]
             for pd in possible_deltas:
                 tX = x + pd[0]
                 tY = y + pd[1]
@@ -749,9 +757,11 @@ class Gyokushou(Koma):
                     moves.append(Move(src_square, Masu(tX, tY, piece)))
         return moves
 
+
 class MoveNotFound(Exception):
     def __init__(self, message):
         super().__init__(message)
+
 
 class Match:
     player_one: Player
@@ -767,31 +777,25 @@ class Match:
 
         self.grid = Banmen()
         self.hand = Hand()
-        
+
         if self.player_one.isSente():
             self.current_turn = self.player_one
-        else: self.current_turn = self.player_two
+        else:
+            self.current_turn = self.player_two
 
         self.current_legal_moves = []
 
-
-    #TODO as long as held moves are being added into the move list, moving a piece on the
-    #board can randomly place a held piece somewhere as well
-    #I think the memory for a piece is being shared somewhere where it shouldn't be
     def doTurn(self, string_move: str):
-        #TODO the piece that you selected at the client side may not be the piece actually placed
-        #regardless of what you clicked, held pieces will be placed in the order from left to right
-        #as they exist
-        string_moves = [move.serialize() for move in self.current_legal_moves] 
+        string_moves = [move.serialize() for move in self.current_legal_moves]
         if string_move not in string_moves:
             raise MoveNotFound("The move that was sent is not valid.")
 
         move_index = string_moves.index(string_move)
 
         current_move = self.current_legal_moves[move_index]
-        print(f'current_move:{current_move}');
-        src_square = current_move.src_square;
-        trgt_square = current_move.trgt_square;
+        print(f'current_move:{current_move}')
+        src_square = current_move.src_square
+        trgt_square = current_move.trgt_square
 
         moveTargetKoma = trgt_square.koma
 
@@ -832,7 +836,6 @@ class Match:
         else:
             self.current_turn = self.player_one
 
-
     def getPlayerWhoMustMakeTheNextMove(self) -> Player:
         if self.current_turn == self.player_one:
             return self.player_one
@@ -843,7 +846,7 @@ class Match:
 
         def filtersOote(all_moves: List[Move], isSente: bool):
             legal_moves: List[Move] = []
-            
+
             for move in all_moves:
                 valid_move = True
                 virtual_board = deepcopy(self.grid)
@@ -917,6 +920,10 @@ class Match:
         self.current_legal_moves = moves
 
         return moves
+
+    def serializeMoves(self, moves: List[Move]) -> List[str]:
+        return list(map(lambda x: x.serialize(), moves))
+
 
     def isRangedPiece(self, koma: Koma) -> bool:
         komaType = type(koma)

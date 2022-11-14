@@ -48,7 +48,10 @@ class HasCleanGame(unittest.TestCase):
         for x, y, promotes in answerXYList:
             moveWithSameTarget = list(filter(lambda mvLoc: mvLoc[0] == x and mvLoc[1] == y and mvLoc[2] == promotes, movesXYList))
             if len(moveWithSameTarget) != 1:
-                print('checkMovesAgainstAnswerMoves failed actualMoves:', movesXYList, ' expected moves:', answerXYList)
+                print('checkMovesAgainstAnswerMoves failed actual moves:')
+                pprint(movesXYList)
+                print('expected moves:')
+                pprint(answerXYList)
                 return False
 
         return True
@@ -177,6 +180,32 @@ class TestPieceMoves(HasCleanGame):
         movesXYList = list(map(self.moveToTupleForTest, senteFuhyou.legalMoves(self.match.grid, senteMasu)))
         answerList = [ [8, 2, True], [8, 2, False] ]
         self.assertTrue(self.checkMovesAgainstAnswerMoves(movesXYList, answerList))
+
+    def testGinshouMoves(self):
+        ginshou = Ginshou(True)
+        ginshouMasu = Masu(4, 4, ginshou)
+        self.match.grid.grid[4][4] = ginshouMasu
+        ginshouMoves = ginshou.legalMoves(self.match.grid, ginshouMasu)
+        movesXYList = list(map(self.moveToTupleForTest, ginshouMoves))
+        answerList = [
+            [5, 3, False], [4,3, False], [3, 3, False],
+            [5, 5, False], [3, 5, False],
+        ]
+        self.assertTrue(self.checkMovesAgainstAnswerMoves(movesXYList, answerList))
+
+        self.match.current_player = self.match.player_two
+        goteGinshou = Ginshou(False)
+        goteMasu = Masu(4, 4, goteGinshou)
+        self.match.grid.grid[4][4] = goteMasu
+        ginshouMoves = goteGinshou.legalMoves(self.match.grid, goteMasu)
+        movesXYList = list(map(self.moveToTupleForTest, ginshouMoves))
+        pprint(movesXYList)
+        answerList = [
+            [5, 3, False], [3, 3, False],
+            [5, 5, False], [4, 5, False], [3, 5, False],
+        ]
+        self.assertTrue(self.checkMovesAgainstAnswerMoves(movesXYList, answerList))
+
 
 class TestFiltersOote(HasCleanGame):
     #the keima cannot move because it would put the king in check

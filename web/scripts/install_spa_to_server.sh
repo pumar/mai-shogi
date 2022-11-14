@@ -57,4 +57,4 @@ cp -r $fontSource $fontDest
 CONTAINER_NAME=server-web-1
 echo ==update container static files==
 echo need sudo to login to $CONTAINER_NAME to run collectstatic
-sudo docker exec -it $CONTAINER_NAME python manage.py collectstatic
+sudo docker exec -it $CONTAINER_NAME python3 manage.py collectstatic

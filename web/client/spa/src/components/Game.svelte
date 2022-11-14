@@ -14,6 +14,7 @@ import {
 import {
 	connectToGame,
 	sendMove,
+	getGameCode,
 } from "../Glue/ServerClientCommunication";
 
 import {
@@ -37,7 +38,16 @@ let gameCommunicationStack: CommunicationStack | undefined = undefined;
 
 let websocketConnection = undefined;
 
+let playerOneCode = undefined;
+let playerTwoCode = undefined;
+let connectCode = '';
+
 let choices = [];
+
+const eventQueue = new EventQueue();
+eventQueue.registerCallbacks(window);
+
+let isGameRegisteredToEventQueue = false;
 
 const pickChoice = (commStack: CommunicationStack, choiceId: number) => {
 	commStack.pushEvent({
@@ -48,17 +58,33 @@ const pickChoice = (commStack: CommunicationStack, choiceId: number) => {
 	});
 }
 
-const makeConn = async (vsComputer: boolean, isSente?: boolean) => {
-	const instanceInfo = connectToGame(vsComputer, isSente);
+const playWithFriend = async () => {
+	const code = connectCode;
+	makeConn(false, undefined, code);
+}
+
+const doGetGameCode = async () => {
+	const codes = await getGameCode();
+	if (codes !== undefined) {
+		playerOneCode = codes.playerOneCode
+		playerTwoCode = codes.playerTwoCode
+	}
+	makeConn(false, undefined, playerOneCode);
+}
+
+const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: string) => {
+	const instanceInfo = connectToGame(
+		vsComputer,
+		isSente,
+		playerCode,
+		eventQueue,
+		isGameRegisteredToEventQueue,
+	);
 
 	gameInstance = instanceInfo.game;
 	window.game = gameInstance;
 	gameInstance.setCanvas(canvas);
 	setCanvasSizeToMatchLayout(gameInstance.getCanvas());
-
-	const eventQueue = new EventQueue();
-	eventQueue.registerCallbacks(window);
-	eventQueue.addListener(gameInstance);
 
 	const interactionController = new GameInteractionController();
 	gameInstance.setInteractionController(interactionController);
@@ -75,6 +101,7 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean) => {
 
 	gameCommunicationStack = instanceInfo.communicationStack;
 	gameCommunicationStack.pushNotifyCallback((commEvent: CommunicationEvent, _: number) => {
+		console.log("game.svelte, communicationevent from game", commEvent);
 		switch(commEvent.eventType) {
 			case CommunicationEventTypes.PROMPT_SELECT_MOVE:
 				choices = promptSelectMove(commEvent);
@@ -150,11 +177,31 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean) => {
 		<!--<label>Game code:<input type="text" bind:value={gameCode}/></label>-->
 		<!--{#if gameCode !== ""}-->
 		{#if websocketConnection === undefined}
+			{#if playerOneCode === undefined && playerTwoCode === undefined}
 			<div>
 				<label>vs Computer:</label>
 				<button on:click={() => makeConn(true, true)}>Play as sente (black)</button>
 				<button on:click={() => makeConn(true, false)}>Play as gote (white)</button>
 			</div>
+			{/if}
+			<div>
+				<div>
+					{#if playerOneCode === undefined && playerTwoCode === undefined}
+					<button on:click={() => doGetGameCode()}>Create a game to play with a friend</button>
+					{/if}
+				</div>
+				<div>
+					{#if playerOneCode === undefined && playerTwoCode === undefined}
+					<label>Enter a code to join a game:<input type="text" bind:value={connectCode} /></label>
+					{/if}
+					{#if connectCode !== ''}
+					<button on:click={() => playWithFriend()}>connect to game with code</button>
+					{/if}
+				</div>
+			</div>
+		{/if}
+		{#if playerTwoCode !== undefined}
+		<label>Share this code with your friend:<input type="text" readonly value={playerTwoCode} /></label>
 		{/if}
 		{#if choices.length > 0}
 			<span>Choices:</span>
