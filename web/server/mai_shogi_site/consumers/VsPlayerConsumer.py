@@ -135,7 +135,7 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
                 if len(serializedMoves) == 0:
                     # broadcast a 'player lost' event
                     print(f'TODO player {self.playerCode} has no moves, and lost')
-                    self.channel_layer.group_send(
+                    await self.channel_layer.group_send(
                         self.gameGroupName,
                         {
                             'type': 'game.over',
@@ -173,7 +173,7 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
                 )
     async def game_over(self, event):
         winnerPlayer = event['winner']
-        iWon = winnerPlayer = self.playerCode
+        iWon = winnerPlayer == self.playerCode
         eventDict = {}
         messageType = None
         if iWon:
@@ -182,6 +182,7 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
             messageType = MessageTypes.YOU_LOSE
         eventDict[MessageKeys.MESSAGE_TYPE] = messageType
         eventDict[MessageKeys.MATCH] = event['match']
+        await self.send(text_data=json.dumps(eventDict))
 
     # TODO this code hasn't been tested at all
     async def invalidState(self, event):
