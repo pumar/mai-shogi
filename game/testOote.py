@@ -262,6 +262,7 @@ class TestFiltersOote(HasCleanGame):
         self.match.grid.grid[4][2] = Masu(4, 2, lance)
 
         moves = self.match.getMoves()
+        print('looking at moves:' + " ".join(self.match.serializeMoves(moves)))
         pieces = self.match.grid.getPieces()
         knightMoves = list(filter(lambda mv: mv.src_square != None and mv.src_square.getKoma() == knight, moves))
         self.assertIs(len(knightMoves), 0)

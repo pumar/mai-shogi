@@ -216,6 +216,8 @@ class Banmen:
 
     def kingIsInCheck(self, isSente: bool) -> bool:
         kingCoords = self.findKingCoordinates(isSente)
+        if kingCoords is None:
+            return False
         opposingPieces = list(filter(lambda x: x[0].isSente != isSente, self.getPieces()))
         for opposingPiece in opposingPieces:
             piece = opposingPiece[0]
@@ -855,12 +857,18 @@ class Match:
         def filtersOote(all_moves: List[Move], isSente: bool):
             legal_moves: List[Move] = []
 
+            # testing if a move is illegal in regards to the king being put in check
+            # as a result of the move, OR failing to do something about your king already being in check
+            # involves copying the board, doing the move, and then checking if your king is under attack
+            # or not
             for move in all_moves:
                 valid_move = True
                 # copy the board
                 virtual_board = deepcopy(self.grid)
 
                 moveTargetSquare = move.trgt_square
+                if not move.src_square is None:
+                    virtual_board.grid[move.src_square.x][move.src_square.y].setKoma(None)
                 virtualTargetSquare = virtual_board.grid[moveTargetSquare.x][moveTargetSquare.y]
                 virtualTargetSquare.setKoma(moveTargetSquare.getKoma())
 
