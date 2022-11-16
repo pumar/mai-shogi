@@ -126,15 +126,17 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
     async def make_move(self, event):
         if self.isPlayerOne:
             move = event['move']
-            wasMyTurn = event['sender'] != self.playerCode
             try:
                 # do the sender's move
                 self.match.doTurn(move)
                 (matchState, serializedMoves, nextMovePlayerIsSente) = self.getGroupGameUpdateState()
-                print(f'isSente:{self.isSente} wasMyTurn:{wasMyTurn} #moves:{len(serializedMoves)}')
+                # if the next player is sente and I am sente, then my opponent made the previous move
+                wasMyTurn = nextMovePlayerIsSente != self.isSente
+                #print(f'isSente:{self.isSente} wasMyTurn:{wasMyTurn} #moves:{len(serializedMoves)}')
                 if len(serializedMoves) == 0:
                     # broadcast a 'player lost' event
-                    print(f'TODO player {self.playerCode} has no moves, and lost')
+                    # print(f'TODO player {self.playerCode} has no moves, and lost')
+                    # print(f'isSente:{self.isSente} selfCode:{self.playerCode} other code:{self.otherPlayerCode}')
                     await self.channel_layer.group_send(
                         self.gameGroupName,
                         {
@@ -171,6 +173,7 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
                         'sender': self.playerCode
                     }
                 )
+
     async def game_over(self, event):
         winnerPlayer = event['winner']
         iWon = winnerPlayer == self.playerCode
