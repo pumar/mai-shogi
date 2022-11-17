@@ -8,7 +8,8 @@
     "build": "npx tsc",
     "check": "npx tsc --noEmit",
     "test": "npx jest",
-	"run": "node esbuild"
+	"run": "node esbuild",
+	"build_svg_baker": "node esbuild_svg_tool"
   },
   "author": "",
   "license": "MIT",
