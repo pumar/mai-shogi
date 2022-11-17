@@ -5,8 +5,8 @@ import { mergeBufferGeometries } from "three/examples/jsm/utils/BufferGeometryUt
 import * as Path from 'path';
 import * as FS from 'node:fs/promises';
 
-async function loadSvgs(paths: string[]): Promise<[string, SVGResult]>[] {
-	const svgLoader = new SVGLoader();
+function loadSvgs(paths: string[]): Promise<[string, string | undefined]>[] {
+	//const svgLoader = new SVGLoader();
 	console.log('pieces paths:', paths);
 
 	const svgFilePromises: Promise<[string, string | undefined]>[] = paths.map<Promise<[string, string | undefined]>>(svgPath => {
@@ -19,13 +19,14 @@ async function loadSvgs(paths: string[]): Promise<[string, SVGResult]>[] {
 				});
 		});
 	});
-	const svgFiles: Promise<[string, string | undefined][]> = Promise.all(svgFilePromises)
-	const svgResults: [string, SVGResult][] = svgFiles
-		.filter(x => x[1] !== undefined)
-		.map(fileTuple => [fileTuple[0], svgLoader.parse(fileTuple[1] as string)]);
-	//console.log({ svgFiles });
+	return svgFilePromises;
+	//const svgFiles: [string, string | undefined][] = await Promise.all(svgFilePromises)
+	//const svgResults: [string, SVGResult][] = svgFiles
+	//	.filter(x => x[1] !== undefined)
+	//	.map(fileTuple => [fileTuple[0], svgLoader.parse(fileTuple[1] as string)]);
+	////console.log({ svgFiles });
 
-	return svgResults;
+	//return svgResults;
 
 	//const svgs: [string, SVGElement[]] = await paths.map(svgPath => {
 	//	const prms = new Promise((resolve, _) => {
@@ -95,6 +96,13 @@ function prepareSvgGraphicsObjects(
 	return jsonResults;
 }
 
+function doSvgLoaderParsing(svgFileResults: [string, string][]): [string, SVGResult][] {
+	const svgLoader = new SVGLoader();
+	return svgFileResults.map(svgFileTuple => {
+		return [svgFileTuple[0], svgLoader.parse(svgFileTuple[1])];
+	});
+}
+
 async function main(args: string[]): Promise<void> {
 	const scriptDirectory = __dirname;
 	const scriptPath = args[1];
@@ -109,13 +117,23 @@ async function main(args: string[]): Promise<void> {
 	const svgFileNames: string[] = await FS.readdir(svgPath);
 	const svgFilePaths = svgFileNames.map(fn => Path.resolve(svgPath, fn));
 	//processSvgs(svgBasePath);
-	const svgRequestResults: [string, SVGResult][] = await Promise.all(loadSvgs(svgFilePaths)).catch(e => {
+	const svgRequestResults: [string, string | undefined][] = await Promise.all(loadSvgs(svgFilePaths)).catch(e => {
 		console.error(`svg loading promise error:`, e)
 		return [];
 	});
+	const svgRequestResultsSuccess = svgRequestResults.filter(x => x[1] !== undefined) as [string, string][];
+
+	const svgLoaderParseResults: [string, SVGResult][] = doSvgLoaderParsing(svgRequestResultsSuccess);
+
+	//const svgFiles: [string, string | undefined][] = await Promise.all(svgFilePromises)
+	//const svgResults: [string, SVGResult][] = svgFiles
+	//	.filter(x => x[1] !== undefined)
+	//	.map(fileTuple => [fileTuple[0], svgLoader.parse(fileTuple[1] as string)]);
+	////console.log({ svgFiles });
 	//console.log(svgRequestResults);
-	const jsonResults = svgRequestResults.map(reqResult =>
-		prepareSvgGraphicsObjects(reqResult[1].paths));
+
+	const jsonResults = svgLoaderParseResults.map(reqResult =>
+		[reqResult[0], prepareSvgGraphicsObjects(reqResult[1].paths)]);
 	console.log(jsonResults);
 }
 

@@ -21637,21 +21637,16 @@ function mergeBufferAttributes(attributes) {
 var Path2 = __toESM(require("path"), 1);
 var FS = __toESM(require("node:fs/promises"), 1);
 function loadSvgs(paths) {
-  return __async(this, null, function* () {
-    const svgLoader = new SVGLoader();
-    console.log("pieces paths:", paths);
-    const svgFilePromises = paths.map((svgPath) => {
-      return new Promise((res, rej) => {
-        FS.readFile(svgPath, { encoding: "utf-8" }).then((fileContents) => res([svgPath, fileContents])).catch((e) => {
-          console.error(e);
-          rej([svgPath, void 0]);
-        });
+  console.log("pieces paths:", paths);
+  const svgFilePromises = paths.map((svgPath) => {
+    return new Promise((res, rej) => {
+      FS.readFile(svgPath, { encoding: "utf-8" }).then((fileContents) => res([svgPath, fileContents])).catch((e) => {
+        console.error(e);
+        rej([svgPath, void 0]);
       });
     });
-    const svgFiles = yield Promise.all(svgFilePromises);
-    console.log({ svgFiles });
-    return [];
   });
+  return svgFilePromises;
 }
 function prepareSvgGraphicsObjects(paths) {
   const jsonResults = [];
@@ -21678,6 +21673,12 @@ function prepareSvgGraphicsObjects(paths) {
   }
   return jsonResults;
 }
+function doSvgLoaderParsing(svgFileResults) {
+  const svgLoader = new SVGLoader();
+  return svgFileResults.map((svgFileTuple) => {
+    return [svgFileTuple[0], svgLoader.parse(svgFileTuple[1])];
+  });
+}
 function main(args) {
   return __async(this, null, function* () {
     const scriptDirectory = __dirname;
@@ -21695,7 +21696,9 @@ function main(args) {
       console.error(`svg loading promise error:`, e);
       return [];
     });
-    const jsonResults = svgRequestResults.map((reqResult) => prepareSvgGraphicsObjects(reqResult[1].paths));
+    const svgRequestResultsSuccess = svgRequestResults.filter((x) => x[1] !== void 0);
+    const svgLoaderParseResults = doSvgLoaderParsing(svgRequestResultsSuccess);
+    const jsonResults = svgLoaderParseResults.map((reqResult) => [reqResult[0], prepareSvgGraphicsObjects(reqResult[1].paths)]);
     console.log(jsonResults);
   });
 }
