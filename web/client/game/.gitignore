@@ -3,3 +3,4 @@
 test_main.js
 test_main.js.map
 shogi-pieces
+build_svgs.cjs
