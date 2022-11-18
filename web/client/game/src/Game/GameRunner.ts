@@ -209,7 +209,7 @@ export class GameRunner implements IEventQueueListener {
 			return fetch(requestInfo[1]).then(response => response.blob()).then((blob) => [requestInfo[0], blob]);
 		})
 		const textures: [string, Blob][] = await Promise.all(textureRequests);
-		console.log('texture loading over');
+		//console.log('texture loading over');
 
 		const fileReaderResults: [string, string | ArrayBuffer | null][] = await Promise.all(textures.map((textureResult) => {
 			const rawBlob = textureResult[1];
@@ -276,8 +276,7 @@ export class GameRunner implements IEventQueueListener {
 			return [];
 		});
 		const measurePieceSizeVector = new Vector3();
-		//TODO too slow -> can you serialize the threejs objects? that way this loop doesn't need to run every game
-		//I confirmed that this is really slow on both of my machines, something needs done
+
 		const svgObjects: [string, Group][] = measureTime(() => {
 			return svgRequestResults.map(filenameSvgResult => {
 				const svgName = filenameSvgResult[0];
@@ -287,11 +286,6 @@ export class GameRunner implements IEventQueueListener {
 				const group = new Group();
 				group.name = "svg_piece_group";
 				group.add(prebakedObject);
-
-				//measureTime(
-				//	() => this.prepareSvgGraphicsObjects(group, paths),
-				//	time => console.log(`loop time:${time}, piece:${filenameSvgResult[0]}`)
-				//);
 
 				//we need the SVGS to have their own local space
 				//so that we can convert from the svg coord space to the gl coord space
@@ -368,46 +362,52 @@ export class GameRunner implements IEventQueueListener {
 	* TODO this is really really slow
 	* need to turn the svgs into serialized threejs meshes somehow that can be
 	* cached by the browser
+	* I "baked" the svgs into JSON-serialized threejs objects
+	* so that this processing no longer needs to occur in the browser
+	* look at BakeSvgs.ts
+	* you will need to copy the json files into the django static folder
+	* and run collect statick in the docker container for the client to be able to find
+	* the serialized pieces
 	**/
-	private prepareSvgGraphicsObjects(
-		insertGroup: Group,
-		paths: SVGResultPaths[]
-	) {
-		//copy pasted this from the threejs svgloader example
-		for (let i = 0; i < paths.length; i++) {
+	//private prepareSvgGraphicsObjects(
+	//	insertGroup: Group,
+	//	paths: SVGResultPaths[]
+	//) {
+	//	//copy pasted this from the threejs svgloader example
+	//	for (let i = 0; i < paths.length; i++) {
 
-			const path = paths[ i ];
+	//		const path = paths[ i ];
 
-			const material = new MeshBasicMaterial( {
-				color: path.color,
-				side: DoubleSide,
-				//I was debugging why the pieces were drawn behind the board,
-				//and it was because this code that I pasted from the example
-				//was setting depthWrite to false...
-				depthWrite: true
-			} );
+	//		const material = new MeshBasicMaterial( {
+	//			color: path.color,
+	//			side: DoubleSide,
+	//			//I was debugging why the pieces were drawn behind the board,
+	//			//and it was because this code that I pasted from the example
+	//			//was setting depthWrite to false...
+	//			depthWrite: true
+	//		} );
 
-			const shapes = SVGLoader.createShapes( path );
-			const geometries = [];
+	//		const shapes = SVGLoader.createShapes( path );
+	//		const geometries = [];
 
-			for (let j = 0;j < shapes.length;j++) {
-				const shape = shapes[ j ];
-				const geometry = new ShapeGeometry( shape );
-				geometries.push(geometry);
-				//const mesh = new Mesh( geometry, material );
-				//group.add( mesh );
-			}
-			//merge the geometries into one geometry, and then
-			//make one mesh instead of several hundred for HUGE
-			//performance boost when the object needs to be cloned
-			//it drastically reduces # of sub objects
-			const mergedGeometry = mergeBufferGeometries(
-				geometries
-			);
-			const mergedMesh = new Mesh(mergedGeometry, material);
-			insertGroup.add(mergedMesh);
-		}
-	}
+	//		for (let j = 0;j < shapes.length;j++) {
+	//			const shape = shapes[ j ];
+	//			const geometry = new ShapeGeometry( shape );
+	//			geometries.push(geometry);
+	//			//const mesh = new Mesh( geometry, material );
+	//			//group.add( mesh );
+	//		}
+	//		//merge the geometries into one geometry, and then
+	//		//make one mesh instead of several hundred for HUGE
+	//		//performance boost when the object needs to be cloned
+	//		//it drastically reduces # of sub objects
+	//		const mergedGeometry = mergeBufferGeometries(
+	//			geometries
+	//		);
+	//		const mergedMesh = new Mesh(mergedGeometry, material);
+	//		insertGroup.add(mergedMesh);
+	//	}
+	//}
 
 	public setResizeHandlers(): void {
 		const gameThis = this;
@@ -478,28 +478,16 @@ export class GameRunner implements IEventQueueListener {
 		return piecesPaths;
 	}
 
-	//public loadSvgs(boardAndPiecesSvgSetting: SvgLoadConfig): Promise<[string, SVGResult]>[] {
 	public loadSvgs(boardAndPiecesSvgSetting: SvgLoadConfig): Promise<[string, Object3D]>[] {
-		//const svgLoader = new SVGLoader();
 		const objectLoader = new ObjectLoader();
-		//append the subpaths to the root svg lookup path
 
 		const piecesPaths = this.getPiecesPaths(
 			boardAndPiecesSvgSetting.rootDir,
 			boardAndPiecesSvgSetting.pieceSet.setFolderName,
 			'.json',
 		);
-		console.log('pieces paths:', piecesPaths);
 
-		//I had to run the shogi-tool.sh p2x function to change the filenames
-		//into more a more readable standard (xboard)
-		//TODO this code looks pointless, just use piecesPaths?
-		const svgsToLoad = piecesPaths;
-		//const svgsToLoad: [string, string][] = [
-		//	...piecesPaths,
-		//	//the filename for the silver is 'advisor' for some reason
-		//];
-		const svgLoadPromises = svgsToLoad.map(svgPath => new Promise<[string, Object3D]>((resolve, _) => {
+		const svgLoadPromises = piecesPaths.map(svgPath => new Promise<[string, Object3D]>((resolve, _) => {
 			const pieceName: string = svgPath[0];
 			objectLoader.load(
 				svgPath[1],
@@ -510,19 +498,7 @@ export class GameRunner implements IEventQueueListener {
 					return [pieceName, new Object3D()];
 				}
 			);
-			//svgLoader.load(
-			//	svgPath[1],
-			//	(data) => resolve([pieceName, data])
-			//);
 		})) as Promise<[string, Object3D]>[];
-
-		//const svgLoadPromises = svgsToLoad.map(svgPath => new Promise<[string, SVGResult]>((resolve, _) => {
-		//	const pieceName: string = svgPath[0];
-		//	svgLoader.load(
-		//		svgPath[1],
-		//		(data) => resolve([pieceName, data])
-		//	);
-		//})) as Promise<[string, SVGResult]>[];
 
 		return svgLoadPromises;
 	}
