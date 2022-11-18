@@ -1,9 +1,13 @@
-import { DoubleSide, Mesh, MeshBasicMaterial, ShapeGeometry } from "three";
+import { DoubleSide, Group, Mesh, MeshBasicMaterial, ShapeGeometry } from "three";
 import { SVGLoader, SVGResult, SVGResultPaths } from "three/examples/jsm/loaders/SVGLoader.js";
 import { mergeBufferGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 //import { measureTime } from "../../utils/Performance";
 import * as Path from 'path';
 import * as FS from 'node:fs/promises';
+
+import { JSDOM } from "jsdom";
+
+global.DOMParser = new JSDOM().window.DOMParser;
 
 function loadSvgs(paths: string[]): Promise<[string, string | undefined]>[] {
 	//const svgLoader = new SVGLoader();
@@ -56,9 +60,11 @@ function loadSvgs(paths: string[]): Promise<[string, string | undefined]>[] {
 **/
 function prepareSvgGraphicsObjects(
 	paths: SVGResultPaths[]
-) {
-	const jsonResults = [];
+): string {
+	let jsonResults: string = "";
+	const group = new Group();
 	//copy pasted this from the threejs svgloader example
+	//I think in practice this loop only runs once
 	for (let i = 0; i < paths.length; i++) {
 
 		const path = paths[ i ];
@@ -90,9 +96,18 @@ function prepareSvgGraphicsObjects(
 			geometries
 		);
 		const mergedMesh = new Mesh(mergedGeometry, material);
-		const json = mergedMesh.toJSON();
-		jsonResults.push(json);
+		//const json = mergedMesh.toJSON();
+		////jsonResults.push(json);
+		//jsonResults = json;
+		//if (i > 0) {
+		//	console.warn('I thought this loop only ran once');
+		//}
+		group.add(mergedMesh);
 	}
+	jsonResults = JSON.stringify(group.toJSON());
+	//if (jsonResults === "") {
+	//	console.error('prepareGraphicsObjects, empty json');
+	//}
 	return jsonResults;
 }
 
@@ -132,9 +147,16 @@ async function main(args: string[]): Promise<void> {
 	////console.log({ svgFiles });
 	//console.log(svgRequestResults);
 
-	const jsonResults = svgLoaderParseResults.map(reqResult =>
+	const jsonResults: [string, string][] = svgLoaderParseResults.map(reqResult =>
 		[reqResult[0], prepareSvgGraphicsObjects(reqResult[1].paths)]);
 	console.log(jsonResults);
+	jsonResults.forEach(async (res) => {
+		const saveJsonPath = res[0].replace('.svg', '.json');
+		console.log({ saveJsonPath });
+		//const fh = await FS.open(saveJsonPath);
+		//await fh.appendFile(res[1]);
+		await FS.appendFile(saveJsonPath, res[1]);
+	});
 }
 
 main(process.argv);

@@ -1,4 +1,4 @@
-import { Box2, Box3, BoxBufferGeometry, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry,  Texture,  Vector3, WebGLRenderer } from "three";
+import { Box2, Box3, BoxBufferGeometry, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, ObjectLoader, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry,  Texture,  Vector3, WebGLRenderer } from "three";
 import { mergeBufferGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { SVGLoader, SVGResult, SVGResultPaths } from "three/examples/jsm/loaders/SVGLoader.js";
 import { Font, FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
@@ -270,7 +270,8 @@ export class GameRunner implements IEventQueueListener {
 			);
 		});
 
-		const svgRequestResults: [string, SVGResult][] = await Promise.all(this.loadSvgs(boardAndPiecesSvgSetting)).catch(e => {
+		const svgRequestResults: [string, Object3D][] = await Promise.all(this.loadSvgs(boardAndPiecesSvgSetting)).catch(e => {
+		//const svgRequestResults: [string, SVGResult][] = await Promise.all(this.loadSvgs(boardAndPiecesSvgSetting)).catch(e => {
 			console.error(`svg loading promise error:`, e);
 			return [];
 		});
@@ -280,15 +281,17 @@ export class GameRunner implements IEventQueueListener {
 		const svgObjects: [string, Group][] = measureTime(() => {
 			return svgRequestResults.map(filenameSvgResult => {
 				const svgName = filenameSvgResult[0];
-				const data = filenameSvgResult[1];
-				const paths = data.paths;
+				const prebakedObject = filenameSvgResult[1];
+				//const data = filenameSvgResult[1];
+				//const paths = data.paths;
 				const group = new Group();
 				group.name = "svg_piece_group";
+				group.add(prebakedObject);
 
-				measureTime(
-					() => this.prepareSvgGraphicsObjects(group, paths),
-					time => console.log(`loop time:${time}, piece:${filenameSvgResult[0]}`)
-				);
+				//measureTime(
+				//	() => this.prepareSvgGraphicsObjects(group, paths),
+				//	time => console.log(`loop time:${time}, piece:${filenameSvgResult[0]}`)
+				//);
 
 				//we need the SVGS to have their own local space
 				//so that we can convert from the svg coord space to the gl coord space
@@ -442,51 +445,84 @@ export class GameRunner implements IEventQueueListener {
 
 	private formImagePath = (pathParts: string[]) => pathParts.join('/');
 
-	public loadSvgs(boardAndPiecesSvgSetting: SvgLoadConfig): Promise<[string, SVGResult]>[] {
-		const svgLoader = new SVGLoader();
-		//append the subpaths to the root svg lookup path
-
+	private getPiecesPaths(
+		rootDir: string,
+		pieceSetFolder: string,
+		fileExtension: string = '.svg',
+	): [string, string][] {
 		const piecesPaths: [string, string][] = [
-			["silver", "BlackAdvisor.svg"],
-			["bishop", "BlackBishop.svg"],
-			["bishop+", "BlackCrownedBishop.svg"],
-			["rook", "BlackRook.svg"],
-			["rook+", "BlackCrownedRook.svg"],
-			["gold", "BlackGold.svg"],
-			["lance", "BlackLance.svg"],
-			["lance+", "BlackGoldLance.svg"],
-			["goldlance", "BlackGoldLance.svg"],
-			["pawn", "BlackPawn.svg"],
-			["pawn+", "BlackGoldPawn.svg"],
-			["silver+", "BlackGoldSilver.svg"],
-			["knight", "BlackKnight.svg"],
-			["knight+", "BlackGoldKnight.svg"],
-			["king", "BlackKing.svg"],
+			["silver", "BlackAdvisor"],
+			["bishop", "BlackBishop"],
+			["bishop+", "BlackCrownedBishop"],
+			["rook", "BlackRook"],
+			["rook+", "BlackCrownedRook"],
+			["gold", "BlackGold"],
+			["lance", "BlackLance"],
+			["lance+", "BlackGoldLance"],
+			["goldlance", "BlackGoldLance"],
+			["pawn", "BlackPawn"],
+			["pawn+", "BlackGoldPawn"],
+			["silver+", "BlackGoldSilver"],
+			["knight", "BlackKnight"],
+			["knight+", "BlackGoldKnight"],
+			["king", "BlackKing"],
 		].map(pieceTuple => [
 			pieceTuple[0],
 			this.formImagePath([
-				boardAndPiecesSvgSetting.rootDir,
-				boardAndPiecesSvgSetting.pieceSet.setFolderName,
-				pieceTuple[1]
+				rootDir,
+				pieceSetFolder,
+				pieceTuple[1] + fileExtension,
 			])
 		]);
+
+		return piecesPaths;
+	}
+
+	//public loadSvgs(boardAndPiecesSvgSetting: SvgLoadConfig): Promise<[string, SVGResult]>[] {
+	public loadSvgs(boardAndPiecesSvgSetting: SvgLoadConfig): Promise<[string, Object3D]>[] {
+		//const svgLoader = new SVGLoader();
+		const objectLoader = new ObjectLoader();
+		//append the subpaths to the root svg lookup path
+
+		const piecesPaths = this.getPiecesPaths(
+			boardAndPiecesSvgSetting.rootDir,
+			boardAndPiecesSvgSetting.pieceSet.setFolderName,
+			'.json',
+		);
 		console.log('pieces paths:', piecesPaths);
 
 		//I had to run the shogi-tool.sh p2x function to change the filenames
 		//into more a more readable standard (xboard)
 		//TODO this code looks pointless, just use piecesPaths?
-		const svgsToLoad: [string, string][] = [
-			...piecesPaths,
-			//the filename for the silver is 'advisor' for some reason
-		];
-
-		const svgLoadPromises = svgsToLoad.map(svgPath => new Promise<[string, SVGResult]>((resolve, _) => {
+		const svgsToLoad = piecesPaths;
+		//const svgsToLoad: [string, string][] = [
+		//	...piecesPaths,
+		//	//the filename for the silver is 'advisor' for some reason
+		//];
+		const svgLoadPromises = svgsToLoad.map(svgPath => new Promise<[string, Object3D]>((resolve, _) => {
 			const pieceName: string = svgPath[0];
-			svgLoader.load(
+			objectLoader.load(
 				svgPath[1],
-				(data) => resolve([pieceName, data])
+				(data) => resolve([pieceName, data]),
+				undefined,
+				(err) => {
+					console.error(err);
+					return [pieceName, new Object3D()];
+				}
 			);
-		})) as Promise<[string, SVGResult]>[];
+			//svgLoader.load(
+			//	svgPath[1],
+			//	(data) => resolve([pieceName, data])
+			//);
+		})) as Promise<[string, Object3D]>[];
+
+		//const svgLoadPromises = svgsToLoad.map(svgPath => new Promise<[string, SVGResult]>((resolve, _) => {
+		//	const pieceName: string = svgPath[0];
+		//	svgLoader.load(
+		//		svgPath[1],
+		//		(data) => resolve([pieceName, data])
+		//	);
+		//})) as Promise<[string, SVGResult]>[];
 
 		return svgLoadPromises;
 	}

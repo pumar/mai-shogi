@@ -21636,6 +21636,8 @@ function mergeBufferAttributes(attributes) {
 // src/Game/tools/BakeSvgs.ts
 var Path2 = __toESM(require("path"), 1);
 var FS = __toESM(require("node:fs/promises"), 1);
+var import_jsdom = require("jsdom");
+global.DOMParser = new import_jsdom.JSDOM().window.DOMParser;
 function loadSvgs(paths) {
   console.log("pieces paths:", paths);
   const svgFilePromises = paths.map((svgPath) => {
@@ -21649,7 +21651,8 @@ function loadSvgs(paths) {
   return svgFilePromises;
 }
 function prepareSvgGraphicsObjects(paths) {
-  const jsonResults = [];
+  let jsonResults = "";
+  const group = new Group();
   for (let i = 0; i < paths.length; i++) {
     const path = paths[i];
     const material = new MeshBasicMaterial({
@@ -21668,9 +21671,9 @@ function prepareSvgGraphicsObjects(paths) {
       geometries
     );
     const mergedMesh = new Mesh(mergedGeometry, material);
-    const json = mergedMesh.toJSON();
-    jsonResults.push(json);
+    group.add(mergedMesh);
   }
+  jsonResults = JSON.stringify(group.toJSON());
   return jsonResults;
 }
 function doSvgLoaderParsing(svgFileResults) {
@@ -21700,6 +21703,11 @@ function main(args) {
     const svgLoaderParseResults = doSvgLoaderParsing(svgRequestResultsSuccess);
     const jsonResults = svgLoaderParseResults.map((reqResult) => [reqResult[0], prepareSvgGraphicsObjects(reqResult[1].paths)]);
     console.log(jsonResults);
+    jsonResults.forEach((res) => __async(this, null, function* () {
+      const saveJsonPath = res[0].replace(".svg", ".json");
+      console.log({ saveJsonPath });
+      yield FS.appendFile(saveJsonPath, res[1]);
+    }));
   });
 }
 main(process.argv);

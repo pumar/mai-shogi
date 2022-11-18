@@ -6,4 +6,5 @@ esbuild.build({
 	outfile: "build_svgs.cjs",
 	platform: 'node',
 	sourcemap: false,
+	external: ["canvas", "jsdom"],
 }).catch((_) => process.exit(1));
