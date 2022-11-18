@@ -24,6 +24,12 @@ function loadSvgs(paths: string[]): Promise<[string, string | undefined]>[] {
 	return svgFilePromises;
 }
 
+/** Ideas to make the JSON smaller:
+* re-use the MeshBasicMaterials, cache them based on the color attribute 
+* load all of the piece Object3Ds into one group (give them names or ids)
+* then turn that group into JSON, so that only one JSON file needs to be pulled from the server
+* and they can share materials & geometries better
+**/
 /**
 * this is really slow in the browser and turning the piece svgs into 
 * threesj objects takes like 3 seconds per game load
