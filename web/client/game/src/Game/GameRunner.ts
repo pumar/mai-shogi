@@ -1,4 +1,4 @@
-import { Box2, Box3, BoxBufferGeometry, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, ObjectLoader, OrthographicCamera, PlaneGeometry, Scene, ShapeGeometry,  Texture,  Vector3, WebGLRenderer } from "three";
+import { Box2, Box3, BoxBufferGeometry, BufferGeometry, Camera, Color, DoubleSide, Group, LineSegments, Material, Mesh, MeshBasicMaterial, Object3D, ObjectLoader, OrthographicCamera, PlaneGeometry, RepeatWrapping, Scene, ShapeGeometry,  Texture,  Vector3, WebGLRenderer } from "three";
 import { mergeBufferGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { SVGLoader, SVGResult, SVGResultPaths } from "three/examples/jsm/loaders/SVGLoader.js";
 import { Font, FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
@@ -227,31 +227,32 @@ export class GameRunner implements IEventQueueListener {
 		//TODO the texture is black. If the image is appended to the DOM, it looks fine
 		//can't tell if it's an asynchronous issue, or a problem with the way
 		//the texture is setup
-		//const textureAssignPromises = fileReaderResults.map((result: [string, string | ArrayBuffer | null]) => {
-		//	console.log("fileReaderResult, base64 encoding", result);
-		//	if (typeof result[1] !== "string") {
-		//		throw new Error('could not convert png file to an image tag src');
-		//	}
-		//	const imageTag = document.createElement("img");
-		//	//for debugging
-		//	document.body.appendChild(imageTag);
-		//	const srcAssignPromise = new Promise<void>((resolve, reject) => {
-		//		imageTag.onload = () => {
-		//			console.log("image src assignment is over");
-		//			resolve();
-		//		};
-		//		imageTag.onerror = (e) => {
-		//			console.error(`error loading tile texture`, e);
-		//			reject();
-		//		}
-		//	}).then(() => {
-		//		this.images[result[0]] = imageTag;
-		//	});
-		//	imageTag.src = result[1] as string;
-		//	return srcAssignPromise;
-		//});
-		//await Promise.all(textureAssignPromises);
-		//console.log("done waiting for texture file reader results");
+		const textureAssignPromises = fileReaderResults.map((result: [string, string | ArrayBuffer | null]) => {
+			console.log("fileReaderResult, base64 encoding", result);
+			if (typeof result[1] !== "string") {
+				throw new Error('could not convert png file to an image tag src');
+			}
+			const imageTag = document.createElement("img");
+			const srcAssignPromise = new Promise<void>((resolve, reject) => {
+				imageTag.src = result[1] as string;
+				imageTag.onload = () => {
+					console.log("image src assignment is over");
+					//for debugging
+					//document.body.appendChild(imageTag);
+					resolve();
+				};
+				imageTag.onerror = (e) => {
+					console.error(`error loading tile texture`, e);
+					reject();
+				}
+			}).then(() => {
+				this.images[result[0]] = imageTag;
+			});
+			//imageTag.src = result[1] as string;
+			return srcAssignPromise;
+		});
+		await Promise.all(textureAssignPromises);
+		console.log("done waiting for texture file reader results");
 
 		const fontLoader = new FontLoader();
 		const loadFontFullPath = [fontLoadingPath, defaultFontFileName].join('/');
@@ -858,27 +859,29 @@ export class GameRunner implements IEventQueueListener {
 		boardWidth: number,
 		boardHeight: number
 	): void {
-		console.warn("draw board");
-		//TODO make the tile texture properly fit into each square of the board
 		const boardGeometry = new PlaneGeometry(boardWidth, boardHeight);
-		const boardTexture = this.images["tile_texture"];
-		if (boardTexture === undefined) {
-			//until I figure out why the texture is not working,
-			//just print an error to the console instead of crashing
-			//throw new Error(`draw board, no space texture`);
-			console.error(`draw board, no space texture`);
+		const boardImage = this.images["tile_texture"];
+		let boardMaterial: MeshBasicMaterial;
+		//if the texture doesn't exist, default the board to a red-ish color
+		if (boardImage === undefined) {
+			console.warn(`draw board, no space texture`);
+			boardMaterial = new MeshBasicMaterial({
+				color: new Color(1, 0, 0),
+				transparent: true,
+				opacity: 0.25,
+			});
+		} else {
+			const texture: Texture = new Texture(boardImage);
+			texture.wrapS = RepeatWrapping;
+			texture.wrapT = RepeatWrapping;
+			//without doing this, the texture will remain black
+			texture.needsUpdate = true;
+			boardMaterial = new MeshBasicMaterial({
+				map: texture,
+				side: DoubleSide,
+				transparent: false,
+			});
 		}
-		//TODO 2020-09-28 still black despite debugging efforts...
-		//const boardMaterial = new MeshBasicMaterial({
-		//	map: new Texture(boardTexture),
-		//	side: DoubleSide,
-		//	transparent: false,
-		//});
-		const boardMaterial = new MeshBasicMaterial({
-			color: new Color(1, 0, 0),
-			transparent: true,
-			opacity: 0.25,
-		});
 
 		const boardMesh = new Mesh(boardGeometry, boardMaterial);
 
