@@ -112,14 +112,15 @@ function doSvgLoaderParsing(svgFileResults: [string, string][]): [string, SVGRes
 }
 
 async function main(args: string[]): Promise<void> {
-	if (args.length < 3) {
-		console.error('must specify target directory at command line');
+	if (args.length < 4) {
+		console.error('must specify target directory at command line: node bake_svgs.cjs targetSvgDirPath saveJsonDirPath');
 		return;
 	}
 	//const scriptDirectory = __dirname;
 	//const scriptPath = args[1];
 	const svgBasePath = args[2];
 	const targetDirectoryAbsPath = Path.resolve(svgBasePath);
+	const targetDirectorySavePath = Path.resolve(args[3]);
 	console.log({ svgBasePath, targetDirectoryAbsPath });
 	const svgPath = targetDirectoryAbsPath;
 	const svgFileNames: string[] = await FS.readdir(svgPath);
@@ -136,7 +137,9 @@ async function main(args: string[]): Promise<void> {
 		[reqResult[0], prepareSvgGraphicsObjects(reqResult[1].paths)]);
 	//console.log(jsonResults);
 	jsonResults.forEach(async (res) => {
-		const saveJsonPath = res[0].replace('.svg', '.json');
+		//const saveJsonPath = res[0].replace('.svg', '.json');
+		const fileName = Path.basename(res[0]).replace('.svg', '.json');
+		const saveJsonPath = Path.join(targetDirectorySavePath, fileName);
 		//console.log({ saveJsonPath });
 		await FS.writeFile(saveJsonPath, res[1]);
 	});
