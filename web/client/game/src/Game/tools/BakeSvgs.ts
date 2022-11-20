@@ -1,4 +1,4 @@
-import { DoubleSide, Group, Mesh, MeshBasicMaterial, ShapeGeometry } from "three";
+import { Color, DoubleSide, Group, Mesh, MeshBasicMaterial, ShapeGeometry } from "three";
 import { SVGLoader, SVGResult, SVGResultPaths } from "three/examples/jsm/loaders/SVGLoader.js";
 import { mergeBufferGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import * as Path from 'path';
@@ -22,6 +22,21 @@ function loadSvgs(paths: string[]): Promise<[string, string | undefined]>[] {
 		});
 	});
 	return svgFilePromises;
+}
+
+const materialCache: Map<number, MeshBasicMaterial> = new Map();
+function getPathMaterial(pathColor: Color): MeshBasicMaterial {
+	if (materialCache.has(pathColor.getHex())) {
+		return materialCache.get(pathColor.getHex()) as MeshBasicMaterial;
+	} else {
+		const newMaterial = new MeshBasicMaterial({
+			color: pathColor,
+			side: DoubleSide,
+			depthWrite: true
+		});
+		materialCache.set(pathColor.getHex(), newMaterial);
+		return newMaterial;
+	}
 }
 
 /** Ideas to make the JSON smaller:
@@ -49,14 +64,7 @@ function prepareSvgGraphicsObjects(
 
 		const path = paths[ i ];
 
-		const material = new MeshBasicMaterial( {
-			color: path.color,
-			side: DoubleSide,
-			//I was debugging why the pieces were drawn behind the board,
-			//and it was because this code that I pasted from the example
-			//was setting depthWrite to false...
-			depthWrite: true
-		} );
+		const material = getPathMaterial(path.color);
 
 		const shapes = SVGLoader.createShapes( path );
 		const geometries = [];
@@ -88,14 +96,18 @@ function doSvgLoaderParsing(svgFileResults: [string, string][]): [string, SVGRes
 }
 
 async function main(args: string[]): Promise<void> {
+	if (args.length < 3) console.error('must specify target directory at command line');
 	const scriptDirectory = __dirname;
 	const scriptPath = args[1];
 	const svgBasePath = args[2];
-	const svgPath = Path.resolve(
-		scriptDirectory,
-		'shogi-pieces',
-		'kanji_red_wood',
-	);
+	const targetDirectoryAbsPath = Path.resolve(svgBasePath);
+	console.log({ svgBasePath, targetDirectoryAbsPath });
+	//const svgPath = Path.resolve(
+	//	scriptDirectory,
+	//	'shogi-pieces',
+	//	'kanji_red_wood',
+	//);
+	const svgPath = svgBasePath;
 	console.log({ scriptDirectory, scriptPath, svgBasePath, svgPath });
 	const svgFileNames: string[] = await FS.readdir(svgPath);
 	const svgFilePaths = svgFileNames.map(fn => Path.resolve(svgPath, fn));
