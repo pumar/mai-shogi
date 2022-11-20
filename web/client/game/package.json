@@ -9,7 +9,8 @@
     "check": "npx tsc --noEmit",
     "test": "npx jest",
     "run": "node esbuild",
-    "build_svg_baker": "node esbuild_svg_tool"
+    "build_svg_baker": "node esbuild_svg_tool",
+	"build_game_assets": "node build_svgs.cjs ./game_raw_assets/kanji_red_wood ./game_assets"
   },
   "author": "",
   "license": "MIT",

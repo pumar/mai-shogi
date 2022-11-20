@@ -1,4 +1,4 @@
-import { DoubleSide, Group, Mesh, MeshBasicMaterial, ShapeGeometry } from "three";
+import { BufferGeometry, Color, DoubleSide, Group, Mesh, MeshBasicMaterial, Object3D, ShapeGeometry } from "three";
 import { SVGLoader, SVGResult, SVGResultPaths } from "three/examples/jsm/loaders/SVGLoader.js";
 import { mergeBufferGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import * as Path from 'path';
@@ -24,12 +24,29 @@ function loadSvgs(paths: string[]): Promise<[string, string | undefined]>[] {
 	return svgFilePromises;
 }
 
+//these material cache is used by several pieces
+const materialCache: Map<number, MeshBasicMaterial> = new Map();
+function getPathMaterial(pathColor: Color): MeshBasicMaterial {
+	if (materialCache.has(pathColor.getHex())) {
+		return materialCache.get(pathColor.getHex()) as MeshBasicMaterial;
+	} else {
+		const newMaterial = new MeshBasicMaterial({
+			color: pathColor,
+			side: DoubleSide,
+			depthWrite: true
+		});
+		materialCache.set(pathColor.getHex(), newMaterial);
+		return newMaterial;
+	}
+}
+
 /** Ideas to make the JSON smaller:
 * re-use the MeshBasicMaterials, cache them based on the color attribute 
 * load all of the piece Object3Ds into one group (give them names or ids)
 * then turn that group into JSON, so that only one JSON file needs to be pulled from the server
 * and they can share materials & geometries better
 **/
+type ObjectCreationInfo = { material: MeshBasicMaterial; geoms: BufferGeometry[]; };
 /**
 * this is really slow in the browser and turning the piece svgs into 
 * threesj objects takes like 3 seconds per game load
@@ -43,20 +60,16 @@ function prepareSvgGraphicsObjects(
 ): string {
 	let jsonResults: string = "";
 	const group = new Group();
+
+	const objectCreationMap: Map<number, ObjectCreationInfo> = new Map();
 	//copy pasted this from the threejs svgloader example
-	//I think in practice this loop only runs once
+	//and then modified it to reuse materials and to join geometries
+	//const pathColorGeometryMap: Map<number, BufferGeometry[]> = new Map();
 	for (let i = 0; i < paths.length; i++) {
 
 		const path = paths[ i ];
 
-		const material = new MeshBasicMaterial( {
-			color: path.color,
-			side: DoubleSide,
-			//I was debugging why the pieces were drawn behind the board,
-			//and it was because this code that I pasted from the example
-			//was setting depthWrite to false...
-			depthWrite: true
-		} );
+		const material = getPathMaterial(path.color);
 
 		const shapes = SVGLoader.createShapes( path );
 		const geometries = [];
@@ -66,16 +79,27 @@ function prepareSvgGraphicsObjects(
 			const geometry = new ShapeGeometry( shape );
 			geometries.push(geometry);
 		}
-		//merge the geometries into one geometry, and then
-		//make one mesh instead of several hundred for HUGE
-		//performance boost when the object needs to be cloned
-		//it drastically reduces # of sub objects
-		const mergedGeometry = mergeBufferGeometries(
-			geometries
-		);
-		const mergedMesh = new Mesh(mergedGeometry, material);
-		group.add(mergedMesh);
+
+		const pathColorKey = path.color.getHex();
+		if (objectCreationMap.has(pathColorKey)) {
+			(objectCreationMap.get(pathColorKey) as ObjectCreationInfo).geoms.push(...geometries);
+		} else {
+			objectCreationMap.set(pathColorKey, {
+				material,
+				geoms: geometries,
+			});
+		}
 	}
+	const mergedMeshes: Mesh[] = [...objectCreationMap.values()].map((info: ObjectCreationInfo) => {
+		const material = info.material;
+		const mergedMesh = new Mesh(mergeBufferGeometries(info.geoms), material);
+		return mergedMesh;
+	});
+	const failedMeshes = mergedMeshes.filter(x => x === null || x === undefined);
+	if (failedMeshes.length > 0) {
+		console.error(`undefined threejs objs:${failedMeshes.length}`);
+	}
+	group.add(...mergedMeshes);
 	jsonResults = JSON.stringify(group.toJSON());
 	return jsonResults;
 }
@@ -88,15 +112,17 @@ function doSvgLoaderParsing(svgFileResults: [string, string][]): [string, SVGRes
 }
 
 async function main(args: string[]): Promise<void> {
-	const scriptDirectory = __dirname;
-	const scriptPath = args[1];
+	if (args.length < 4) {
+		console.error('must specify target directory at command line: node bake_svgs.cjs targetSvgDirPath saveJsonDirPath');
+		return;
+	}
+	//const scriptDirectory = __dirname;
+	//const scriptPath = args[1];
 	const svgBasePath = args[2];
-	const svgPath = Path.resolve(
-		scriptDirectory,
-		'shogi-pieces',
-		'kanji_red_wood',
-	);
-	console.log({ scriptDirectory, scriptPath, svgBasePath, svgPath });
+	const targetDirectoryAbsPath = Path.resolve(svgBasePath);
+	const targetDirectorySavePath = Path.resolve(args[3]);
+	console.log({ svgBasePath, targetDirectoryAbsPath });
+	const svgPath = targetDirectoryAbsPath;
 	const svgFileNames: string[] = await FS.readdir(svgPath);
 	const svgFilePaths = svgFileNames.map(fn => Path.resolve(svgPath, fn));
 	const svgRequestResults: [string, string | undefined][] = await Promise.all(loadSvgs(svgFilePaths)).catch(e => {
@@ -109,11 +135,13 @@ async function main(args: string[]): Promise<void> {
 
 	const jsonResults: [string, string][] = svgLoaderParseResults.map(reqResult =>
 		[reqResult[0], prepareSvgGraphicsObjects(reqResult[1].paths)]);
-	console.log(jsonResults);
+	//console.log(jsonResults);
 	jsonResults.forEach(async (res) => {
-		const saveJsonPath = res[0].replace('.svg', '.json');
-		console.log({ saveJsonPath });
-		await FS.appendFile(saveJsonPath, res[1]);
+		//const saveJsonPath = res[0].replace('.svg', '.json');
+		const fileName = Path.basename(res[0]).replace('.svg', '.json');
+		const saveJsonPath = Path.join(targetDirectorySavePath, fileName);
+		//console.log({ saveJsonPath });
+		await FS.writeFile(saveJsonPath, res[1]);
 	});
 }
 
