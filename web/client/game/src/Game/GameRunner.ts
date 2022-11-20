@@ -222,13 +222,11 @@ export class GameRunner implements IEventQueueListener {
 			});
 			return fileReaderPromise;
 		}));
-		console.log('texture base64 encoding over');
 
 		//TODO the texture is black. If the image is appended to the DOM, it looks fine
 		//can't tell if it's an asynchronous issue, or a problem with the way
 		//the texture is setup
 		const textureAssignPromises = fileReaderResults.map((result: [string, string | ArrayBuffer | null]) => {
-			console.log("fileReaderResult, base64 encoding", result);
 			if (typeof result[1] !== "string") {
 				throw new Error('could not convert png file to an image tag src');
 			}
@@ -248,15 +246,12 @@ export class GameRunner implements IEventQueueListener {
 			}).then(() => {
 				this.images[result[0]] = imageTag;
 			});
-			//imageTag.src = result[1] as string;
 			return srcAssignPromise;
 		});
 		await Promise.all(textureAssignPromises);
-		console.log("done waiting for texture file reader results");
 
 		const fontLoader = new FontLoader();
 		const loadFontFullPath = [fontLoadingPath, defaultFontFileName].join('/');
-		console.log(`loading font from path:${loadFontFullPath}`);
 		const fontPromise: Promise<Font> = new Promise((resolve, reject) => {
 			fontLoader.load(
 				loadFontFullPath,
@@ -1003,7 +998,6 @@ export class GameRunner implements IEventQueueListener {
 		whiteStandCoords: HeldPiecesStand,
 		blackStandCoords: HeldPiecesStand,
 	): void {
-		//TODO this only needs to be done once
 		const whiteStandGroup = standsGroup.getObjectByName(SceneGroups.WhiteStand);
 		const blackStandGroup = standsGroup.getObjectByName(SceneGroups.BlackStand);
 		if(whiteStandGroup === undefined || blackStandGroup === undefined) {
@@ -1025,13 +1019,26 @@ export class GameRunner implements IEventQueueListener {
 			standCoords.height,
 		);
 
-		const material = new MeshBasicMaterial({
-			//map: new Texture(this.images["tile_texture"]),
-			//TODO figure out why the texture is not working
-			color: new Color(0, 1, 0),
-			transparent: true,
-			opacity: 0.25,
-		});
+		const tileImage = this.images["tile_texture"];
+		let material: MeshBasicMaterial;
+		if (tileImage) {
+			const texture = new Texture(tileImage);
+			texture.wrapT = RepeatWrapping;
+			texture.wrapS = RepeatWrapping;
+			texture.needsUpdate = true;
+
+			material = new MeshBasicMaterial({
+				map: texture,
+				side: DoubleSide,
+				transparent: false,
+			});
+		} else {
+			material = new MeshBasicMaterial({
+				color: new Color(0, 1, 0),
+				transparent: true,
+				opacity: 0.25,
+			});
+		}
 
 		const mesh = new Mesh(planeGeometry, material);
 		mesh.position.copy(standCoords.basePoint);
@@ -1202,9 +1209,8 @@ export class GameRunner implements IEventQueueListener {
 
 		if (Array.isArray(userInputResult)) {
 			const moves = userInputResult as Move[];
-			//TODO if a move has no possible moves, you should reject trying to
+			//if a move has no possible moves, reject trying to
 			//select it
-			//no moves for selected piece
 			if (moves.length === 0) {
 				return false;
 			}
