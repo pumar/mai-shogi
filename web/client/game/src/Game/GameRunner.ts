@@ -59,12 +59,9 @@ type PieceGraphicsObject = {
 
 export const getDefaultSvgLoadConfig: () => SvgLoadConfig = () => {
 	return {
-		rootDir: "shogi-pieces",
+		rootDir: "game_assets",
 		board: {
 			tileTextureFilename: "tile_wood1.png",
-		},
-		pieceSet: {
-			setFolderName: "kanji_red_wood",
 		}
 	}
 }
@@ -79,9 +76,6 @@ export type SvgLoadConfig = {
 	rootDir: string;
 	board: {
 		tileTextureFilename: string;
-	};
-	pieceSet: {
-		setFolderName: string;
 	};
 }
 
@@ -196,7 +190,6 @@ export class GameRunner implements IEventQueueListener {
 				"tile_texture",
 				this.formImagePath([
 					boardAndPiecesSvgSetting.rootDir,
-					'boards',
 					boardAndPiecesSvgSetting.board.tileTextureFilename,
 				])
 			]
@@ -443,7 +436,6 @@ export class GameRunner implements IEventQueueListener {
 
 	private getPiecesPaths(
 		rootDir: string,
-		pieceSetFolder: string,
 		fileExtension: string = '.svg',
 	): [string, string][] {
 		const piecesPaths: [string, string][] = [
@@ -466,7 +458,6 @@ export class GameRunner implements IEventQueueListener {
 			pieceTuple[0],
 			this.formImagePath([
 				rootDir,
-				pieceSetFolder,
 				pieceTuple[1] + fileExtension,
 			])
 		]);
@@ -479,7 +470,6 @@ export class GameRunner implements IEventQueueListener {
 
 		const piecesPaths = this.getPiecesPaths(
 			boardAndPiecesSvgSetting.rootDir,
-			boardAndPiecesSvgSetting.pieceSet.setFolderName,
 			'.json',
 		);
 

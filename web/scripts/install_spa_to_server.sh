@@ -20,7 +20,17 @@ cd ..
 
 echo ==build game client==
 pushd client/game
+echo "==build game client (GameRunner)=="
 npm run build
+bail
+echo "==convert svgs to json-serialized threejs objects (copied to game_assets)=="
+npm run build_svg_baker
+bail
+echo "run the svg baker, to serialize the svgs as threejs objects"
+npm run build_game_assets
+bail
+echo "==copy board texture to game_assets=="
+cp game_raw_assets/boards/tile_wood1.png game_assets
 bail
 popd
 
@@ -49,6 +59,15 @@ fi
 cp -r client/game/dist/* $gameClientDest
 bail
 
+echo "==copy game assets to django"
+gameAssetsDest=server/static/game_assets
+if [ ! -d $gameAssetsDest ]; then
+	echo "game assets destination directory ($gameAssetsDest) doesn't exist, making it"
+	mkdir $gameAssetsDest
+fi
+cp -r client/game/game_assets/* $gameAssetsDest
+bail
+
 fontSource=client/game/fonts
 fontDest=server/static/
 echo ==copy fonts from \($fontSource\) to django \($fontDest\)==
@@ -58,3 +77,6 @@ CONTAINER_NAME=server-web-1
 echo ==update container static files==
 echo need sudo to login to $CONTAINER_NAME to run collectstatic
 sudo docker exec -it $CONTAINER_NAME python3 manage.py collectstatic
+echo ==make and do django db schema migrations==
+sudo docker exec -it $CONTAINER_NAME python3 manage.py makemigrations
+sudo docker exec -it $CONTAINER_NAME python3 manage.py migrate

@@ -1,9 +1,7 @@
-import { createGame } from "./Game/GameCreator";
 import { GameRunner, getDefaultSvgLoadConfig, SvgLoadConfig, getDefaultFontLoadingDir } from "./Game/GameRunner";
 import { EventQueue } from "./Game/Input/EventQueue";
 import { GameInteractionController } from "./Game/Input/UserInteraction";
 import { defaultRenderSettings, setCanvasSizeToMatchLayout } from "./Game/Renderer/Renderer";
-import { Game } from "./Game/types/Game";
 
 export {
 	setupGameWithDefaults,

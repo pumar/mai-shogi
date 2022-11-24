@@ -4,3 +4,4 @@ test_main.js
 test_main.js.map
 build_svgs.cjs
 /game_assets/*.json
+/game_assets/*.png

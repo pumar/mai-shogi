@@ -1,6 +1,5 @@
 <script lang="ts">
 import {
-	//setupGameWithDefaults,
 	getDefaultSvgLoadConfig,
 	setCanvasSizeToMatchLayout,
 	EventQueue,
@@ -29,7 +28,6 @@ import {
 export let assetLoadingRootDir = "";
 export let fontLoadingRootDir = "";
 
-//let context = undefined;
 let canvas = undefined;
 
 export let gameInstance = undefined;
@@ -134,38 +132,6 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 		console.log("connected to websocket");
 	});
 }
-
-//onMount(() => {
-//	console.log('mounted the game component, initializing game');
-	//console.log("canvas reference:", canvas);
-	//context = canvas.getContext("2d");
-	//window.context = context;
-	//window.canvas = canvas;
-	//(async function(){
-	//	const defaultLoadingConfig = getDefaultSvgLoadConfig();
-	//	const { game: gameInstance, initialGameState: initState } = await setupGameWithDefaults(
-	//		canvas,
-	//		undefined,
-	//		assetLoadingRootDir !== "" ? Object.assign({}, defaultLoadingConfig, { rootDir: assetLoadingRootDir }) : defaultLoadingConfig,
-	//		fontLoadingRootDir !== "" ? fontLoadingRootDir : defaultFontLoadingDir(),
-	//	).catch(e => {
-	//		console.error('game init failed', e);
-	//		return null;
-	//	});
-	//	if (gameInstance !== null) {
-	//		console.log("initialized game:", game);
-	//		//add the game's reference to the window object for debugging
-	//		window.game = game;
-	//		game.drawStaticObjects(initState);
-	//		game.run(initState);
-	//		//assign game object to the exported game variable, so that
-	//		//the app component can feed it inputs from the server
-	//		game = gameInstance;
-	//	} else {
-	//		console.error('game init failed');
-	//	}
-	//})()
-//});
 </script>
 
 <!--<canvas bind:this={canvas} class="game-canvas" width=600 height=600>-->

@@ -8,6 +8,8 @@ function bail() {
 	fi
 }
 
+echo "this script no longer needs to be ran, the svgs are checked into the game client repo"
+exit 1
 #https://codefather.tech/blog/bash-get-script-directory/
 SCRIPT_RELATIVE_DIR=$(dirname "${BASH_SOURCE[0]}")
 
@@ -19,6 +21,7 @@ cd ..
 
 echo this script may ask for sudo, to make directories in the container
 
+shogiPiecesCommitHash=759e69d6372ebb2350376bd5aeafd0351ab6cf61
 shogiPieceGitRepo=https://github.com/Ka-hu/shogi-pieces
 targetDir=./server/static/shogi-pieces
 if [ ! -d $targetDir ]; then
@@ -26,7 +29,7 @@ if [ ! -d $targetDir ]; then
 	sudo mkdir $targetDir
 	echo clone shogi piece repository...
 	echo ==clone $shogiPieceGitRepo to $targetDir==
-	sudo git clone $shogiPieceGitRepo $targetDir
+	sudo git clone --depth 1 $shogiPieceGitRepo $targetDir
 	#echo dry run\$:git clone $shogiPieceGitRepo $targetDir
 	bail
 fi
