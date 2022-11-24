@@ -23,12 +23,16 @@ pushd client/game
 echo "==build game client (GameRunner)=="
 npm run build
 bail
-echo "==convert svgs to json-serialized threejs objects (copied to game_assets)=="
+
+echo "==build svg baker, that converts svgs to json-serialized threejs objects=="
 npm run build_svg_baker
 bail
-echo "run the svg baker, to serialize the svgs as threejs objects"
-npm run build_game_assets
-bail
+if [ ! -f ./game_assets/BlackPawn.json ]; then
+	echo "run the svg baker, to serialize the svgs as threejs objects"
+	npm run build_game_assets
+	bail
+fi
+
 echo "==copy board texture to game_assets=="
 cp game_raw_assets/boards/tile_wood1.png game_assets
 bail

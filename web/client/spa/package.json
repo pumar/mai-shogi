@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "node esbuild.js",
+	"watch": "node esbuild.js watch",
 	"check": "tsc --project check.tsconfig.json"
   },
   "author": "",
