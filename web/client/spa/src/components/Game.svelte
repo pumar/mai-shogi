@@ -146,23 +146,25 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 		{/each}
 	{/if}
 	{#if websocketConnection === undefined}
-		{#if playerOneCode === undefined && playerTwoCode === undefined}
-		<div>
+		<div class="connectivity">
+			{#if playerOneCode === undefined && playerTwoCode === undefined}
 			<div>
-				<span>Play with the computer</span>
-				<button on:click={() => makeConn(true, true)}>Sente (black)</button>
-				<button on:click={() => makeConn(true, false)}>Gote (white)</button>
+				<div>
+					<span>Play with the computer</span>
+					<button on:click={() => makeConn(true, true)}>Sente (black)</button>
+					<button on:click={() => makeConn(true, false)}>Gote (white)</button>
+				</div>
 			</div>
-		</div>
-		{/if}
-		<div>
-			<PlayWithFriend
-				playerOneCode={playerOneCode}
-				playerTwoCode={playerTwoCode}
-				playWithFriend={playWithFriend}
-				connectCode={connectCode}
-				doGetGameCode={doGetGameCode}
-				/>
+			{/if}
+			<div>
+				<PlayWithFriend
+					playerOneCode={playerOneCode}
+					playerTwoCode={playerTwoCode}
+					playWithFriend={playWithFriend}
+					connectCode={connectCode}
+					doGetGameCode={doGetGameCode}
+					/>
+			</div>
 		</div>
 	{/if}
 </div>
@@ -171,12 +173,19 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 div.layout {
 	display: flex;
 	flex-direction: column;
-	align-items: start;
+	align-items: center;
 	justify-content: start;
 	padding: 8px;
 	gap: 8px;
+	width: 100%;
+}
+div.layout > div {
+}
+div.connectivity {
+	padding: 8px;
 }
 canvas.game-canvas {
 	width: 100%;
+	border: 1px solid black;
 }
 </style>
