@@ -44,6 +44,16 @@ let connectCode = '';
 
 let choices = [];
 
+const resetState = () => {
+	playerOneCode = undefined;
+	playerTwoCode = undefined;
+	connectCode = '';
+	choices = [];
+	isGameRegisteredToEventQueue = false
+	gameInstance = undefined;
+	gameCommunicationStack = undefined;
+};
+
 const eventQueue = new EventQueue();
 eventQueue.registerCallbacks(window);
 
@@ -110,6 +120,12 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 				sendMove(websocketConnection, commEvent);
 				//clear out the on-screen UI items related to making choices
 				choices = [];
+				break;
+			case CommunicationEventTypes.YOU_LOSE:
+				alert('YOU LOSE');
+				break;
+			case CommunicationEventTypes.YOU_WIN:
+				alert('YOU WIN');
 				break;
 			default:
 				console.debug(`communication event callback, unhandled event type:${commEvent.eventType}`);
