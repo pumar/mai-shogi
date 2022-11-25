@@ -41,6 +41,8 @@ let websocketConnection = undefined;
 let playerOneCode = undefined;
 let playerTwoCode = undefined;
 let connectCode = '';
+let youWon = false;
+let youLost = false;
 
 let choices = [];
 
@@ -52,6 +54,8 @@ const resetState = () => {
 	isGameRegisteredToEventQueue = false
 	gameInstance = undefined;
 	gameCommunicationStack = undefined;
+	youLost = false;
+	youWon = false;
 };
 
 const eventQueue = new EventQueue();
@@ -122,10 +126,10 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 				choices = [];
 				break;
 			case CommunicationEventTypes.YOU_LOSE:
-				alert('YOU LOSE');
+				youLost = true;
 				break;
 			case CommunicationEventTypes.YOU_WIN:
-				alert('YOU WIN');
+				youWon = true;
 				break;
 			default:
 				console.debug(`communication event callback, unhandled event type:${commEvent.eventType}`);
@@ -155,33 +159,40 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 <div class="layout">
 	<canvas bind:this={canvas} class="game-canvas">
 	</canvas>
-	{#if choices.length > 0}
-		<span>Choices:</span>
-		{#each choices as choice}
-			<button on:click={() => { pickChoice(gameCommunicationStack, choice.id)}}>{choice.displayMessage}</button>
-		{/each}
-	{/if}
-	{#if websocketConnection === undefined}
-		<div class="connectivity">
-			{#if playerOneCode === undefined && playerTwoCode === undefined}
-			<div>
+	{#if youWon || youLost}
+		<div>
+		<span>You { youWon ? "Won!" : "Lost" }</span>
+		<button on:click={resetState}>Play Again</button>
+		</div>
+	{:else}
+		{#if choices.length > 0}
+			<span>Choices:</span>
+			{#each choices as choice}
+				<button on:click={() => { pickChoice(gameCommunicationStack, choice.id)}}>{choice.displayMessage}</button>
+			{/each}
+		{/if}
+		{#if websocketConnection === undefined}
+			<div class="connectivity">
+				{#if playerOneCode === undefined && playerTwoCode === undefined}
 				<div>
-					<span>Play with the computer</span>
-					<button on:click={() => makeConn(true, true)}>Sente (black)</button>
-					<button on:click={() => makeConn(true, false)}>Gote (white)</button>
+					<div>
+						<span>Play with the computer</span>
+						<button on:click={() => makeConn(true, true)}>Sente (black)</button>
+						<button on:click={() => makeConn(true, false)}>Gote (white)</button>
+					</div>
+				</div>
+				{/if}
+				<div>
+					<PlayWithFriend
+						playerOneCode={playerOneCode}
+						playerTwoCode={playerTwoCode}
+						playWithFriend={playWithFriend}
+						connectCode={connectCode}
+						doGetGameCode={doGetGameCode}
+						/>
 				</div>
 			</div>
-			{/if}
-			<div>
-				<PlayWithFriend
-					playerOneCode={playerOneCode}
-					playerTwoCode={playerTwoCode}
-					playWithFriend={playWithFriend}
-					connectCode={connectCode}
-					doGetGameCode={doGetGameCode}
-					/>
-			</div>
-		</div>
+		{/if}
 	{/if}
 </div>
 
