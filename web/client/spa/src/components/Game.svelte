@@ -205,6 +205,8 @@ div.layout {
 	padding: 8px;
 	gap: 8px;
 	width: 100%;
+	height: 100%;
+	overflow: hidden;
 }
 div.layout > div {
 }
@@ -212,7 +214,7 @@ div.connectivity {
 	padding: 8px;
 }
 canvas.game-canvas {
-	width: 100%;
+	width: 60%;
 	border: 1px solid black;
 }
 </style>

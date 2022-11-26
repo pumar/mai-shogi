@@ -18,6 +18,7 @@ div.layout {
 	display: flex;
 	flex-direction: row;
 	justify-content: center;
+	overflow: hidden;
 }
 .fill {
 	width: 100%;

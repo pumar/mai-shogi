@@ -11,10 +11,24 @@
 			font-style: normal;
 			font-weight: 100;
 		}
+		html, body {
+			margin: 0;
+			padding: 0;
+			width: 100%;
+			overflow: hidden;
+		}
+		.fill {
+			width: 100%;
+			height: 100%;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
 	</style>
 </head>
 <body>
-	<div id="mai-shogi-spa-app"></div>
+	<div id="mai-shogi-spa-app" class="fillW"></div>
 	<!-- pass the path necessary to find the game piece svgs and such to the typescript applications -->
 	<input type="text" id="load_root_dir" hidden value="{% static 'game_assets' %}"/>
 	<input type="text" id="font_dir" hidden value="{% static 'fonts' %}"/>
