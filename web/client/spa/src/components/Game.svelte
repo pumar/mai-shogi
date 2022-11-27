@@ -166,10 +166,12 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 		</div>
 	{:else}
 		{#if choices.length > 0}
-			<span>Choices:</span>
-			{#each choices as choice}
-				<button on:click={() => { pickChoice(gameCommunicationStack, choice.id)}}>{choice.displayMessage}</button>
-			{/each}
+			<div class="choices">
+				<span>Choices:</span>
+				{#each choices as choice}
+					<button on:click={() => { pickChoice(gameCommunicationStack, choice.id)}}>{choice.displayMessage}</button>
+				{/each}
+			</div>
 		{/if}
 		{#if websocketConnection === undefined}
 			<div class="connectivity">
@@ -216,5 +218,12 @@ div.connectivity {
 canvas.game-canvas {
 	width: 60%;
 	border: 1px solid black;
+}
+div.choices {
+	display: flex;
+	flex-direction: row;
+	justify-content: start;
+	gap: 6px;
+	align-items: center;
 }
 </style>
