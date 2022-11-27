@@ -1478,6 +1478,10 @@ export class GameRunner implements IEventQueueListener {
 		}
 	}
 
+	private resetGameState(): void {
+		this.gameStates = [];
+	}
+
 	private updateGameState(message: Record<string, any>): void {
 		const match = message[MessageKeys.MATCH];
 		const newGame = sfenToGame(match);
@@ -1531,5 +1535,10 @@ export class GameRunner implements IEventQueueListener {
 
 		console.log('run');
 		this.run();
+	}
+
+	public resetState(): void {
+		this.getInteractionController().resetState();
+		this.resetGameState();
 	}
 }

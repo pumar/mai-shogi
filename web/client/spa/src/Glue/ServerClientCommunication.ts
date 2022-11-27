@@ -52,7 +52,13 @@ function getGameConnectUrl(connectParams: GameConnectParameters): string {
 }
 
 type PendingGameConnection = {
-	getWebsocketConn: () => WebSocket,
+	getWebsocketConn: () => {
+		conn: WebSocket;
+		/** removes the mouse and keyboard callbacks that were registered
+		* to the window object
+		**/
+		removeCallbacks: () => void;
+	},
 	game: GameRunner,
 	communicationStack: CommunicationStack,
 }
@@ -92,10 +98,10 @@ async function getGameCode(): Promise<{playerOneCode: string; playerTwoCode: str
 
 function connectToGame(
 	vsComputer: boolean,
-	isSente?: boolean,
-	myConnectCode?: string,
 	eventQueue: EventQueue,
 	isGameRegisteredToEventQueue: boolean,
+	isSente?: boolean,
+	myConnectCode?: string,
 ): PendingGameConnection {
 	//console.log(`connect to game:${gameCode}`);
 	console.log(`connect to game`);
@@ -129,11 +135,6 @@ function connectToGame(
 				isGameRegisteredToEventQueue = true;
 			}
 
-			//const eventQueue = new EventQueue();
-			//eventQueue.registerCallbacks(window);
-			//eventQueue.addListener(gameInstance);
-
-
 			console.log('recieved message from server', message);
 			//messagesFromServer = [JSON.parse(message.data).message];
 			const parsedMessage = JSON.parse(message.data);
@@ -141,14 +142,12 @@ function connectToGame(
 			notifyGameFromServer(parsedMessage, game);
 		});
 
-		//game.setPostMoveCallback((move: string) => {
-		//	conn.send(JSON.stringify({
-		//		messageType: MessageTypes.MAKE_MOVE,
-		//		[MessageKeys.MOVE]: move,
-		//	}));
-		//});
+		const removeCallbacks = eventQueue.registerCallbacks(window);
 
-		return conn;
+		return {
+			conn,
+			removeCallbacks,
+		}
 	}
 
 	const game = new GameRunner();

@@ -295,7 +295,7 @@ function calcSpaceCoordinates(
 	//if the user for this client is Gote, we need to restructure the file and
 	//rank positions array to be from that perspective
 	if (viewPoint === PlayerColor.White) {
-		console.error('flip indices');
+		//console.error('flip indices');
 		let doneFlipping = false;
 		for(let rankIndex = 0; rankIndex < ranks && !doneFlipping; rankIndex++) {
 			for(let fileIndex = 0; fileIndex < files; fileIndex++) {

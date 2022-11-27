@@ -4,10 +4,10 @@ import { EventQueue } from "./Game/Input/EventQueue";
 import { AnswerPrompt, CommunicationEvent, CommunicationEventTypes, CommunicationStack, MakeMove, PromptSelectMove } from "./Game/Input/UserInputEvents";
 import { GameInteractionController } from "./Game/Input/UserInteraction";
 import { setCanvasSizeToMatchLayout } from "./Game/Renderer/Renderer";
-import { setupGameWithDefaults } from "./GameInitializerHelper";
+//import { setupGameWithDefaults } from "./GameInitializerHelper";
 
 export {
-	setupGameWithDefaults,
+//	setupGameWithDefaults,
 	getDefaultSvgLoadConfig,
 	setCanvasSizeToMatchLayout,
 	EventQueue,

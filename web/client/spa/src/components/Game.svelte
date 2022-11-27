@@ -37,6 +37,7 @@ export let gameInstance = undefined;
 let gameCommunicationStack: CommunicationStack | undefined = undefined;
 
 let websocketConnection = undefined;
+let removeGameCallbacks = undefined;
 
 let playerOneCode = undefined;
 let playerTwoCode = undefined;
@@ -59,7 +60,7 @@ const resetState = () => {
 };
 
 const eventQueue = new EventQueue();
-eventQueue.registerCallbacks(window);
+//eventQueue.registerCallbacks(window);
 
 let isGameRegisteredToEventQueue = false;
 
@@ -86,13 +87,30 @@ const doGetGameCode = async () => {
 	makeConn(false, undefined, playerOneCode);
 }
 
+const handleGameOver = (eventType: CommunicationEventTypes): void => {
+	if (eventType === CommunicationEventTypes.YOU_WIN) {
+		youWon = true;
+	} else if (eventType === CommunicationEventTypes.YOU_LOSE) {
+		youLost = true;
+	} else {
+		throw new Error("TODO game draw case");
+	}
+
+	gameInstance.resetState();
+	if (removeGameCallbacks !== undefined) {
+		removeGameCallbacks();
+		removeGameCallbacks = undefined;
+	}
+	eventQueue.removeListener(gameInstance);
+}
+
 const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: string) => {
 	const instanceInfo = connectToGame(
 		vsComputer,
-		isSente,
-		playerCode,
 		eventQueue,
 		isGameRegisteredToEventQueue,
+		isSente,
+		playerCode,
 	);
 
 	gameInstance = instanceInfo.game;
@@ -111,7 +129,9 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 	gameInstance.setupScene();
 	console.log('init graphics done');
 
-	websocketConnection = instanceInfo.getWebsocketConn();
+	const { conn, removeCallbacks } = instanceInfo.getWebsocketConn();
+	websocketConnection = conn;
+	removeGameCallbacks = removeCallbacks;
 
 	gameCommunicationStack = instanceInfo.communicationStack;
 	gameCommunicationStack.pushNotifyCallback((commEvent: CommunicationEvent, _: number) => {
@@ -126,10 +146,8 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 				choices = [];
 				break;
 			case CommunicationEventTypes.YOU_LOSE:
-				youLost = true;
-				break;
 			case CommunicationEventTypes.YOU_WIN:
-				youWon = true;
+				handleGameOver(commEvent.eventType);
 				break;
 			default:
 				console.debug(`communication event callback, unhandled event type:${commEvent.eventType}`);

@@ -24,6 +24,9 @@ export class EventQueue {
 
 	private events: EventWrapper[] = [];
 
+	private pushMouseEvent?: (incomingEvent: MouseEvent | KeyboardEvent) => void;
+	private pushKeyboardEvent?: (incomingEvent: MouseEvent | KeyboardEvent) => void;
+
 	private mkPushEvent(eventType: EventType): (event: MouseEvent | KeyboardEvent) => void {
 		return (incomingEvent: MouseEvent | KeyboardEvent) => {
 			this.events.push({
@@ -45,14 +48,30 @@ export class EventQueue {
 		//	type: EventType.Mouse,
 		//	event: mouseEvent
 		//});
-		const pushMouseEvent = this.mkPushEvent(EventType.Mouse);
+		let pushMouseEvent: (incomingEvent: MouseEvent | KeyboardEvent) => void;
+		if (this.pushMouseEvent === undefined) {
+			pushMouseEvent = this.mkPushEvent(EventType.Mouse);
+			this.pushMouseEvent = pushMouseEvent;
+		} else {
+			pushMouseEvent = this.pushMouseEvent;
+		}
+
+		let pushKeyboardEvent: (incomingEvent: MouseEvent | KeyboardEvent) => void;
+		if (this.pushKeyboardEvent === undefined) {
+			pushKeyboardEvent = this.mkPushEvent(EventType.Keyboard);
+		} else {
+			pushKeyboardEvent = this.pushKeyboardEvent;
+		}
 
 		root.addEventListener("mousedown", pushMouseEvent);
-
 		root.addEventListener("mouseup", pushMouseEvent);
-
-		const pushKeyboardEvent = this.mkPushEvent(EventType.Keyboard);
-
 		root.addEventListener("keydown", pushKeyboardEvent);
+
+		const removeCallbacks = () => {
+			root.removeEventListener("mousedown", pushMouseEvent);
+			root.removeEventListener("mouseup", pushMouseEvent);
+			root.removeEventListener("keydown", pushKeyboardEvent);
+		}
+		return removeCallbacks;
 	}
 }
