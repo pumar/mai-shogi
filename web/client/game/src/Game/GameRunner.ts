@@ -1465,13 +1465,21 @@ export class GameRunner implements IEventQueueListener {
 				console.error(`error message from server:${errorMessage}`);
 				break;
 			case MessageTypes.YOU_WIN:
-				alert('YOU WIN');
+				this.getCommunicationStack().pushEvent({
+					eventType: CommunicationEventTypes.YOU_WIN,
+				});
 				break;
 			case MessageTypes.YOU_LOSE:
-				alert('YOU LOSE');
+				this.getCommunicationStack().pushEvent({
+					eventType: CommunicationEventTypes.YOU_LOSE,
+				});
 			default:
 				throw new Error(`receiveMessage unhandled messageType:${messageType}`);
 		}
+	}
+
+	private resetGameState(): void {
+		this.gameStates = [];
 	}
 
 	private updateGameState(message: Record<string, any>): void {
@@ -1527,5 +1535,10 @@ export class GameRunner implements IEventQueueListener {
 
 		console.log('run');
 		this.run();
+	}
+
+	public resetState(): void {
+		this.getInteractionController().resetState();
+		this.resetGameState();
 	}
 }

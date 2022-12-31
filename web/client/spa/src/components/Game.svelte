@@ -10,6 +10,8 @@ import {
 	AnswerPrompt,
 } from "mai-shogi-game";
 
+import PlayWithFriend from "./PlayWithFriend.svelte";
+
 import {
 	connectToGame,
 	sendMove,
@@ -35,15 +37,30 @@ export let gameInstance = undefined;
 let gameCommunicationStack: CommunicationStack | undefined = undefined;
 
 let websocketConnection = undefined;
+let removeGameCallbacks = undefined;
 
 let playerOneCode = undefined;
 let playerTwoCode = undefined;
 let connectCode = '';
+let youWon = false;
+let youLost = false;
 
 let choices = [];
 
+const resetState = () => {
+	playerOneCode = undefined;
+	playerTwoCode = undefined;
+	connectCode = '';
+	choices = [];
+	isGameRegisteredToEventQueue = false
+	gameInstance = undefined;
+	gameCommunicationStack = undefined;
+	youLost = false;
+	youWon = false;
+};
+
 const eventQueue = new EventQueue();
-eventQueue.registerCallbacks(window);
+//eventQueue.registerCallbacks(window);
 
 let isGameRegisteredToEventQueue = false;
 
@@ -70,13 +87,30 @@ const doGetGameCode = async () => {
 	makeConn(false, undefined, playerOneCode);
 }
 
+const handleGameOver = (eventType: CommunicationEventTypes): void => {
+	if (eventType === CommunicationEventTypes.YOU_WIN) {
+		youWon = true;
+	} else if (eventType === CommunicationEventTypes.YOU_LOSE) {
+		youLost = true;
+	} else {
+		throw new Error("TODO game draw case");
+	}
+
+	gameInstance.resetState();
+	if (removeGameCallbacks !== undefined) {
+		removeGameCallbacks();
+		removeGameCallbacks = undefined;
+	}
+	eventQueue.removeListener(gameInstance);
+}
+
 const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: string) => {
 	const instanceInfo = connectToGame(
 		vsComputer,
-		isSente,
-		playerCode,
 		eventQueue,
 		isGameRegisteredToEventQueue,
+		isSente,
+		playerCode,
 	);
 
 	gameInstance = instanceInfo.game;
@@ -95,7 +129,9 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 	gameInstance.setupScene();
 	console.log('init graphics done');
 
-	websocketConnection = instanceInfo.getWebsocketConn();
+	const { conn, removeCallbacks } = instanceInfo.getWebsocketConn();
+	websocketConnection = conn;
+	removeGameCallbacks = removeCallbacks;
 
 	gameCommunicationStack = instanceInfo.communicationStack;
 	gameCommunicationStack.pushNotifyCallback((commEvent: CommunicationEvent, _: number) => {
@@ -108,6 +144,10 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 				sendMove(websocketConnection, commEvent);
 				//clear out the on-screen UI items related to making choices
 				choices = [];
+				break;
+			case CommunicationEventTypes.YOU_LOSE:
+			case CommunicationEventTypes.YOU_WIN:
+				handleGameOver(commEvent.eventType);
 				break;
 			default:
 				console.debug(`communication event callback, unhandled event type:${commEvent.eventType}`);
@@ -134,53 +174,74 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 }
 </script>
 
-<!--<canvas bind:this={canvas} class="game-canvas" width=600 height=600>-->
-<canvas bind:this={canvas} class="game-canvas">
-</canvas>
-<!--<button on:click|preventDefault={redrawGame}>(Debug) Redraw Game</button>-->
-<div>
-	<!--<form on:submit|preventDefault={makeConn}>-->
-		<!--<label>Game code:<input type="text" bind:value={gameCode}/></label>-->
-		<!--{#if gameCode !== ""}-->
-		{#if websocketConnection === undefined}
-			{#if playerOneCode === undefined && playerTwoCode === undefined}
-			<div>
-				<label>vs Computer:</label>
-				<button on:click={() => makeConn(true, true)}>Play as sente (black)</button>
-				<button on:click={() => makeConn(true, false)}>Play as gote (white)</button>
-			</div>
-			{/if}
-			<div>
-				<div>
-					{#if playerOneCode === undefined && playerTwoCode === undefined}
-					<button on:click={() => doGetGameCode()}>Create a game to play with a friend</button>
-					{/if}
-				</div>
-				<div>
-					{#if playerOneCode === undefined && playerTwoCode === undefined}
-					<label>Enter a code to join a game:<input type="text" bind:value={connectCode} /></label>
-					{/if}
-					{#if connectCode !== ''}
-					<button on:click={() => playWithFriend()}>connect to game with code</button>
-					{/if}
-				</div>
-			</div>
-		{/if}
-		{#if playerTwoCode !== undefined}
-		<label>Share this code with your friend:<input type="text" readonly value={playerTwoCode} /></label>
-		{/if}
+<div class="layout">
+	<canvas bind:this={canvas} class="game-canvas">
+	</canvas>
+	{#if youWon || youLost}
+		<div>
+		<span>You { youWon ? "Won!" : "Lost" }</span>
+		<button on:click={resetState}>Play Again</button>
+		</div>
+	{:else}
 		{#if choices.length > 0}
-			<span>Choices:</span>
-			{#each choices as choice}
-				<button on:click={() => { pickChoice(gameCommunicationStack, choice.id)}}>{choice.displayMessage}</button>
-			{/each}
+			<div class="choices">
+				<span>Choices:</span>
+				{#each choices as choice}
+					<button on:click={() => { pickChoice(gameCommunicationStack, choice.id)}}>{choice.displayMessage}</button>
+				{/each}
+			</div>
 		{/if}
-	<!--</form>-->
+		{#if websocketConnection === undefined}
+			<div class="connectivity">
+				{#if playerOneCode === undefined && playerTwoCode === undefined}
+				<div>
+					<div>
+						<span>Play with the computer</span>
+						<button on:click={() => makeConn(true, true)}>Sente (black)</button>
+						<button on:click={() => makeConn(true, false)}>Gote (white)</button>
+					</div>
+				</div>
+				{/if}
+				<div>
+					<PlayWithFriend
+						playerOneCode={playerOneCode}
+						playerTwoCode={playerTwoCode}
+						playWithFriend={playWithFriend}
+						connectCode={connectCode}
+						doGetGameCode={doGetGameCode}
+						/>
+				</div>
+			</div>
+		{/if}
+	{/if}
 </div>
 
 <style>
-canvas.game-canvas {
+div.layout {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: start;
+	padding: 8px;
+	gap: 8px;
 	width: 100%;
 	height: 100%;
+	overflow: hidden;
+}
+div.layout > div {
+}
+div.connectivity {
+	padding: 8px;
+}
+canvas.game-canvas {
+	width: 60%;
+	border: 1px solid black;
+}
+div.choices {
+	display: flex;
+	flex-direction: row;
+	justify-content: start;
+	gap: 6px;
+	align-items: center;
 }
 </style>

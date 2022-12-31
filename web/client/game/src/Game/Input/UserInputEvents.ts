@@ -50,7 +50,7 @@ type CommunicationStack = {
 **/
 type CommunicationEvent = {
 	eventType: CommunicationEventTypes,
-	eventInfo: EventInfo;
+	eventInfo?: EventInfo;
 	//senderId: number;
 }
 
@@ -90,4 +90,6 @@ enum CommunicationEventTypes {
 	MAKE_MOVE = "MAKE_MOVE",
 	PROMPT_SELECT_MOVE = "PROMPT_SELECT_MOVE",
 	ANSWER_PROMPT = "ANSWER_PROMPT",
+	YOU_WIN = "YOU_WIN",
+	YOU_LOSE = "YOU_LOSE",
 }
