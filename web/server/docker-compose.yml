@@ -42,6 +42,7 @@ services:
     build: ./nginx_image
     volumes: 
       - ./nginx_image/templates/:/etc/nginx/templates
+      - ./assets:/mai_shogi_site/assets
     restart: on-failure
     ports:
       - "5000:5000"
