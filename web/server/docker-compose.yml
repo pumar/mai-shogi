@@ -10,9 +10,10 @@ services:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-  web:
-    build: ./server_image
-    container_name: server-web-1 #specify the container name to align with install_spa_to_server.sh
+
+  django:
+    build: ./django_image
+    container_name: django-daphne #specify the container name to align with install_spa_to_server.sh
     command: python3 manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/mai_shogi_project
@@ -26,6 +27,18 @@ services:
       - REDIS_PORT=6379
     depends_on:
       - db
+
+  nginx:
+    container_name: nginx-server
+    build: ./nginx_image
+    volumes: ./nginx_image/nginx
+    restart: on-failure
+    ports:
+      - "5000:5000"
+    environment:
+      - DAPHNE_PORT=8000
+      - DAPHNE_HOST=django-daphne
+
   redis_cache:
     image: redis
     container_name: redis-cache
