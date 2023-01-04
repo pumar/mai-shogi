@@ -23,7 +23,7 @@ services:
     volumes:
       - .:/mai_shogi_project
     ports:
-      - "8000:8000"
+      - "8000"
     environment:
       - POSTGRES_NAME=postgres
       - POSTGRES_USER=postgres
@@ -56,5 +56,5 @@ services:
     image: redis
     container_name: redis-cache
     ports:
-      - "6379:6379"
+      - "6379"
     command: redis-server --loglevel warning
