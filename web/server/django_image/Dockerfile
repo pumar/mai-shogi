@@ -7,6 +7,8 @@ WORKDIR /mai_shogi_project
 RUN	apt update && \
 	apt install -y libpq-dev && \
 	apt install -y python3-pip && \
-	apt install -y nginx supervisor
+	apt install -y supervisor
+RUN mkdir /daphne
+COPY daphne/daphne.conf /etc/daphne/daphne.conf
 COPY requirements.txt /mai_shogi_project/
 RUN python3 -m pip install -r requirements.txt

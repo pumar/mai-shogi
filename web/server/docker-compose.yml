@@ -13,8 +13,13 @@ services:
 
   django:
     build: ./django_image
-    container_name: django-daphne #specify the container name to align with install_spa_to_server.sh
-    command: python3 manage.py runserver 0.0.0.0:8000
+    #specify the container name to align with install_spa_to_server.sh
+    container_name: django-daphne
+    command: bash -c "python3 manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 mai_shogi.asgi:application"
+    # note that the command to run daphne cannot be written like this,
+    # or else the container will immediately terminate when the collectstatic
+    # command finishes
+    # command: bash -c "python3 manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 mai_shogi.asgi:application"
     volumes:
       - .:/mai_shogi_project
     ports:
@@ -27,11 +32,16 @@ services:
       - REDIS_PORT=6379
     depends_on:
       - db
+      - redis_cache
 
   nginx:
     container_name: nginx-server
+    command: nginx -g "daemon off;"
+    depends_on:
+      - django
     build: ./nginx_image
-    volumes: ./nginx_image/nginx
+    volumes: 
+      - ./nginx_image/nginx:/usr/local/etc/nginx
     restart: on-failure
     ports:
       - "5000:5000"
