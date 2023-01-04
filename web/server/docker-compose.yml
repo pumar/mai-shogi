@@ -41,13 +41,15 @@ services:
       - django
     build: ./nginx_image
     volumes: 
-      - ./nginx_image/nginx:/usr/local/etc/nginx
+      - ./nginx_image/templates/:/etc/nginx/templates
     restart: on-failure
     ports:
       - "5000:5000"
     environment:
       - DAPHNE_PORT=8000
       - DAPHNE_HOST=django-daphne
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
+      - DOLLAR=$
 
   redis_cache:
     image: redis
