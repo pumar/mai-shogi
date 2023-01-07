@@ -6,16 +6,16 @@
         - you can play vs the computer as Sente(you move first) or Gote(you move second)
     - vs player
         - you can play vs another player by creating and sharing a game code with them
-    ![game select screen](readme-assets/game_launch_screen.png)
+    ![](readme-assets/game_launch_screen.png)
 
 - features
     - clicking on a piece that you control (on the board or in your hand) will cause the spaces that it can legally move to to be highlighted
-    ![rook moves are displayed](readme-assets/click-piece-see-moves.png)
+    ![](readme-assets/click-piece-see-moves.png)
     the rook can move left and right
     - when a piece can be promoted, the Svelte app will prompt you with buttons asking you whether or not you want to promote
-    ![prompted for promotion choices](readme-assets/promotion_prompt.png)
+    ![](readme-assets/promotion_prompt.png)
     - when you win or lose the game, you will be informed by the Svelte app
-    ![win or lose message](readme-assets/you_won.png)
+    ![](readme-assets/you_won.png)
 
 - limitations
     - the computer makes random moves
