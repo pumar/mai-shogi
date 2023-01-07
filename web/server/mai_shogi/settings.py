@@ -140,7 +140,7 @@ USE_TZ = True
 
 # Check up on how you're actually supposed to serve static files in production
 # there could be some security concerns here
-STATIC_URL = '/assets/'
+STATIC_URL = 'assets/'
 STATIC_ROOT = os.path.join(settings.BASE_DIR, 'assets')
 STATICFILES_DIRS = [
     os.path.join(settings.BASE_DIR, 'static')

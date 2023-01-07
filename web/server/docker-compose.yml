@@ -10,14 +10,20 @@ services:
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-  web:
-    build: ./server_image
-    container_name: server-web-1 #specify the container name to align with install_spa_to_server.sh
-    command: python3 manage.py runserver 0.0.0.0:8000
+
+  django:
+    build: ./django_image
+    #specify the container name to align with install_spa_to_server.sh
+    container_name: django-daphne
+    command: bash -c "python3 manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 mai_shogi.asgi:application"
+    # note that the command to run daphne cannot be written like this,
+    # or else the container will immediately terminate when the collectstatic
+    # command finishes
+    # command: bash -c "python3 manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 mai_shogi.asgi:application"
     volumes:
       - .:/mai_shogi_project
     ports:
-      - "8000:8000"
+      - "8000"
     environment:
       - POSTGRES_NAME=postgres
       - POSTGRES_USER=postgres
@@ -26,9 +32,29 @@ services:
       - REDIS_PORT=6379
     depends_on:
       - db
+      - redis_cache
+
+  nginx:
+    container_name: nginx-server
+    command: nginx -g "daemon off;"
+    depends_on:
+      - django
+    build: ./nginx_image
+    volumes: 
+      - ./nginx_image/templates/:/etc/nginx/templates
+      - ./assets:/mai_shogi_site/assets
+    restart: on-failure
+    ports:
+      - "5000:5000"
+    environment:
+      - DAPHNE_PORT=8000
+      - DAPHNE_HOST=django-daphne
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
+      - DOLLAR=$
+
   redis_cache:
     image: redis
     container_name: redis-cache
     ports:
-      - "6379:6379"
+      - "6379"
     command: redis-server --loglevel warning
