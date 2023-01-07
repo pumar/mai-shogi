@@ -17,9 +17,10 @@ services:
     container_name: django-daphne
     command: bash -c "python3 manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 mai_shogi.asgi:application"
     # note that the command to run daphne cannot be written like this,
+    # command: bash python3 manage.py collectstatic --noinput && daphne -b ...
     # or else the container will immediately terminate when the collectstatic
-    # command finishes
-    # command: bash -c "python3 manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 mai_shogi.asgi:application"
+    # command finishes. Use the -c argument to have it all be considered one process that continues to run, so that the container doesn't automatically terminate
+    # the guides actually said that we need to use a tool called supervisor to manage the Daphne instances, but I took a shortcut by just running it via the shell
     volumes:
       - .:/mai_shogi_project
     ports:
