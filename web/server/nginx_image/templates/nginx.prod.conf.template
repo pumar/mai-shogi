@@ -1,0 +1,76 @@
+user nginx;  ## Default: nobody
+worker_processes  5;  ## Default: 1
+error_log  /nginx_logs/error.log;
+#pid        logs/nginx.pid;
+worker_rlimit_nofile 8192;
+
+events {
+  worker_connections  1024;  ## Default: 1024
+}
+
+http {
+  # the SSL handshake is slow so these settings are used
+  # to ensure that it needn't be ran for every request
+  ssl_session_cache   shared:SSL:10m;
+  ssl_session_timeout 10m;
+
+  include    /etc/nginx/mime.types;
+  #include    /etc/nginx/proxy.conf;
+  #include    /etc/nginx/fastcgi.conf;
+  index    index.html index.htm;
+
+  default_type application/octet-stream;
+  log_format   main '${DOLLAR}remote_addr - ${DOLLAR}remote_user [$time_local]  ${DOLLAR}status '
+    '"${DOLLAR}request" $body_bytes_sent "${DOLLAR}http_referer" '
+    '"${DOLLAR}http_user_agent" "${DOLLAR}http_x_forwarded_for"';
+  access_log   /nginx_logs/access.log  main;
+  sendfile     on;
+  tcp_nopush   on;
+  server_names_hash_bucket_size 128; # this seems to be required for some vhosts
+
+  upstream daphne_processes {
+    server $DAPHNE_HOST:$DAPHNE_PORT;
+  }
+
+  server { # shogi
+    # enable SSL for port
+    listen       5000 ssl;
+    server_name  www.mai-shogi.app;
+    # tell NGINX where the certificate is to enable SSL
+    ssl_certificate www.mai-shogi.app.crt;
+    ssl_key www.mai-shogi.app.key;
+
+	# these are set to what their default values would be anyway
+	# so the guide says that they usually do not need to be set
+	# BUT the defaults can change, so... I'll set them explicity
+    ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+
+    # this value is from the nginx HTTPs setup guide
+    keepalive_timout 70;
+
+    access_log   /nginx_logs/domain1.access.log  main;
+    root         html;
+
+    location / {
+      try_files ${DOLLAR}uri @proxy_to_app;
+    }
+
+	location /assets/ {
+		alias /mai_shogi_site/assets/;
+	}
+
+    location @proxy_to_app {
+		proxy_pass http://daphne_processes;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade ${DOLLAR}http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        proxy_redirect off;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP ${DOLLAR}remote_addr;
+        proxy_set_header X-Forwarded-For ${DOLLAR}proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host ${DOLLAR}server_name;
+    }
+  }
+}

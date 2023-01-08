@@ -37,7 +37,7 @@ services:
 
   nginx:
     container_name: nginx-server
-    command: nginx -g "daemon off;"
+    command: nginx -c $NGINX_CONF -g "daemon off;"
     depends_on:
       - django
     build: ./nginx_image
