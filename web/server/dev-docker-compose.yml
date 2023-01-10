@@ -1,0 +1,4 @@
+services:
+  django:
+    environment:
+      - DJANGO_DEBUG=true

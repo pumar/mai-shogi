@@ -1,5 +1,5 @@
 version: "3.9"
-   
+
 services:
   db:
     image: postgres
@@ -31,13 +31,18 @@ services:
       - POSTGRES_PASSWORD=postgres
       - REDIS_HOST=redis-cache
       - REDIS_PORT=6379
+      # set DJANGO_DEBUG to false, so that if it isn't overwritten by an
+      # environment variable (by say, a derivative docker-compose file
+      # it will default to the more secure setting
+      - DJANGO_DEBUG=false
+      - APP_HOST_NAME=mai-shogi.app
     depends_on:
       - db
       - redis_cache
 
   nginx:
     container_name: nginx-server
-    command: nginx -c $NGINX_CONF -g "daemon off;"
+    command: nginx -c /etc/nginx/nginx.conf -g "daemon off;"
     depends_on:
       - django
     build: ./nginx_image
@@ -46,7 +51,8 @@ services:
       - ./assets:/mai_shogi_site/assets
     restart: on-failure
     ports:
-      - "5000:5000"
+      # these port declarations are HOST:container!!!
+      - "80:5000"
     environment:
       - DAPHNE_PORT=8000
       - DAPHNE_HOST=django-daphne

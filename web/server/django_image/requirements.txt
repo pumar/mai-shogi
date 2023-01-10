@@ -4,3 +4,5 @@ channels>=4.0
 channels-redis==4.0.0
 redis==4.3.4
 psycopg2>=2.8
+requests>=2.2
+tzdata>=2020.1

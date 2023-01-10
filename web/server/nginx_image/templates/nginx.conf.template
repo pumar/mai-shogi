@@ -29,29 +29,40 @@ http {
 
   server { # shogi
     listen       5000;
-    server_name  mai-shogi.com www.mai-shogi.com;
-    access_log   /nginx_logs/domain1.access.log  main;
+    server_name  mai-shogi.app www.mai-shogi.app;
+    access_log   /nginx_logs/mai-shogi.access.log  main;
     root         html;
+
+    # tell aws that at least nginx is running
+    # it would be better to have this response come from the
+    # application server (django)
+    # make sure the path and response code match with the
+    # aws target group's health check settings
+    location /aws-health-check {
+      # you can turn the access log off for these requests
+      # access_log off;
+      return 200;
+    }
 
     location / {
       try_files ${DOLLAR}uri @proxy_to_app;
     }
 
-	location /assets/ {
-		alias /mai_shogi_site/assets/;
-	}
+    location /assets/ {
+      alias /mai_shogi_site/assets/;
+    }
 
     location @proxy_to_app {
-		proxy_pass http://daphne_processes;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade ${DOLLAR}http_upgrade;
-        proxy_set_header Connection "upgrade";
+      proxy_pass http://daphne_processes;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade ${DOLLAR}http_upgrade;
+      proxy_set_header Connection "upgrade";
 
-        proxy_redirect off;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP ${DOLLAR}remote_addr;
-        proxy_set_header X-Forwarded-For ${DOLLAR}proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Host ${DOLLAR}server_name;
+      proxy_redirect off;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP ${DOLLAR}remote_addr;
+      proxy_set_header X-Forwarded-For ${DOLLAR}proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Host ${DOLLAR}server_name;
     }
   }
 }

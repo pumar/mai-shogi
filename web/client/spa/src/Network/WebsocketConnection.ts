@@ -12,7 +12,10 @@ enum WebsocketEvent {
 
 function getWebsocketConnection(urlSuffix: string): WebSocket {
 	const connectionString = [
-		'ws:/',
+		//use wss (secure version), elsewise browers will reject
+		//the connection in prod
+		'wss:/',
+		//'ws:/',
 		window.location.host,
 		'ws',
 		urlSuffix
