@@ -27,6 +27,11 @@ SECRET_KEY = 'django-insecure-qu7s@c3p(=r1zhre1e^v%0yjv@=wi2z3+4yfm@#bm=p9u2u7-d
 
 # SECURITY WARNING: don't run with debug turned on in production!
 djangoDebug = os.environ['DJANGO_DEBUG'] == 'true'
+if djangoDebug:
+    print('django is in debug mode')
+else:
+    print('django is not in debug mode')
+
 DEBUG = djangoDebug
 
 appHostName = os.environ['APP_HOST_NAME']

@@ -41,22 +41,22 @@ let removeGameCallbacks = undefined;
 
 let playerOneCode = undefined;
 let playerTwoCode = undefined;
-let connectCode = '';
 let youWon = false;
 let youLost = false;
+let gameStarted = false;
 
 let choices = [];
 
 const resetState = () => {
 	playerOneCode = undefined;
 	playerTwoCode = undefined;
-	connectCode = '';
 	choices = [];
 	isGameRegisteredToEventQueue = false
 	gameInstance = undefined;
 	gameCommunicationStack = undefined;
 	youLost = false;
 	youWon = false;
+	gameStarted = false;
 };
 
 const eventQueue = new EventQueue();
@@ -73,9 +73,9 @@ const pickChoice = (commStack: CommunicationStack, choiceId: number) => {
 	});
 }
 
-const playWithFriend = async () => {
-	const code = connectCode;
-	makeConn(false, undefined, code);
+const playWithFriend = async (connectCode: string) => {
+	console.log(`playWithFriend code:${connectCode}`);
+	makeConn(false, undefined, connectCode);
 }
 
 const doGetGameCode = async () => {
@@ -104,7 +104,11 @@ const handleGameOver = (eventType: CommunicationEventTypes): void => {
 	eventQueue.removeListener(gameInstance);
 }
 
-const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: string) => {
+const makeConn = async (
+	vsComputer: boolean,
+	isSente?: boolean,
+	playerCode?: string
+) => {
 	const instanceInfo = connectToGame(
 		vsComputer,
 		eventQueue,
@@ -127,7 +131,6 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 	);
 
 	gameInstance.setupScene();
-	console.log('init graphics done');
 
 	const { conn, removeCallbacks } = instanceInfo.getWebsocketConn();
 	websocketConnection = conn;
@@ -148,6 +151,9 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 			case CommunicationEventTypes.YOU_LOSE:
 			case CommunicationEventTypes.YOU_WIN:
 				handleGameOver(commEvent.eventType);
+				break;
+			case CommunicationEventTypes.GAME_STARTED:
+				if (!gameStarted) gameStarted = true;
 				break;
 			default:
 				console.debug(`communication event callback, unhandled event type:${commEvent.eventType}`);
@@ -191,7 +197,7 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 				{/each}
 			</div>
 		{/if}
-		{#if websocketConnection === undefined}
+		{#if !gameStarted }
 			<div class="connectivity">
 				{#if playerOneCode === undefined && playerTwoCode === undefined}
 				<div>
@@ -207,7 +213,6 @@ const makeConn = async (vsComputer: boolean, isSente?: boolean, playerCode?: str
 						playerOneCode={playerOneCode}
 						playerTwoCode={playerTwoCode}
 						playWithFriend={playWithFriend}
-						connectCode={connectCode}
 						doGetGameCode={doGetGameCode}
 						/>
 				</div>

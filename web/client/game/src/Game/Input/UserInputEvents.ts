@@ -92,4 +92,5 @@ enum CommunicationEventTypes {
 	ANSWER_PROMPT = "ANSWER_PROMPT",
 	YOU_WIN = "YOU_WIN",
 	YOU_LOSE = "YOU_LOSE",
+	GAME_STARTED = "GAME_STARTED",
 }

@@ -14,7 +14,7 @@ function getWebsocketConnection(urlSuffix: string): WebSocket {
 	const connectionString = [
 		//use wss (secure version), elsewise browers will reject
 		//the connection in prod
-		'wss:/',
+		location.hostname === "localhost" ? 'ws:/' : 'wss:/',
 		//'ws:/',
 		window.location.host,
 		'ws',
