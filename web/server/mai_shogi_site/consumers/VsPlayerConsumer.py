@@ -109,10 +109,10 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
 
     async def game_start(self, event):
         sender = event['sender']
-        if sender == self.playerCode:
-            return
-        print('sending game start message')
-        self.send(text_data=json.dumps({
+        # the await here was missing, and even if the send action is the last
+        # piece of code in a function, you need to await it or it will not
+        # make it to the browser
+        await self.send(text_data=json.dumps({
             MessageKeys.MESSAGE_TYPE: MessageTypes.GAME_STARTED
         }))
 
