@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 import os
+import requests
 from django.conf import settings
 from pathlib import Path
 
@@ -25,12 +26,31 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-qu7s@c3p(=r1zhre1e^v%0yjv@=wi2z3+4yfm@#bm=p9u2u7-d'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+djangoDebug = os.environ['DJANGO_DEBUG'] == 'true'
+if djangoDebug:
+    print('django is in debug mode')
+else:
+    print('django is not in debug mode')
+
+DEBUG = djangoDebug
+
+appHostName = os.environ['APP_HOST_NAME']
 
 ALLOWED_HOSTS = []
+if appHostName is not None:
+    ALLOWED_HOSTS.append(appHostName)
+if djangoDebug:
+    ALLOWED_HOSTS.append('localhost')
 
-
-# Application definition
+try:
+    amazonIpUrl = 'http://169.254.169.254/latest/meta-data/local-ipv4'
+    # requests do NOT time out if no timeout is specified
+    # be sure to specify one
+    amazonIp = requests.get(amazonIpUrl, timeout=0.25).text
+    ALLOWED_HOSTS.append(amazonIp)
+    print('amazon ip added to ALLOWED_HOSTS')
+except requests.exceptions.RequestException:
+    pass
 
 INSTALLED_APPS = [
     'daphne',

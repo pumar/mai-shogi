@@ -77,7 +77,7 @@ fontDest=server/static/
 echo ==copy fonts from \($fontSource\) to django \($fontDest\)==
 cp -r $fontSource $fontDest
 
-CONTAINER_NAME=django_daphne
+CONTAINER_NAME=django-daphne
 echo ==update container static files==
 echo need sudo to login to $CONTAINER_NAME to run collectstatic
 sudo docker exec -it $CONTAINER_NAME python3 manage.py collectstatic

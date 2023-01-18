@@ -85,7 +85,17 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
             return
         print(f'other player connected:{sender}')
         print(f'am I player one?{self.isPlayerOne}')
+        if not self.isPlayerOne:
+            return
+
         (matchState, moves, nextMovePlayer) = self.getGroupGameUpdateState()
+        await self.channel_layer.group_send(
+            self.gameGroupName,
+            {
+                'type': 'game.start',
+                'sender': self.playerCode,
+            }
+        )
         await self.channel_layer.group_send(
             self.gameGroupName,
             {
@@ -96,6 +106,17 @@ class VsPlayerConsumer(AsyncWebsocketConsumer):
                 'nextPlayer': nextMovePlayer,
             }
         )
+
+    async def game_start(self, event):
+        sender = event['sender']
+        if sender == self.playerCode:
+            return
+        print('sending game start message')
+        self.send(text_data=json.dumps({
+            MessageKeys.MESSAGE_TYPE: MessageTypes.GAME_STARTED
+        }))
+
+
 
     def getGroupGameUpdateState(self) -> Tuple[str, List[str], bool]:
         matchState = self.match.serializeBoardState()

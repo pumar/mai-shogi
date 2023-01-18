@@ -43,11 +43,14 @@ function getGameConnectUrl(connectParams: GameConnectParameters): string {
 	if (connectParams.vsComputer !== undefined) {
 		const senteArg = connectParams.vsComputer.side === PlayerColor.Black ? 'sente' : 'gote';
 		return `game/computer/${senteArg}`;
-	} else {
+	} else if (connectParams.vsPlayer !== undefined) {
 		//we need the game code to know what game to join
 		//and the player code is a secret that the server will use to identify
 		//the client as being either the sente or gote player
 		return `game/versus/${connectParams.vsPlayer.playerCode}`;
+	} else {
+		console.error('getGameConnectUrl, invalid connection parameters');
+		return '';
 	}
 }
 
@@ -113,11 +116,16 @@ function connectToGame(
 				vsComputer: { side }
 			}
 		} else {
-			connectParams = {
-				vsPlayer: {
-					side,
-					playerCode: myConnectCode
-				},
+			if (myConnectCode === undefined || myConnectCode === "") {
+				console.error(`ServerClientCommunication, connect code was undefined or empty`);
+				return;
+			} else {
+				connectParams = {
+					vsPlayer: {
+						side,
+						playerCode: myConnectCode
+					},
+				}
 			}
 		}
 

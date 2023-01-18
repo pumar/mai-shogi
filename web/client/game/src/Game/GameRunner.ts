@@ -1460,6 +1460,11 @@ export class GameRunner implements IEventQueueListener {
 			case MessageTypes.GAME_STATE_UPDATE:
 				this.updateGameState(message);
 				break;
+			case MessageTypes.GAME_STARTED:
+				this.getCommunicationStack().pushEvent({
+					eventType: CommunicationEventTypes.GAME_STARTED,
+				});
+				break;
 			case MessageTypes.ERROR:
 				const errorMessage = message[MessageKeys.ERROR_MESSAGE];
 				console.error(`error message from server:${errorMessage}`);

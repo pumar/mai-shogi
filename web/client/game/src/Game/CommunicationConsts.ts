@@ -8,7 +8,8 @@ enum MessageTypes {
 	MAKE_MOVE = "mm",
 	ERROR = "err",
 	YOU_LOSE = "yl",
-	YOU_WIN = "yw"
+	YOU_WIN = "yw",
+	GAME_STARTED = "gs"
 }
 
 enum MessageKeys {

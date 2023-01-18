@@ -1,9 +1,10 @@
 <script lang="ts">
 export let playerOneCode;
 export let playerTwoCode;
-export let connectCode;
 export let doGetGameCode = () => console.warn('default doGetGameCode()');
 export let playWithFriend = () => console.warn('default playWithFriend()');
+
+let connectCode = '';
 </script>
 
 <div class="flexcol">
@@ -24,7 +25,7 @@ export let playWithFriend = () => console.warn('default playWithFriend()');
 	</div>
 	<div style="width:100%">
 		<div class="centeritem">
-			<button on:click={() => playWithFriend()} disabled={connectCode === ''}>Connect</button>
+			<button on:click={() => playWithFriend(connectCode)} disabled={connectCode === ''}>Connect</button>
 		</div>
 	</div>
 	{/if}
