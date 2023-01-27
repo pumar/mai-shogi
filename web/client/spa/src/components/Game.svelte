@@ -121,6 +121,7 @@ const makeConn = async (
 	window.game = gameInstance;
 	gameInstance.setCanvas(canvas);
 	setCanvasSizeToMatchLayout(gameInstance.getCanvas());
+	gameInstance.setResizeHandlers();
 
 	const interactionController = new GameInteractionController();
 	gameInstance.setInteractionController(interactionController);
@@ -181,8 +182,10 @@ const makeConn = async (
 </script>
 
 <div class="layout">
-	<canvas bind:this={canvas} class="game-canvas">
-	</canvas>
+	<div class="canvas-container">
+		<canvas bind:this={canvas} class="game-canvas">
+		</canvas>
+	</div>
 	{#if youWon || youLost}
 		<div>
 		<span>You { youWon ? "Won!" : "Lost" }</span>
@@ -231,15 +234,20 @@ div.layout {
 	gap: 8px;
 	width: 100%;
 	height: 100%;
-	overflow: hidden;
+	/*overflow: hidden;*/
 }
-div.layout > div {
-}
+/*div.layout > div {
+}*/
 div.connectivity {
 	padding: 8px;
 }
+div.canvas-container {
+	flex-grow: 1;
+	width: 100%;
+}
+
 canvas.game-canvas {
-	width: 60%;
+	width: 100%;
 	border: 1px solid black;
 }
 div.choices {

@@ -285,6 +285,8 @@ function defaultRenderSettings(): RenderSettings {
 
 function setCanvasSizeToMatchLayout(canvas: HTMLCanvasElement): void {
 	const {width, height} = canvas.getBoundingClientRect();
-	canvas.width = width;
-	canvas.height = height;
+	console.log(`prev:(${canvas.width}, ${canvas.height}) new:(${width}, ${height})`);
+	const moreThanPixelDifference = (x: number, y: number) => Math.abs(x - y) > 1;
+	if (moreThanPixelDifference(canvas.width, width)) canvas.width = width;
+	if (moreThanPixelDifference(canvas.height, height)) canvas.height = height;
 }
